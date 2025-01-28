@@ -13,7 +13,7 @@ startServer(world => {
   console.log('Starting server and initializing debug settings...');
   
   // Enable debug rendering for development
-  world.simulation.enableDebugRendering(false);  // Changed to true for better visibility
+  world.simulation.enableDebugRendering(false);
   // Enable debug raycasting to visualize our raycasts for testing
   world.simulation.enableDebugRaycasting(true);
 
@@ -21,12 +21,8 @@ startServer(world => {
 
   world.loadMap(worldMap);
 
-  // Initialize our handlers
-  const raycastHandler = new RaycastHandler();
-  console.log('RaycastHandler initialized');
-  
-  raycastHandler.setWorld(world); // Give raycastHandler access to world for debug visualization
-  const blockInteractionHandler = new BlockInteractionHandler(raycastHandler);
+  // Initialize our handlers with the world instance
+  const blockInteractionHandler = new BlockInteractionHandler(world);
   console.log('BlockInteractionHandler initialized');
 
   /**
@@ -68,7 +64,7 @@ startServer(world => {
     world.chatManager.sendPlayerMessage(player, 'Use WASD to move around.');
     world.chatManager.sendPlayerMessage(player, 'Press space to jump.');
     world.chatManager.sendPlayerMessage(player, 'Hold shift to sprint.');
-    world.chatManager.sendPlayerMessage(player, 'Left click to break blocks.');
+    world.chatManager.sendPlayerMessage(player, 'Left click to raycast.');
     world.chatManager.sendPlayerMessage(player, 'Press \\ to enter or exit debug view.');
   };
 

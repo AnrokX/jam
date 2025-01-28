@@ -9,7 +9,7 @@ export interface Block {
 }
 
 export interface RaycastHit {
-    hitBlock: Block;
+    hitBlock?: Block;
     hitPoint: Vector3;
     hitDistance: number;
 } 

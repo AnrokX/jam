@@ -1,5 +1,5 @@
 import { Vector3 } from '../types';
-import { RaycastHandler } from './raycast-handler';
+import { WorldInterface } from './raycast-handler';
 
 export interface PlayerInput {
     ml?: boolean;  // mouse left clicked, optional to match SDK
@@ -13,12 +13,23 @@ export interface EntityPosition {
 
 export class BlockInteractionHandler {
     private isDebugMode: boolean = false;
+    private lastLogTime: number = 0;
+    private readonly LOG_INTERVAL: number = 1000; // Log once per second at most
 
     constructor(
-        private raycastHandler: RaycastHandler,
+        private world: WorldInterface,
         private readonly maxReachDistance: number = 5
     ) {
         this.isDebugMode = process.env.NODE_ENV === 'development';
+    }
+
+    private shouldLog(): boolean {
+        const now = Date.now();
+        if (now - this.lastLogTime >= this.LOG_INTERVAL) {
+            this.lastLogTime = now;
+            return true;
+        }
+        return false;
     }
 
     handleInput(input: PlayerInput, entity: EntityPosition): void {
@@ -26,19 +37,27 @@ export class BlockInteractionHandler {
         if (!input.ml && !input.mr) return;
 
         try {
-            const raycastResult = this.raycastHandler.raycast(
+            // Perform raycast for visualization only
+            const result = this.world.simulation.raycast(
                 entity.position,
                 entity.facingDirection,
                 this.maxReachDistance,
                 {
-                    debugColor: { r: 1, g: 0, b: 0 }, 
+                    debugColor: { r: 1, g: 0, b: 0 },  // Red for visualization
                     debugDuration: 1000
                 }
             );
 
-            if (raycastResult?.hitBlock) {
-                if (input.ml) {
-                    this.raycastHandler.setBlock(raycastResult.hitBlock.globalCoordinate, 0); // 0 = air/no block
+            if (result && this.shouldLog()) {
+                console.log(`Raycast hit at distance: ${result.hitDistance}`);
+                if (result.hitBlock) {
+                    const coord = result.hitBlock.globalCoordinate;
+                    console.log(`Block hit detected at: (${coord.x}, ${coord.y}, ${coord.z})`);
+                } else {
+                    console.log('No block hit');
+                }
+                if (result.hitPoint) {
+                    console.log(`Hit point: (${result.hitPoint.x}, ${result.hitPoint.y}, ${result.hitPoint.z})`);
                 }
             }
         } catch (error) {

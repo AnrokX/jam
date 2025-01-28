@@ -12,38 +12,43 @@ export interface EntityPosition {
 }
 
 export class BlockInteractionHandler {
+    private isDebugMode: boolean = false;
+
     constructor(
         private raycastHandler: RaycastHandler,
         private readonly maxReachDistance: number = 5
-    ) {}
+    ) {
+        this.isDebugMode = process.env.NODE_ENV === 'development';
+    }
 
     handleInput(input: PlayerInput, entity: EntityPosition): void {
         // Early return if no input or undefined inputs
         if (!input.ml && !input.mr) return;
 
-        console.log('Processing block interaction input:', input);
-        console.log('Entity position:', entity.position);
-        console.log('Entity facing direction:', entity.facingDirection);
+        try {
+            const raycastResult = this.raycastHandler.raycast(
+                entity.position,
+                entity.facingDirection,
+                this.maxReachDistance,
+                {
+                    debugColor: { r: 1, g: 0, b: 0 }, 
+                    debugDuration: 1000
+                }
+            );
 
-        const raycastResult = this.raycastHandler.raycast(
-            entity.position,
-            entity.facingDirection,
-            this.maxReachDistance,
-            {
-                debugColor: { r: 1, g: 0, b: 0 },  // Red for breaking
-                debugDuration: 1000
+            if (raycastResult?.hitBlock) {
+                if (input.ml) {
+                    this.raycastHandler.setBlock(raycastResult.hitBlock.globalCoordinate, 0); // 0 = air/no block
+                }
             }
-        );
-
-        if (raycastResult?.hitBlock) {
-            if (input.ml) {
-                console.log(`Breaking block at: ${JSON.stringify(raycastResult.hitBlock.globalCoordinate)}`);
-                this.raycastHandler.setBlock(raycastResult.hitBlock.globalCoordinate, 0); // 0 = air/no block
+        } catch (error) {
+            if (this.isDebugMode) {
+                console.error('Error in block interaction:', error);
             }
+        } finally {
+            // Reset inputs to prevent spam
+            input.ml = false;
+            input.mr = false;
         }
-
-        // Reset inputs to prevent spam
-        input.ml = false;
-        input.mr = false;
     }
 } 

@@ -15,14 +15,11 @@ export interface RaycastOptions {
 export class RaycastHandler {
     private blocks: Map<string, number> = new Map();
     private world?: any; // Reference to the game world for debug visualization
+    private isDebugMode: boolean = false;
 
     setWorld(world: any) {
-        console.log('Setting world in RaycastHandler');
         this.world = world;
-        // Verify world simulation is available
-        if (this.world?.simulation) {
-            console.log('World simulation is available');
-        }
+        this.isDebugMode = process.env.NODE_ENV === 'development';
     }
 
     setBlock(position: Vector3, blockType: number): void {
@@ -35,8 +32,6 @@ export class RaycastHandler {
     }
 
     raycast(origin: Vector3, direction: Vector3, length: number, options?: RaycastOptions): RaycastHit | null {
-        console.log(`Raycasting from ${JSON.stringify(origin)} in direction ${JSON.stringify(direction)}`);
-        
         // Normalize direction vector
         const magnitude = Math.sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z);
         const normalizedDir = {
@@ -45,10 +40,8 @@ export class RaycastHandler {
             z: direction.z / magnitude
         };
 
-        // Always show debug raycast if world is available
+        // Handle debug visualization if world is available
         if (this.world?.simulation) {
-            console.log('Visualizing raycast with debug renderer');
-            // Default debug color if none provided
             const debugColor = options?.debugColor || { r: 1, g: 0, b: 0 };
             const debugDuration = options?.debugDuration || 1000;
             
@@ -64,10 +57,10 @@ export class RaycastHandler {
                     }
                 );
             } catch (error) {
-                console.error('Error visualizing raycast:', error);
+                if (this.isDebugMode) {
+                    console.error('Error in raycast visualization:', error);
+                }
             }
-        } else {
-            console.warn('World or simulation not available for debug visualization');
         }
 
         // Check each integer point along the ray until we hit length
@@ -80,7 +73,6 @@ export class RaycastHandler {
 
             const key = `${point.x},${point.y},${point.z}`;
             if (this.blocks.has(key)) {
-                console.log(`Hit block at ${JSON.stringify(point)}`);
                 return {
                     hitBlock: {
                         globalCoordinate: point
@@ -91,7 +83,6 @@ export class RaycastHandler {
             }
         }
 
-        console.log('No block hit');
         return null;
     }
 } 

@@ -6,17 +6,28 @@ import {
 } from 'hytopia';
 
 import worldMap from './assets/map.json';
-
+import { RaycastHandler } from './src/raycast/raycast-handler';
+import { BlockInteractionHandler } from './src/raycast/block-interaction-handler';
 
 startServer(world => {
-  // Enable debug rendering of the physics simulation for development.
-  // This overlays lines in-game for colliders, rigid bodies, and raycasts.
-  // Useful for debugging physics issues, but may impact performance.
-  // Intended for development environments only.
-  world.simulation.enableDebugRendering(false);
+  console.log('Starting server and initializing debug settings...');
+  
+  // Enable debug rendering for development
+  world.simulation.enableDebugRendering(false);  // Changed to true for better visibility
+  // Enable debug raycasting to visualize our raycasts for testing
+  world.simulation.enableDebugRaycasting(true);
 
+  console.log('Debug settings initialized');
 
   world.loadMap(worldMap);
+
+  // Initialize our handlers
+  const raycastHandler = new RaycastHandler();
+  console.log('RaycastHandler initialized');
+  
+  raycastHandler.setWorld(world); // Give raycastHandler access to world for debug visualization
+  const blockInteractionHandler = new BlockInteractionHandler(raycastHandler);
+  console.log('BlockInteractionHandler initialized');
 
   /**
    * Handles the event when a player joins the game.
@@ -34,13 +45,30 @@ startServer(world => {
       modelScale: 0.5,
     });
   
+    // Wire up our block interaction handler to the SDK's input system
+    playerEntity.controller!.onTickWithPlayerInput = (entity, input, cameraOrientation, deltaTimeMs) => {
+      // Only process input if we have valid input data
+      if (typeof input.ml === 'boolean' || typeof input.mr === 'boolean') {
+        blockInteractionHandler.handleInput(
+          {
+            ml: input.ml || false,
+            mr: input.mr || false
+          },
+          {
+            position: entity.position,
+            facingDirection: entity.player.camera.facingDirection
+          }
+        );
+      }
+    };
+
     playerEntity.spawn(world, { x: 0, y: 10, z: 0 });
 
-  
     world.chatManager.sendPlayerMessage(player, 'Welcome to the game!', '00FF00');
     world.chatManager.sendPlayerMessage(player, 'Use WASD to move around.');
     world.chatManager.sendPlayerMessage(player, 'Press space to jump.');
     world.chatManager.sendPlayerMessage(player, 'Hold shift to sprint.');
+    world.chatManager.sendPlayerMessage(player, 'Left click to break blocks.');
     world.chatManager.sendPlayerMessage(player, 'Press \\ to enter or exit debug view.');
   };
 
@@ -55,7 +83,6 @@ startServer(world => {
   world.onPlayerLeave = player => {
     world.entityManager.getPlayerEntitiesByPlayer(player).forEach(entity => entity.despawn());
   };
-
 
   new Audio({
     uri: 'audio/music/hytopia-main.mp3',

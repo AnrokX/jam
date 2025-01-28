@@ -3,14 +3,14 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   transform: {
-    '^.+\\.tsx?$': [
-      'ts-jest',
-      {
-        isolatedModules: true
-      },
-    ],
+    '^.+\\.tsx?$': ['ts-jest', {
+      useESM: true,
+    }],
   },
-  transformIgnorePatterns: [
-    'node_modules/(?!(hytopia)/)'
-  ]
+  moduleNameMapper: {
+    '^hytopia/server$': '<rootDir>/src/__tests__/mocks/hytopia.ts'
+  },
+  extensionsToTreatAsEsm: ['.ts'],
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
+  testMatch: ['**/__tests__/**/*.test.ts'],
 }; 

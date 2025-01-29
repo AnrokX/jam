@@ -1,38 +1,33 @@
 import {
   startServer,
   Audio,
-  GameServer,
   PlayerEntity,
+  RaycastOptions
 } from 'hytopia';
 
 import worldMap from './assets/map.json';
 import { RaycastHandler } from './src/raycast/raycast-handler';
-import { BlockInteractionHandler } from './src/raycast/block-interaction-handler';
 
 startServer(world => {
   console.log('Starting server and initializing debug settings...');
   
   // Enable debug rendering for development
   world.simulation.enableDebugRendering(false);
-  // Enable debug raycasting to visualize our raycasts for testing
-  world.simulation.enableDebugRaycasting(true);
-
-  console.log('Debug settings initialized');
+  
+  // Initialize raycast handler with debug enabled
+  const raycastHandler = new RaycastHandler(world);
+  raycastHandler.enableDebugRaycasting(true);
+  console.log('RaycastHandler initialized with debug enabled');
 
   world.loadMap(worldMap);
 
-  // Initialize our handlers with the world instance
-  const blockInteractionHandler = new BlockInteractionHandler(world);
-  console.log('BlockInteractionHandler initialized');
-
   /**
    * Handles the event when a player joins the game.
-   * This function is triggered upon a new player's connection.
-   * It creates a player entity that manages input mapping
-   * for controlling the in-game character, utilizing our
-   * player entity controller for seamless integration.
+   * Sets up player entity and input handling for raycasting.
    */
   world.onPlayerJoin = player => {
+    console.log('New player joined the game');
+    
     const playerEntity = new PlayerEntity({
       player,
       name: 'Player',
@@ -41,24 +36,33 @@ startServer(world => {
       modelScale: 0.5,
     });
   
-    // Wire up our block interaction handler to the SDK's input system
+    // Wire up raycast handler to the SDK's input system
     playerEntity.controller!.onTickWithPlayerInput = (entity, input, cameraOrientation, deltaTimeMs) => {
-      // Only process input if we have valid input data
-      if (typeof input.ml === 'boolean' || typeof input.mr === 'boolean') {
-        blockInteractionHandler.handleInput(
-          {
-            ml: input.ml || false,
-            mr: input.mr || false
-          },
-          {
-            position: entity.position,
-            facingDirection: entity.player.camera.facingDirection
-          }
+      if (input.ml) {
+        // Perform raycast on left click
+        const result = raycastHandler.raycast(
+          entity.position,
+          entity.player.camera.facingDirection,
+          5
         );
+        
+        if (result) {
+          console.log(`Raycast hit at distance: ${result.hitDistance}`);
+          if (result.hitBlock) {
+            const coord = result.hitBlock.globalCoordinate;
+            console.log(`Hit block at (${coord.x}, ${coord.y}, ${coord.z})`);
+          }
+        } else {
+          console.log('Raycast missed');
+        }
+        
+        // Reset input to prevent spam
+        input.ml = false;
       }
     };
 
     playerEntity.spawn(world, { x: 0, y: 10, z: 0 });
+    console.log(`Player spawned at (0, 10, 0)`);
 
     world.chatManager.sendPlayerMessage(player, 'Welcome to the game!', '00FF00');
     world.chatManager.sendPlayerMessage(player, 'Use WASD to move around.');
@@ -70,13 +74,9 @@ startServer(world => {
 
   /**
    * Handles the event when a player leaves the game.
-   * This function is triggered upon player disconnection.
-   * It cleans up the player and any associated entities by
-   * retrieving all PlayerEntity instances linked to the player
-   * via the world's EntityManager. This ensures proper resource
-   * release and maintains a consistent game state after a player exits.
    */
   world.onPlayerLeave = player => {
+    console.log('Player left the game');
     world.entityManager.getPlayerEntitiesByPlayer(player).forEach(entity => entity.despawn());
   };
 

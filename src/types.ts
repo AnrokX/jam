@@ -1,15 +1,5 @@
-export interface Vector3 {
-    x: number;
-    y: number;
-    z: number;
-}
+import { Vector3Like, RaycastHit as SDKRaycastHit } from 'hytopia';
 
-export interface Block {
-    globalCoordinate: Vector3;
-}
+export type Vector3 = Vector3Like;
 
-export interface RaycastHit {
-    hitBlock?: Block;
-    hitPoint: Vector3;
-    hitDistance: number;
-} 
+export type RaycastHit = SDKRaycastHit; 

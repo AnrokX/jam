@@ -1,91 +1,75 @@
-import type { Vector3 } from '../../types';
-import { RaycastHandler, RaycastOptions } from '../../raycast/raycast-handler';
+import { Vector3, RaycastOptions, RaycastHit, Block, Vector3Like } from 'hytopia';
 
-export class World {
-    chunkLattice: ChunkLattice;
-    simulation: Simulation;
+// Minimal Block implementation for testing
+class MockBlock implements Block {
+    constructor(
+        public readonly globalCoordinate: Vector3Like,
+        public readonly blockType = {} as Block['blockType']
+    ) {}
 
-    constructor() {
-        this.chunkLattice = new ChunkLattice();
-        this.simulation = new Simulation(this.chunkLattice);
+    getNeighborGlobalCoordinateFromHitPoint(hitPoint: Vector3Like): Vector3Like {
+        return { x: Math.round(hitPoint.x), y: Math.round(hitPoint.y), z: Math.round(hitPoint.z) };
     }
 }
 
-export class ChunkLattice {
-    private blocks: Map<string, number> = new Map();
-
-    setBlock(position: Vector3, blockType: number): void {
-        const key = `${position.x},${position.y},${position.z}`;
-        if (blockType === 0) {
-            this.blocks.delete(key);
-        } else {
-            this.blocks.set(key, blockType);
-        }
-    }
-
-    getBlock(position: Vector3): number {
-        const key = `${position.x},${position.y},${position.z}`;
-        return this.blocks.get(key) || 0;
-    }
-
-    hasBlock(position: Vector3): boolean {
-        const key = `${position.x},${position.y},${position.z}`;
-        return this.blocks.has(key);
-    }
+export class World {
+    simulation = new Simulation();
 }
 
 export class Simulation {
     private debugRaycastEnabled = false;
+    private blocks = new Map<string, MockBlock>();
 
-    constructor(private chunkLattice: ChunkLattice) {}
-
-    enableDebugRaycasting(enabled: boolean) {
+    enableDebugRaycasting(enabled: boolean): void {
         this.debugRaycastEnabled = enabled;
     }
 
-    isDebugRaycastingEnabled(): boolean {
+    get isDebugRaycastingEnabled(): boolean {
         return this.debugRaycastEnabled;
     }
 
-    raycast(origin: Vector3, direction: Vector3, length: number, options?: RaycastOptions) {
+    addTestBlock(x: number, y: number, z: number): void {
+        const coord = { x: Math.round(x), y: Math.round(y), z: Math.round(z) };
+        this.blocks.set(`${coord.x},${coord.y},${coord.z}`, new MockBlock(coord));
+    }
+
+    raycast(origin: Vector3Like, direction: Vector3Like, length: number, options?: RaycastOptions): RaycastHit | null {
+        if (!origin || !direction || length <= 0) return null;
+
         // Normalize direction vector
         const magnitude = Math.sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z);
+        if (magnitude === 0) return null;
+        
         const normalizedDir = {
             x: direction.x / magnitude,
             y: direction.y / magnitude,
             z: direction.z / magnitude
         };
 
-        // Calculate end point of ray
-        const hitPoint = {
-            x: origin.x + normalizedDir.x * length,
-            y: origin.y + normalizedDir.y * length,
-            z: origin.z + normalizedDir.z * length
-        };
-
-        // Check each point along the ray until we hit length
-        for (let dist = 0; dist <= length; dist++) {
-            const point = {
-                x: Math.round(origin.x + normalizedDir.x * dist),
-                y: Math.round(origin.y + normalizedDir.y * dist),
-                z: Math.round(origin.z + normalizedDir.z * dist)
+        // Check for blocks along the ray path
+        for (let distance = 0.5; distance <= length; distance += 0.5) {
+            const checkPoint = {
+                x: Math.round(origin.x + normalizedDir.x * distance),
+                y: Math.round(origin.y + normalizedDir.y * distance),
+                z: Math.round(origin.z + normalizedDir.z * distance)
             };
-
-            if (this.chunkLattice.hasBlock(point)) {
+            
+            const key = `${checkPoint.x},${checkPoint.y},${checkPoint.z}`;
+            const block = this.blocks.get(key);
+            
+            if (block) {
                 return {
-                    hitBlock: {
-                        globalCoordinate: point
+                    hitBlock: block,
+                    hitPoint: {
+                        x: origin.x + normalizedDir.x * distance,
+                        y: origin.y + normalizedDir.y * distance,
+                        z: origin.z + normalizedDir.z * distance
                     },
-                    hitPoint: point,
-                    hitDistance: dist
+                    hitDistance: distance
                 };
             }
         }
-
-        // No block hit, return end point
-        return {
-            hitPoint,
-            hitDistance: 0
-        };
+        
+        return null;
     }
 } 

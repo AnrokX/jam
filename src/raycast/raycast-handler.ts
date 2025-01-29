@@ -7,17 +7,26 @@ export interface Color {
 }
 
 export interface RaycastOptions {
-    filterExcludeRigidBody?: string;
+    ignoresSensors?: boolean;
+    filterFlags?: number;
+    filterGroups?: number;
+    filterExcludeCollider?: any;
+    filterExcludeRigidBody?: any;
+    filterPredicate?: (collider: any) => boolean;
     debugColor?: Color;
     debugDuration?: number;
 }
 
 export interface WorldInterface {
     simulation: {
-        raycast(origin: Vector3, direction: Vector3, length: number, options?: RaycastOptions): RaycastHit | null;
+        raycast(origin: Vector3, direction: Vector3, length: number, options?: RaycastOptions): RaycastHit;
+        enableDebugRaycasting(enabled: boolean): void;
+        isDebugRaycastingEnabled(): boolean;
     };
     chunkLattice: {
         setBlock(position: Vector3, blockType: number): void;
+        getBlock(position: Vector3): number;
+        hasBlock(position: Vector3): boolean;
     };
 }
 
@@ -28,7 +37,7 @@ export class RaycastHandler {
         this.isDebugMode = process.env.NODE_ENV === 'development';
     }
 
-    raycast(origin: Vector3, direction: Vector3, length: number, options?: RaycastOptions): RaycastHit | null {
+    raycast(origin: Vector3, direction: Vector3, length: number, options?: RaycastOptions): RaycastHit {
         return this.world.simulation.raycast(origin, direction, length, options);
     }
 

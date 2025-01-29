@@ -27,21 +27,40 @@ describe('Raycast System', () => {
             );
 
             expect(result).not.toBeNull();
-            expect(result?.hitBlock.globalCoordinate).toEqual(blockPos);
+            expect(result?.hitBlock?.globalCoordinate).toEqual(blockPos);
             expect(result?.hitDistance).toBe(1);
             expect(world.chunkLattice.getBlock(blockPos)).toBe(1);
         });
 
-        test('should return null when no block is hit', () => {
+        test('should handle floating point coordinates', () => {
+            const origin: Vector3 = { x: 0, y: 1.75, z: 0 };
+            const direction: Vector3 = { x: 0, y: 1, z: 0 };
+            
+            const result = world.simulation.raycast(
+                origin,
+                direction,
+                5
+            );
+
+            expect(result).not.toBeNull();
+            expect(result?.hitPoint).toBeDefined();
+            expect(typeof result?.hitPoint.y).toBe('number');
+            expect(Number.isInteger(result?.hitPoint.y)).toBe(false);
+        });
+
+        test('should return hit point when no block is in range', () => {
             const result = world.simulation.raycast(
                 { x: 0, y: 0, z: 0 },
                 { x: 0, y: 1, z: 0 },
                 5
             );
-            expect(result).toBeNull();
+            expect(result).not.toBeNull();
+            expect(result?.hitBlock).toBeUndefined();
+            expect(result?.hitPoint).toEqual({ x: 0, y: 5, z: 0 });
+            expect(result?.hitDistance).toBe(0);
         });
 
-        test('should not detect blocks beyond max length', () => {
+        test('should return hit point when block is beyond max length', () => {
             const blockPos: Vector3 = { x: 0, y: 6, z: 0 };
             world.chunkLattice.setBlock(blockPos, 1);
 
@@ -50,7 +69,10 @@ describe('Raycast System', () => {
                 { x: 0, y: 1, z: 0 },
                 5
             );
-            expect(result).toBeNull();
+            expect(result).not.toBeNull();
+            expect(result?.hitBlock).toBeUndefined();
+            expect(result?.hitPoint).toEqual({ x: 0, y: 5, z: 0 });
+            expect(result?.hitDistance).toBe(0);
             expect(world.chunkLattice.getBlock(blockPos)).toBe(1);
         });
     });
@@ -67,7 +89,7 @@ describe('Raycast System', () => {
             );
 
             expect(result).not.toBeNull();
-            expect(result?.hitBlock.globalCoordinate).toEqual(blockPos);
+            expect(result?.hitBlock?.globalCoordinate).toEqual(blockPos);
             expect(result?.hitDistance).toBe(1);
         });
 
@@ -106,7 +128,7 @@ describe('Raycast System', () => {
         });
 
         test('should handle visualization errors gracefully', () => {
-            const mockRaycast = jest.spyOn(world.simulation, 'debugRaycast')
+            const mockRaycast = jest.spyOn(world.simulation, 'raycast')
                 .mockImplementation(() => {
                     throw new Error('Visualization error');
                 });
@@ -115,7 +137,7 @@ describe('Raycast System', () => {
                 { x: 0, y: 0, z: 0 },
                 { x: 0, y: 1, z: 0 },
                 5
-            )).not.toThrow();
+            )).toThrow();
 
             mockRaycast.mockRestore();
         });

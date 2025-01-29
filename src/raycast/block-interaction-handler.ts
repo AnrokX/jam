@@ -14,7 +14,7 @@ export interface EntityPosition {
 export class BlockInteractionHandler {
     private isDebugMode: boolean = false;
     private lastLogTime: number = 0;
-    private readonly LOG_INTERVAL: number = 1000; // Log once per second at most
+    private readonly LOG_INTERVAL: number = 1; // Log once per second at most
 
     constructor(
         private world: WorldInterface,

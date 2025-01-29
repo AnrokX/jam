@@ -47,14 +47,6 @@ export class Simulation {
         return this.debugRaycastEnabled;
     }
 
-    debugRaycast(origin: Vector3, direction: Vector3, length: number, options: RaycastOptions) {
-        // Silent mock implementation for tests
-        if (this.debugRaycastEnabled && process.env.NODE_ENV === 'development') {
-            // Only log in development
-            console.log('Debug raycast:', { origin, direction, length, options });
-        }
-    }
-
     raycast(origin: Vector3, direction: Vector3, length: number, options?: RaycastOptions) {
         // Normalize direction vector
         const magnitude = Math.sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z);
@@ -64,7 +56,14 @@ export class Simulation {
             z: direction.z / magnitude
         };
 
-        // Check each integer point along the ray until we hit length
+        // Calculate end point of ray
+        const hitPoint = {
+            x: origin.x + normalizedDir.x * length,
+            y: origin.y + normalizedDir.y * length,
+            z: origin.z + normalizedDir.z * length
+        };
+
+        // Check each point along the ray until we hit length
         for (let dist = 0; dist <= length; dist++) {
             const point = {
                 x: Math.round(origin.x + normalizedDir.x * dist),
@@ -83,6 +82,10 @@ export class Simulation {
             }
         }
 
-        return null;
+        // No block hit, return end point
+        return {
+            hitPoint,
+            hitDistance: 0
+        };
     }
 } 

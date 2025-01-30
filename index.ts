@@ -2,7 +2,8 @@ import {
   startServer,
   Audio,
   PlayerEntity,
-  RaycastOptions
+  RaycastOptions,
+  PlayerCameraMode
 } from 'hytopia';
 
 import worldMap from './assets/map.json';
@@ -41,6 +42,23 @@ startServer(world => {
       modelUri: 'models/players/player.gltf',
       modelLoopedAnimations: [ 'idle' ],
       modelScale: 0.5,
+    });
+
+    // Spawn the entity first
+    playerEntity.spawn(world, { x: 0, y: 10, z: 0 });
+    console.log(`Player spawned at (0, 10, 0)`);
+
+    // Configure first-person camera after spawning
+    playerEntity.player.camera.setMode(PlayerCameraMode.FIRST_PERSON);
+    
+    // Hide the entire player model in first person
+    playerEntity.setModelHiddenNodes(['*', 'Body', 'Head', 'Arms', 'Legs']);
+    
+    // Set camera to eye level and slightly forward
+    playerEntity.player.camera.setOffset({
+      x: 0,
+      y: 1.6,  // Eye level height
+      z: 0.1   // Slightly forward to avoid any model clipping
     });
   
     // Wire up raycast handler and projectile system to the SDK's input system
@@ -112,9 +130,6 @@ startServer(world => {
         previewProjectile = null;
       }
     };
-
-    playerEntity.spawn(world, { x: 0, y: 10, z: 0 });
-    console.log(`Player spawned at (0, 10, 0)`);
 
     world.chatManager.sendPlayerMessage(player, 'Welcome to the game!', '00FF00');
     world.chatManager.sendPlayerMessage(player, 'Use WASD to move around.');

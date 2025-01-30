@@ -17,8 +17,14 @@ startServer(world => {
   
   // Initialize raycast handler with debug enabled
   const raycastHandler = new RaycastHandler(world);
-  raycastHandler.enableDebugRaycasting(true);
+  raycastHandler.enableDebugRaycasting(false);
   console.log('RaycastHandler initialized with debug enabled');
+
+  // Store preview projectile at server scope
+  let previewProjectile: ProjectileEntity | null = null;
+  
+  // Development flag for trajectory preview - set to false to disable
+  const SHOW_TRAJECTORY_PREVIEW = false;
 
   world.loadMap(worldMap);
 
@@ -60,38 +66,50 @@ startServer(world => {
         input.ml = false;
       }
 
-      // Right click to throw projectile
+      // Right mouse button pressed or held
       if (input.mr) {
-        const projectile = new ProjectileEntity({
-          modelScale: 1,
-          speed: 25
-        });
+        // Create preview projectile if it doesn't exist
+        if (!previewProjectile) {
+          previewProjectile = new ProjectileEntity({
+            modelScale: 1,
+            speed: 25,
+            raycastHandler,
+            enablePreview: SHOW_TRAJECTORY_PREVIEW
+          });
 
-        // Calculate spawn position with better handling for looking down
-        const spawnOffset = {
-          x: entity.player.camera.facingDirection.x,
-          y: Math.max(entity.player.camera.facingDirection.y, -0.5), // Limit downward offset
-          z: entity.player.camera.facingDirection.z
-        };
+          // Calculate spawn position
+          const spawnOffset = {
+            x: entity.player.camera.facingDirection.x,
+            y: Math.max(entity.player.camera.facingDirection.y, -0.5),
+            z: entity.player.camera.facingDirection.z
+          };
 
-        // Normalize the offset
-        const offsetMag = Math.sqrt(
-          spawnOffset.x * spawnOffset.x + 
-          spawnOffset.y * spawnOffset.y + 
-          spawnOffset.z * spawnOffset.z
-        );
+          const offsetMag = Math.sqrt(
+            spawnOffset.x * spawnOffset.x + 
+            spawnOffset.y * spawnOffset.y + 
+            spawnOffset.z * spawnOffset.z
+          );
 
-        // Apply normalized offset with fixed distance
-        const SPAWN_DISTANCE = 2.0;
-        const spawnPos = {
-          x: entity.position.x + (spawnOffset.x / offsetMag) * SPAWN_DISTANCE,
-          y: entity.position.y + (spawnOffset.y / offsetMag) * SPAWN_DISTANCE + 1.5, // Add constant height offset
-          z: entity.position.z + (spawnOffset.z / offsetMag) * SPAWN_DISTANCE
-        };
+          const SPAWN_DISTANCE = 2.0;
+          const spawnPos = {
+            x: entity.position.x + (spawnOffset.x / offsetMag) * SPAWN_DISTANCE,
+            y: entity.position.y + (spawnOffset.y / offsetMag) * SPAWN_DISTANCE + 1.5,
+            z: entity.position.z + (spawnOffset.z / offsetMag) * SPAWN_DISTANCE
+          };
 
-        projectile.spawn(world, spawnPos);
-        projectile.throw(entity.player.camera.facingDirection);
-        input.mr = false;
+          previewProjectile.spawn(world, spawnPos);
+        }
+
+        // Update trajectory preview
+        previewProjectile.showTrajectoryPreview(entity.player.camera.facingDirection);
+      } 
+      // Right mouse button released
+      else if (previewProjectile) {
+        // Throw the projectile and clean up preview
+        const throwDirection = entity.player.camera.facingDirection;
+        previewProjectile.throw(throwDirection);
+        previewProjectile.clearTrajectoryMarkers();
+        previewProjectile = null;
       }
     };
 

@@ -7,6 +7,7 @@ import {
 
 import worldMap from './assets/map.json';
 import { RaycastHandler } from './src/raycast/raycast-handler';
+import { ProjectileEntity } from './src/entities/projectile-entity';
 
 startServer(world => {
   console.log('Starting server and initializing debug settings...');
@@ -36,10 +37,10 @@ startServer(world => {
       modelScale: 0.5,
     });
   
-    // Wire up raycast handler to the SDK's input system
+    // Wire up raycast handler and projectile system to the SDK's input system
     playerEntity.controller!.onTickWithPlayerInput = (entity, input, cameraOrientation, deltaTimeMs) => {
+      // Left click for raycast
       if (input.ml) {
-        // Perform raycast on left click
         const result = raycastHandler.raycast(
           entity.position,
           entity.player.camera.facingDirection,
@@ -56,8 +57,41 @@ startServer(world => {
           console.log('Raycast missed');
         }
         
-        // Reset input to prevent spam
         input.ml = false;
+      }
+
+      // Right click to throw projectile
+      if (input.mr) {
+        const projectile = new ProjectileEntity({
+          modelScale: 1,
+          speed: 25
+        });
+
+        // Calculate spawn position with better handling for looking down
+        const spawnOffset = {
+          x: entity.player.camera.facingDirection.x,
+          y: Math.max(entity.player.camera.facingDirection.y, -0.5), // Limit downward offset
+          z: entity.player.camera.facingDirection.z
+        };
+
+        // Normalize the offset
+        const offsetMag = Math.sqrt(
+          spawnOffset.x * spawnOffset.x + 
+          spawnOffset.y * spawnOffset.y + 
+          spawnOffset.z * spawnOffset.z
+        );
+
+        // Apply normalized offset with fixed distance
+        const SPAWN_DISTANCE = 2.0;
+        const spawnPos = {
+          x: entity.position.x + (spawnOffset.x / offsetMag) * SPAWN_DISTANCE,
+          y: entity.position.y + (spawnOffset.y / offsetMag) * SPAWN_DISTANCE + 1.5, // Add constant height offset
+          z: entity.position.z + (spawnOffset.z / offsetMag) * SPAWN_DISTANCE
+        };
+
+        projectile.spawn(world, spawnPos);
+        projectile.throw(entity.player.camera.facingDirection);
+        input.mr = false;
       }
     };
 

@@ -1,0 +1,70 @@
+<style>
+  .projectile-counter {
+    position: absolute;
+    bottom: 40px;
+    right: 40px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 15px 25px;
+    border-radius: 12px;
+    color: #ffffff;
+    font-family: 'Arial', sans-serif;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+  }
+
+  .projectile-counter.low {
+    background: rgba(255, 0, 0, 0.2);
+    border-color: rgba(255, 0, 0, 0.3);
+  }
+
+  .projectile-icon {
+    width: 24px;
+    height: 24px;
+    background: #4CAF50;
+    border-radius: 50%;
+    position: relative;
+    display: inline-block;
+  }
+
+  .projectile-count {
+    font-size: 24px;
+    font-weight: bold;
+    min-width: 30px;
+    text-align: center;
+  }
+</style>
+
+<div class="projectile-counter">
+  <div class="projectile-icon"></div>
+  <div class="projectile-count">5</div>
+</div>
+
+<script>
+let projectileCount = 5;
+
+// Listen for projectile count updates from the game using hytopia.onData
+hytopia.onData(data => {
+  if (data.type === 'updateProjectileCount') {
+    updateProjectileCount(data.count);
+  }
+});
+
+function updateProjectileCount(count) {
+  projectileCount = count;
+  const countElement = document.querySelector('.projectile-count');
+  const counterElement = document.querySelector('.projectile-counter');
+  
+  countElement.textContent = count;
+  
+  // Add visual feedback when low on projectiles
+  if (count <= 2) {
+    counterElement.classList.add('low');
+  } else {
+    counterElement.classList.remove('low');
+  }
+}
+</script>

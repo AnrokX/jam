@@ -3,7 +3,8 @@ import {
   Audio,
   PlayerEntity,
   RaycastOptions,
-  PlayerCameraMode
+  PlayerCameraMode,
+  PlayerUI
 } from 'hytopia';
 
 import worldMap from './assets/map.json';
@@ -38,6 +39,15 @@ startServer(world => {
     
     // Initialize player's projectile state
     projectileManager.initializePlayer(player.id);
+    
+    // Load the UI first
+    player.ui.load('ui/index.html');
+    
+    // Send initial projectile count to UI
+    player.ui.sendData({
+      type: 'updateProjectileCount',
+      count: projectileManager.getProjectilesRemaining(player.id)
+    });
     
     const playerEntity = new PlayerEntity({
       player,
@@ -94,6 +104,12 @@ startServer(world => {
         entity.player.camera.facingDirection,
         input
       );
+
+      // Update UI with current projectile count after input handling
+      player.ui.sendData({
+        type: 'updateProjectileCount',
+        count: projectileManager.getProjectilesRemaining(player.id)
+      });
     };
 
     world.chatManager.sendPlayerMessage(player, 'Welcome to the game!', '00FF00');

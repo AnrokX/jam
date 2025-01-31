@@ -10,6 +10,12 @@ import worldMap from './assets/map.json';
 import { RaycastHandler } from './src/raycast/raycast-handler';
 import { ProjectileEntity } from './src/entities/projectile-entity';
 
+// Store player states in a Map
+const playerStates = new Map<string, {
+  previewProjectile: ProjectileEntity | null;
+  lastInputState: { mr: boolean };
+}>();
+
 startServer(world => {
   console.log('Starting server and initializing debug settings...');
   
@@ -21,9 +27,6 @@ startServer(world => {
   raycastHandler.enableDebugRaycasting(false);
   console.log('RaycastHandler initialized with debug enabled');
 
-  // Store preview projectile at server scope
-  let previewProjectile: ProjectileEntity | null = null;
-  
   // Development flag for trajectory preview - set to false to disable
   const SHOW_TRAJECTORY_PREVIEW = false;
 
@@ -35,6 +38,12 @@ startServer(world => {
    */
   world.onPlayerJoin = player => {
     console.log('New player joined the game');
+    
+    // Initialize player state
+    playerStates.set(player.id, {
+      previewProjectile: null,
+      lastInputState: { mr: false }
+    });
     
     const playerEntity = new PlayerEntity({
       player,
@@ -52,7 +61,7 @@ startServer(world => {
     playerEntity.player.camera.setMode(PlayerCameraMode.THIRD_PERSON);
     
     // Hide the entire player model in first person
-    playerEntity.setModelHiddenNodes(['*', 'Body', 'Head', 'Arms', 'Legs']);
+    //playerEntity.setModelHiddenNodes(['*', 'Body', 'Head', 'Arms', 'Legs']);
     
     // Set camera to eye level and slightly forward
     playerEntity.player.camera.setOffset({
@@ -63,6 +72,9 @@ startServer(world => {
   
     // Wire up raycast handler and projectile system to the SDK's input system
     playerEntity.controller!.onTickWithPlayerInput = (entity, input, cameraOrientation, deltaTimeMs) => {
+      const playerState = playerStates.get(player.id);
+      if (!playerState) return;
+
       // Left click for raycast
       if (input.ml) {
         const result = raycastHandler.raycast(
@@ -84,11 +96,18 @@ startServer(world => {
         input.ml = false;
       }
 
-      // Right mouse button pressed or held
-      if (input.mr) {
+      // Ensure input.mr has a boolean value
+      const currentMrState = input.mr ?? false;
+
+      // Handle projectile preview and throwing
+      const mrJustPressed = currentMrState && !playerState.lastInputState.mr;
+      const mrJustReleased = !currentMrState && playerState.lastInputState.mr;
+
+      // Right mouse button just pressed
+      if (mrJustPressed) {
         // Create preview projectile if it doesn't exist
-        if (!previewProjectile) {
-          previewProjectile = new ProjectileEntity({
+        if (!playerState.previewProjectile) {
+          playerState.previewProjectile = new ProjectileEntity({
             modelScale: 1,
             speed: 25,
             raycastHandler,
@@ -115,20 +134,26 @@ startServer(world => {
             z: entity.position.z + (spawnOffset.z / offsetMag) * SPAWN_DISTANCE
           };
 
-          previewProjectile.spawn(world, spawnPos);
+          playerState.previewProjectile.spawn(world, spawnPos);
         }
+      }
+      
+      // Update trajectory while held
+      if (input.mr && playerState.previewProjectile) {
+        playerState.previewProjectile.showTrajectoryPreview(entity.player.camera.facingDirection);
+      }
 
-        // Update trajectory preview
-        previewProjectile.showTrajectoryPreview(entity.player.camera.facingDirection);
-      } 
-      // Right mouse button released
-      else if (previewProjectile) {
+      // Right mouse button just released
+      if (mrJustReleased && playerState.previewProjectile) {
         // Throw the projectile and clean up preview
         const throwDirection = entity.player.camera.facingDirection;
-        previewProjectile.throw(throwDirection);
-        previewProjectile.clearTrajectoryMarkers();
-        previewProjectile = null;
+        playerState.previewProjectile.throw(throwDirection);
+        playerState.previewProjectile.clearTrajectoryMarkers();
+        playerState.previewProjectile = null;
       }
+
+      // Update last input state with the current value
+      playerState.lastInputState.mr = currentMrState;
     };
 
     world.chatManager.sendPlayerMessage(player, 'Welcome to the game!', '00FF00');
@@ -144,6 +169,14 @@ startServer(world => {
    */
   world.onPlayerLeave = player => {
     console.log('Player left the game');
+    
+    // Clean up player state
+    const playerState = playerStates.get(player.id);
+    if (playerState && playerState.previewProjectile) {
+      playerState.previewProjectile.despawn();
+    }
+    playerStates.delete(player.id);
+    
     world.entityManager.getPlayerEntitiesByPlayer(player).forEach(entity => entity.despawn());
   };
 

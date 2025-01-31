@@ -49,7 +49,7 @@ startServer(world => {
     console.log(`Player spawned at (0, 10, 0)`);
 
     // Configure first-person camera after spawning
-    playerEntity.player.camera.setMode(PlayerCameraMode.FIRST_PERSON);
+    playerEntity.player.camera.setMode(PlayerCameraMode.THIRD_PERSON);
     
     // Hide the entire player model in first person
     playerEntity.setModelHiddenNodes(['*', 'Body', 'Head', 'Arms', 'Legs']);

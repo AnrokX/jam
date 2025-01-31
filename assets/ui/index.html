@@ -3,17 +3,30 @@
     position: absolute;
     bottom: 40px;
     right: 40px;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.4);
     padding: 15px 25px;
-    border-radius: 12px;
+    border-radius: 16px;
     color: #ffffff;
     font-family: 'Arial', sans-serif;
     display: flex;
     align-items: center;
-    gap: 10px;
-    backdrop-filter: blur(5px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    gap: 12px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     transition: all 0.3s ease;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  }
+
+  .projectile-counter::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 16px;
+    background: linear-gradient(45deg, rgba(255,255,255,0.1), rgba(255,255,255,0));
+    z-index: -1;
   }
 
   .projectile-counter.low {
@@ -21,50 +34,166 @@
     border-color: rgba(255, 0, 0, 0.3);
   }
 
+  .projectile-counter.shake {
+    animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+    transform-origin: center center;
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
+
   .projectile-icon {
-    width: 24px;
-    height: 24px;
-    background: #4CAF50;
+    width: 28px;
+    height: 28px;
+    background: radial-gradient(circle at 30% 30%, #6ae675, #4CAF50);
     border-radius: 50%;
     position: relative;
     display: inline-block;
+    box-shadow: 0 0 15px #4CAF50;
+    transition: all 0.3s ease;
+  }
+
+  .projectile-icon::after {
+    content: '';
+    position: absolute;
+    top: 15%;
+    left: 15%;
+    width: 30%;
+    height: 30%;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    filter: blur(1px);
   }
 
   .projectile-count {
-    font-size: 24px;
+    font-size: 28px;
     font-weight: bold;
-    min-width: 30px;
+    min-width: 35px;
     text-align: center;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  }
+
+  .count-change {
+    animation: pulse 0.5s ease-out;
+  }
+
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+    10%, 90% { transform: translate3d(-2px, 1px, 0) rotate(-1deg); }
+    20%, 80% { transform: translate3d(3px, -1px, 0) rotate(1deg); }
+    30%, 50%, 70% { transform: translate3d(-4px, 2px, 0) rotate(-2deg); }
+    40%, 60% { transform: translate3d(4px, -2px, 0) rotate(2deg); }
+  }
+
+  .particles {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    overflow: hidden;
+    z-index: -1;
+  }
+
+  .particle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    pointer-events: none;
   }
 </style>
 
 <div class="projectile-counter">
+  <div class="particles"></div>
   <div class="projectile-icon"></div>
   <div class="projectile-count">5</div>
 </div>
 
 <script>
 let projectileCount = 5;
+let particles = [];
 
-// Listen for projectile count updates from the game using hytopia.onData
+// Create particle effect
+function createParticle() {
+  const particles = document.querySelector('.particles');
+  const particle = document.createElement('div');
+  particle.className = 'particle';
+  
+  // Random position
+  const x = Math.random() * 100;
+  const y = Math.random() * 100;
+  
+  particle.style.left = x + '%';
+  particle.style.top = y + '%';
+  
+  // Random animation
+  const animation = particle.animate([
+    { transform: 'translate(0, 0)', opacity: 1 },
+    { transform: `translate(${Math.random() * 50 - 25}px, ${Math.random() * 50 - 25}px)`, opacity: 0 }
+  ], {
+    duration: 1000 + Math.random() * 1000,
+    easing: 'cubic-bezier(0,0,0.2,1)'
+  });
+  
+  particles.appendChild(particle);
+  animation.onfinish = () => particle.remove();
+}
+
+// Create particles periodically
+setInterval(createParticle, 200);
+
+// Listen for projectile count updates and shoot attempts from the game
 hytopia.onData(data => {
   if (data.type === 'updateProjectileCount') {
     updateProjectileCount(data.count);
+  } else if (data.type === 'attemptShootNoAmmo') {
+    triggerShakeAnimation();
   }
 });
 
+function triggerShakeAnimation() {
+  const counterElement = document.querySelector('.projectile-counter');
+  counterElement.classList.remove('shake');
+  void counterElement.offsetWidth; // Trigger reflow
+  counterElement.classList.add('shake');
+  
+  // Remove the class after animation completes
+  setTimeout(() => {
+    counterElement.classList.remove('shake');
+  }, 820); // Match the animation duration
+}
+
 function updateProjectileCount(count) {
-  projectileCount = count;
   const countElement = document.querySelector('.projectile-count');
   const counterElement = document.querySelector('.projectile-counter');
+  const iconElement = document.querySelector('.projectile-icon');
   
+  // Add pulse animation
+  countElement.classList.remove('count-change');
+  void countElement.offsetWidth; // Trigger reflow
+  countElement.classList.add('count-change');
+  
+  // Update count with transition
   countElement.textContent = count;
   
-  // Add visual feedback when low on projectiles
+  // Visual feedback for low ammo
   if (count <= 2) {
     counterElement.classList.add('low');
+    iconElement.style.background = 'radial-gradient(circle at 30% 30%, #ff6b6b, #ff0000)';
+    iconElement.style.boxShadow = '0 0 15px #ff0000';
   } else {
     counterElement.classList.remove('low');
+    iconElement.style.background = 'radial-gradient(circle at 30% 30%, #6ae675, #4CAF50)';
+    iconElement.style.boxShadow = '0 0 15px #4CAF50';
   }
+  
+  projectileCount = count;
 }
 </script>

@@ -45,7 +45,8 @@ export class PlayerProjectileManager {
     playerId: string, 
     position: { x: number; y: number; z: number },
     facingDirection: { x: number; y: number; z: number },
-    input: { mr?: boolean }
+    input: { mr?: boolean },
+    player?: Player
   ): void {
     const state = this.playerStates.get(playerId);
     if (!state) return;
@@ -55,7 +56,15 @@ export class PlayerProjectileManager {
     const mrJustReleased = !currentMrState && state.lastInputState.mr;
 
     // Right mouse button just pressed
-    if (mrJustPressed && state.projectilesRemaining > 0) {
+    if (mrJustPressed) {
+      if (state.projectilesRemaining <= 0) {
+        // Send UI event when trying to shoot with no ammo
+        if (player) {
+          player.ui.sendData({ type: 'attemptShootNoAmmo' });
+        }
+        return;
+      }
+
       if (!state.previewProjectile) {
         state.previewProjectile = new ProjectileEntity({
           modelScale: 1,

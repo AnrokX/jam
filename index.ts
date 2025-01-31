@@ -102,7 +102,8 @@ startServer(world => {
         player.id,
         entity.position,
         entity.player.camera.facingDirection,
-        input
+        input,
+        player
       );
 
       // Update UI with current projectile count after input handling

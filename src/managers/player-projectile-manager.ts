@@ -1,0 +1,118 @@
+import { World, Player } from 'hytopia';
+import { ProjectileEntity } from '../entities/projectile-entity';
+import { RaycastHandler } from '../raycast/raycast-handler';
+
+export interface PlayerProjectileState {
+  previewProjectile: ProjectileEntity | null;
+  lastInputState: { mr: boolean };
+  projectilesRemaining: number;
+}
+
+export class PlayerProjectileManager {
+  private static readonly INITIAL_PROJECTILE_COUNT = 5;
+  private playerStates = new Map<string, PlayerProjectileState>();
+  private readonly world: World;
+  private readonly raycastHandler: RaycastHandler;
+  private readonly enablePreview: boolean;
+
+  constructor(world: World, raycastHandler: RaycastHandler, enablePreview: boolean = false) {
+    this.world = world;
+    this.raycastHandler = raycastHandler;
+    this.enablePreview = enablePreview;
+  }
+
+  initializePlayer(playerId: string): void {
+    this.playerStates.set(playerId, {
+      previewProjectile: null,
+      lastInputState: { mr: false },
+      projectilesRemaining: PlayerProjectileManager.INITIAL_PROJECTILE_COUNT
+    });
+  }
+
+  removePlayer(playerId: string): void {
+    const state = this.playerStates.get(playerId);
+    if (state?.previewProjectile) {
+      state.previewProjectile.despawn();
+    }
+    this.playerStates.delete(playerId);
+  }
+
+  getProjectilesRemaining(playerId: string): number {
+    return this.playerStates.get(playerId)?.projectilesRemaining ?? 0;
+  }
+
+  handleProjectileInput(
+    playerId: string, 
+    position: { x: number; y: number; z: number },
+    facingDirection: { x: number; y: number; z: number },
+    input: { mr?: boolean }
+  ): void {
+    const state = this.playerStates.get(playerId);
+    if (!state) return;
+
+    const currentMrState = input.mr ?? false;
+    const mrJustPressed = currentMrState && !state.lastInputState.mr;
+    const mrJustReleased = !currentMrState && state.lastInputState.mr;
+
+    // Right mouse button just pressed
+    if (mrJustPressed && state.projectilesRemaining > 0) {
+      if (!state.previewProjectile) {
+        state.previewProjectile = new ProjectileEntity({
+          modelScale: 1,
+          speed: 25,
+          raycastHandler: this.raycastHandler,
+          enablePreview: this.enablePreview
+        });
+
+        // Calculate spawn position
+        const spawnOffset = {
+          x: facingDirection.x,
+          y: Math.max(facingDirection.y, -0.5),
+          z: facingDirection.z
+        };
+
+        const offsetMag = Math.sqrt(
+          spawnOffset.x * spawnOffset.x + 
+          spawnOffset.y * spawnOffset.y + 
+          spawnOffset.z * spawnOffset.z
+        );
+
+        const SPAWN_DISTANCE = 2.0;
+        const spawnPos = {
+          x: position.x + (spawnOffset.x / offsetMag) * SPAWN_DISTANCE,
+          y: position.y + (spawnOffset.y / offsetMag) * SPAWN_DISTANCE + 1.5,
+          z: position.z + (spawnOffset.z / offsetMag) * SPAWN_DISTANCE
+        };
+
+        state.previewProjectile.spawn(this.world, spawnPos);
+      }
+    }
+    
+    // Update trajectory while held
+    if (currentMrState && state.previewProjectile) {
+      state.previewProjectile.showTrajectoryPreview(facingDirection);
+    }
+
+    // Right mouse button just released
+    if (mrJustReleased && state.previewProjectile) {
+      // Throw the projectile and clean up preview
+      state.previewProjectile.throw(facingDirection);
+      state.previewProjectile.clearTrajectoryMarkers();
+      state.previewProjectile = null;
+      
+      // Decrease projectile count
+      state.projectilesRemaining--;
+    }
+
+    // Update last input state
+    state.lastInputState.mr = currentMrState;
+  }
+
+  // Optional: Method to refill projectiles (could be used for pickups or respawn)
+  refillProjectiles(playerId: string, amount: number = PlayerProjectileManager.INITIAL_PROJECTILE_COUNT): void {
+    const state = this.playerStates.get(playerId);
+    if (state) {
+      state.projectilesRemaining = amount;
+    }
+  }
+} 

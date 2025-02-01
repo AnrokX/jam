@@ -160,6 +160,15 @@ export class MovingBlockEntity extends Entity {
     this.health -= amount;
     console.log(`Block took damage! Health: ${this.health}`);
     
+    if (this.health <= 0) {
+      console.log('Block destroyed!');
+      if (this.onBlockBroken) {
+        this.onBlockBroken();
+      }
+      this.despawn();
+      return;
+    }
+    
     // Instead of changing opacity, change the block type based on health
     const blockTypes = [
       'blocks/void-sand.png',
@@ -182,8 +191,12 @@ export class MovingBlockEntity extends Entity {
       oscillate: this.oscillate,
       health: this.health,
       isBreakable: this.isBreakable,
-      blockHalfExtents: this.blockHalfExtents
+      blockHalfExtents: this.blockHalfExtents,
+      onBlockBroken: this.onBlockBroken  // Transfer the callback
     });
+
+    // Transfer the player ID to the new block
+    (newBlock as any).playerId = this.playerId;
 
     // Spawn the new block at the current position
     if (this.world) {
@@ -192,18 +205,6 @@ export class MovingBlockEntity extends Entity {
 
     // Despawn the old block
     this.despawn();
-
-    if (this.health <= 0) {
-      console.log('Block destroyed!');
-
-      if (this.onBlockBroken) {
-        this.onBlockBroken();
-      }
-      // TODO: Add particle effects or break animation
-      this.despawn();
-
-      newBlock.despawn();
-    }
   }
 }
 

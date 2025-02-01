@@ -206,4 +206,91 @@ describe('MovingBlockEntity', () => {
     expect(scoreManager.getScore(player1Id)).toBe(5);
     expect(scoreManager.getScore(player2Id)).toBe(0);
   });
+
+  test('should maintain player ID when block transforms', () => {
+    // Create a projectile with a player ID
+    const projectile = new ProjectileEntity({
+      name: 'TestProjectile',
+      playerId: player1Id
+    });
+
+    // Create block with scoring callback and higher health
+    const block = new MovingBlockEntity({
+      health: 3,  // Multiple hits needed to destroy
+      isBreakable: true,
+      onBlockBroken: () => {
+        if ((block as any).playerId) {
+          scoreManager.addScore((block as any).playerId, 5);
+        }
+      }
+    });
+    
+    // Mock required methods
+    block.setOpacity = mock(() => {});
+    block.despawn = mock(() => {});
+    projectile.despawn = mock(() => {});
+    
+    // Mock isSpawned to true so handleCollision works
+    (block as any).isSpawned = true;
+    
+    // Simulate first hit - should transform block but not destroy
+    (block as any).handleCollision(projectile);
+    
+    // Verify block stored the player ID
+    expect((block as any).playerId).toBe(player1Id);
+    
+    // Create second projectile from different player
+    const projectile2 = new ProjectileEntity({
+      name: 'TestProjectile2',
+      playerId: player2Id
+    });
+    projectile2.despawn = mock(() => {});
+
+    // Simulate second hit from different player
+    (block as any).handleCollision(projectile2);
+    
+    // Verify player ID was updated to the new player
+    expect((block as any).playerId).toBe(player2Id);
+
+    // Simulate final hit to destroy block
+    (block as any).handleCollision(projectile2);
+
+    // Verify points were awarded to the last player who hit it
+    expect(scoreManager.getScore(player1Id)).toBe(0);
+    expect(scoreManager.getScore(player2Id)).toBe(5);
+  });
+
+  test('should handle block transformation without breaking score tracking', () => {
+    const block = new MovingBlockEntity({
+      health: 2,
+      isBreakable: true,
+      onBlockBroken: () => {
+        if ((block as any).playerId) {
+          scoreManager.addScore((block as any).playerId, 5);
+        }
+      }
+    });
+    
+    // Mock required methods
+    block.setOpacity = mock(() => {});
+    block.despawn = mock(() => {});
+    
+    // Mock isSpawned to true so handleCollision works
+    (block as any).isSpawned = true;
+
+    // Create and hit with first projectile
+    const projectile1 = new ProjectileEntity({
+      name: 'TestProjectile1',
+      playerId: player1Id
+    });
+    projectile1.despawn = mock(() => {});
+    
+    // First hit should transform but not destroy
+    (block as any).handleCollision(projectile1);
+    expect(scoreManager.getScore(player1Id)).toBe(0); // No points yet
+    
+    // Second hit should destroy and award points
+    (block as any).handleCollision(projectile1);
+    expect(scoreManager.getScore(player1Id)).toBe(5); // Points awarded
+  });
 }); 

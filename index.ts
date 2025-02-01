@@ -33,10 +33,29 @@ startServer(world => {
   // Initialize the score manager
   const scoreManager = new ScoreManager();
 
-  // Initialize the moving block manager and create the Z-axis obstacle
+  const BLOCK_SPAWN_INTERVAL = 5000; // 5 seconds in milliseconds
+  const MAX_BLOCKS = 3; // Maximum number of blocks that can exist at once
+
+  // Initialize the moving block manager and create the initial Z-axis obstacle
   const movingBlockManager = new MovingBlockManager(world, scoreManager);
   movingBlockManager.createZAxisBlock();
   console.log('MovingBlockManager initialized with Z-axis obstacle');
+
+  // Set up periodic block spawning
+  setInterval(() => {
+    // Only spawn new block if we're under the maximum
+    if (movingBlockManager.getBlockCount() < MAX_BLOCKS) {
+      // Spawn at a random position within bounds
+      const spawnPos = {
+        x: Math.random() * 10 - 5, // Random x between -5 and 5
+        y: 1 + Math.random() * 3,  // Random y between 1 and 4
+        z: Math.random() * 20 - 10 // Random z between -10 and 10
+      };
+
+      movingBlockManager.createZAxisBlock(spawnPos);
+      console.log(`New block spawned at (${spawnPos.x.toFixed(2)}, ${spawnPos.y.toFixed(2)}, ${spawnPos.z.toFixed(2)})`);
+    }
+  }, BLOCK_SPAWN_INTERVAL);
 
   world.loadMap(worldMap);
 

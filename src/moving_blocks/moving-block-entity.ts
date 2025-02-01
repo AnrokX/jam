@@ -180,10 +180,14 @@ export class MovingBlockManager {
 
   constructor(
     private world: World,
-    private scoreManager?: ScoreManager  // Add ScoreManager as optional dependency
+    private scoreManager?: ScoreManager
   ) {}
 
-  public createZAxisBlock(): MovingBlockEntity {
+  public getBlockCount(): number {
+    return this.blocks.length;
+  }
+
+  public createZAxisBlock(spawnPosition?: Vector3Like): MovingBlockEntity {
     const block = new MovingBlockEntity({
       onBlockBroken: () => {
         if (this.scoreManager && (block as any).playerId) {
@@ -192,13 +196,16 @@ export class MovingBlockManager {
           
           this.scoreManager.addScore(playerId, score);
           console.log(`Block broken by player ${playerId}! Awarded ${score} points`);
+          
+          // Remove the block from our tracking array when broken
+          this.removeBlock(block);
         } else {
           console.log('Block broken but no player ID found to award points');
         }
       }
     });
     
-    block.spawn(this.world, MOVING_BLOCK_CONFIG.SPAWN_POSITION);
+    block.spawn(this.world, spawnPosition || MOVING_BLOCK_CONFIG.SPAWN_POSITION);
     this.blocks.push(block);
     return block;
   }

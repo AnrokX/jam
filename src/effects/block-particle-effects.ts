@@ -5,75 +5,7 @@ import { DESTRUCTION_PARTICLE_CONFIG } from '../config/particle-config';
 export class BlockParticleEffects {
   private particles: Entity[] = [];
 
-  createHitEffect(world: World, hitPosition: Vector3Like, blockTextureUri: string): void {
-    if (!world) return;
-
-    // Create particles in a circular pattern
-    for (let i = 0; i < MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.COUNT; i++) {
-      const angle = (i / MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.COUNT) * Math.PI * 2;
-      const radius = MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.SPREAD_RADIUS;
-
-      // Create a small block entity using the same texture as the parent block
-      const particle = new Entity({
-        name: 'HitParticle',
-        blockTextureUri: blockTextureUri,
-        blockHalfExtents: {
-          x: MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.SCALE,
-          y: MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.SCALE,
-          z: MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.SCALE
-        },
-        rigidBodyOptions: {
-          type: RigidBodyType.DYNAMIC,
-          colliders: [{
-            shape: ColliderShape.BLOCK,
-            halfExtents: {
-              x: MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.SCALE,
-              y: MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.SCALE,
-              z: MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.SCALE
-            },
-            mass: 0.1,
-            friction: 0.2,
-            bounciness: 0.3
-          }]
-        }
-      });
-
-      // Calculate spawn position with some randomization
-      const particlePosition = {
-        x: hitPosition.x + Math.cos(angle) * radius * (0.8 + Math.random() * 0.4),
-        y: hitPosition.y + Math.random() * 0.2,
-        z: hitPosition.z + Math.sin(angle) * radius * (0.8 + Math.random() * 0.4)
-      };
-
-      particle.spawn(world, particlePosition);
-      this.particles.push(particle);
-
-      // Apply initial impulse for movement
-      if (particle.rawRigidBody) {
-        const speed = MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.SPEED * (0.8 + Math.random() * 0.4);
-        particle.rawRigidBody.applyImpulse({
-          x: Math.cos(angle) * speed,
-          y: 0.2 + Math.random() * 0.3, // Upward bias
-          z: Math.sin(angle) * speed
-        });
-
-        // Add some spin
-        particle.rawRigidBody.applyTorqueImpulse({
-          x: (Math.random() - 0.5) * 0.1,
-          y: (Math.random() - 0.5) * 0.1,
-          z: (Math.random() - 0.5) * 0.1
-        });
-      }
-
-      // Clean up after lifetime
-      setTimeout(() => {
-        if (particle.isSpawned) {
-          particle.despawn();
-        }
-        this.particles = this.particles.filter(p => p !== particle);
-      }, MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.LIFETIME);
-    }
-  }
+ 
 
   createDestructionEffect(world: World, position: Vector3Like, blockTextureUri: string): void {
     if (!world) return;

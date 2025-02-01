@@ -142,10 +142,6 @@ export class MovingBlockEntity extends Entity {
     this.movementBehavior.update(this, deltaTimeMs);
   }
 
-  private createHitEffect(hitPosition: Vector3Like): void {
-    if (!this.world || !this.blockTextureUri) return;
-    this.particleEffects.createHitEffect(this.world, hitPosition, this.blockTextureUri);
-  }
 
   private handleCollision(other: Entity): void {
     // Check if the colliding entity is a projectile

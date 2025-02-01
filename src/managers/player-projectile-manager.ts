@@ -1,6 +1,7 @@
 import { World, Player } from 'hytopia';
 import { ProjectileEntity } from '../entities/projectile-entity';
 import { RaycastHandler } from '../raycast/raycast-handler';
+import { Vector3Like } from 'hytopia';
 
 export interface PlayerProjectileState {
   previewProjectile: ProjectileEntity | null;
@@ -41,12 +42,47 @@ export class PlayerProjectileManager {
     return this.playerStates.get(playerId)?.projectilesRemaining ?? 0;
   }
 
-  handleProjectileInput(
-    playerId: string, 
-    position: { x: number; y: number; z: number },
-    facingDirection: { x: number; y: number; z: number },
-    input: { mr?: boolean },
-    player?: Player
+  private createProjectile(playerId: string, position: Vector3Like, direction: Vector3Like): ProjectileEntity {
+    const projectile = new ProjectileEntity({
+      modelScale: 1,
+      speed: 25,
+      raycastHandler: this.raycastHandler,
+      enablePreview: this.enablePreview
+    });
+
+    // Add the player ID to the projectile
+    (projectile as any).playerId = playerId;
+
+    // Calculate spawn position
+    const spawnOffset = {
+      x: direction.x,
+      y: Math.max(direction.y, -0.5),
+      z: direction.z
+    };
+
+    const offsetMag = Math.sqrt(
+      spawnOffset.x * spawnOffset.x + 
+      spawnOffset.y * spawnOffset.y + 
+      spawnOffset.z * spawnOffset.z
+    );
+
+    const SPAWN_DISTANCE = 2.0;
+    const spawnPos = {
+      x: position.x + (spawnOffset.x / offsetMag) * SPAWN_DISTANCE,
+      y: position.y + (spawnOffset.y / offsetMag) * SPAWN_DISTANCE + 1.5,
+      z: position.z + (spawnOffset.z / offsetMag) * SPAWN_DISTANCE
+    };
+
+    projectile.spawn(this.world, spawnPos);
+    return projectile;
+  }
+
+  public handleProjectileInput(
+    playerId: string,
+    position: Vector3Like,
+    direction: Vector3Like,
+    input: any,
+    player: Player
   ): void {
     const state = this.playerStates.get(playerId);
     if (!state) return;
@@ -66,46 +102,19 @@ export class PlayerProjectileManager {
       }
 
       if (!state.previewProjectile) {
-        state.previewProjectile = new ProjectileEntity({
-          modelScale: 1,
-          speed: 25,
-          raycastHandler: this.raycastHandler,
-          enablePreview: this.enablePreview
-        });
-
-        // Calculate spawn position
-        const spawnOffset = {
-          x: facingDirection.x,
-          y: Math.max(facingDirection.y, -0.5),
-          z: facingDirection.z
-        };
-
-        const offsetMag = Math.sqrt(
-          spawnOffset.x * spawnOffset.x + 
-          spawnOffset.y * spawnOffset.y + 
-          spawnOffset.z * spawnOffset.z
-        );
-
-        const SPAWN_DISTANCE = 2.0;
-        const spawnPos = {
-          x: position.x + (spawnOffset.x / offsetMag) * SPAWN_DISTANCE,
-          y: position.y + (spawnOffset.y / offsetMag) * SPAWN_DISTANCE + 1.5,
-          z: position.z + (spawnOffset.z / offsetMag) * SPAWN_DISTANCE
-        };
-
-        state.previewProjectile.spawn(this.world, spawnPos);
+        state.previewProjectile = this.createProjectile(playerId, position, direction);
       }
     }
     
     // Update trajectory while held
     if (currentMrState && state.previewProjectile) {
-      state.previewProjectile.showTrajectoryPreview(facingDirection);
+      state.previewProjectile.showTrajectoryPreview(direction);
     }
 
     // Right mouse button just released
     if (mrJustReleased && state.previewProjectile) {
       // Throw the projectile and clean up preview
-      state.previewProjectile.throw(facingDirection);
+      state.previewProjectile.throw(direction);
       state.previewProjectile.clearTrajectoryMarkers();
       state.previewProjectile = null;
       

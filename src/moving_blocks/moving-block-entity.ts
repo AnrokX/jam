@@ -11,7 +11,8 @@ const MOVING_BLOCK_CONFIG = {
     min: { x: 0, y: 1, z: -15 },
     max: { x: 0, y: 1, z: 16 }
   },
-  SPAWN_POSITION: { x: 0, y: 1, z: 0 }
+  SPAWN_POSITION: { x: 0, y: 1, z: 0 },
+  BREAK_SCORE: 5  // Points awarded for breaking a block
 };
 
 export interface MovingBlockOptions extends EntityOptions {
@@ -39,6 +40,7 @@ export class MovingBlockEntity extends Entity {
   private health: number;
   private isBreakable: boolean;
   private onBlockBroken?: () => void;
+  private playerId?: string;  // Store the ID of player who last hit the block
 
   constructor(options: MovingBlockOptions) {
     super({
@@ -138,6 +140,11 @@ export class MovingBlockEntity extends Entity {
     // Check if the colliding entity is a projectile
     if (other.name.toLowerCase().includes('projectile')) {
       console.log('Projectile hit detected!');
+      
+      // Store the player ID from the projectile if available
+      this.playerId = (other as any).playerId;
+      console.log(`Projectile from player: ${this.playerId || 'Unknown'}`);
+      
       this.takeDamage(1);
       
       // Despawn the projectile that hit us
@@ -178,12 +185,15 @@ export class MovingBlockManager {
 
   public createZAxisBlock(): MovingBlockEntity {
     const block = new MovingBlockEntity({
-      // Use default config
       onBlockBroken: () => {
-        // When block is broken, award points if we have a ScoreManager
-        if (this.scoreManager) {
-          // Award 5 points for breaking a block
-          this.scoreManager.addScore('player1', 5); // TODO: Get actual player ID
+        if (this.scoreManager && (block as any).playerId) {
+          const playerId = (block as any).playerId;
+          const score = MOVING_BLOCK_CONFIG.BREAK_SCORE;
+          
+          this.scoreManager.addScore(playerId, score);
+          console.log(`Block broken by player ${playerId}! Awarded ${score} points`);
+        } else {
+          console.log('Block broken but no player ID found to award points');
         }
       }
     });

@@ -47,6 +47,9 @@ startServer(world => {
   world.onPlayerJoin = player => {
     console.log('New player joined the game');
     
+    // Initialize player's score
+    scoreManager.initializePlayer(player.id);
+    
     // Initialize player's projectile state
     projectileManager.initializePlayer(player.id);
     
@@ -145,7 +148,8 @@ startServer(world => {
   world.onPlayerLeave = player => {
     console.log('Player left the game');
     
-    // Clean up player's projectile state
+    // Clean up player states
+    scoreManager.removePlayer(player.id);
     projectileManager.removePlayer(player.id);
     
     world.entityManager.getPlayerEntitiesByPlayer(player).forEach(entity => entity.despawn());

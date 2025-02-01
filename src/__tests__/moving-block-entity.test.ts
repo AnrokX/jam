@@ -206,4 +206,82 @@ describe('MovingBlockEntity', () => {
     expect(scoreManager.getScore(player1Id)).toBe(5);
     expect(scoreManager.getScore(player2Id)).toBe(0);
   });
+
+  test('should maintain player ID through multiple hits', () => {
+    // Create projectiles for both players
+    const player1Projectile = new ProjectileEntity({
+      name: 'Player1Projectile',
+      playerId: player1Id
+    });
+
+    const player2Projectile = new ProjectileEntity({
+      name: 'Player2Projectile',
+      playerId: player2Id
+    });
+
+    // Create block with higher health
+    const block = new MovingBlockEntity({
+      health: 3,  // Multiple hits needed to destroy
+      isBreakable: true,
+      onBlockBroken: () => {
+        if ((block as any).playerId) {
+          scoreManager.addScore((block as any).playerId, 5);
+        }
+      }
+    });
+    
+    // Mock required methods
+    block.setOpacity = mock(() => {});
+    block.despawn = mock(() => {});
+    player1Projectile.despawn = mock(() => {});
+    player2Projectile.despawn = mock(() => {});
+    
+    // First hit from player 1
+    (block as any).handleCollision(player1Projectile);
+    expect((block as any).playerId).toBe(player1Id);
+    expect(scoreManager.getScore(player1Id)).toBe(0); // No points yet
+    
+    // Second hit from player 2
+    (block as any).handleCollision(player2Projectile);
+    expect((block as any).playerId).toBe(player2Id);
+    expect(scoreManager.getScore(player1Id)).toBe(0);
+    expect(scoreManager.getScore(player2Id)).toBe(0);
+
+    // Final hit from player 2
+    (block as any).handleCollision(player2Projectile);
+    expect(scoreManager.getScore(player1Id)).toBe(0);
+    expect(scoreManager.getScore(player2Id)).toBe(5); // Points awarded to last hitter
+  });
+
+  test('should track damage correctly through multiple hits', () => {
+    const block = new MovingBlockEntity({
+      health: 2,
+      isBreakable: true,
+      onBlockBroken: () => {
+        if ((block as any).playerId) {
+          scoreManager.addScore((block as any).playerId, 5);
+        }
+      }
+    });
+    
+    // Mock required methods
+    block.setOpacity = mock(() => {});
+    block.despawn = mock(() => {});
+
+    // Create projectile
+    const projectile = new ProjectileEntity({
+      name: 'TestProjectile',
+      playerId: player1Id
+    });
+    projectile.despawn = mock(() => {});
+    
+    // First hit
+    (block as any).handleCollision(projectile);
+    expect((block as any).health).toBe(1); // Check health after first hit
+    expect(scoreManager.getScore(player1Id)).toBe(0); // No points yet
+    
+    // Second hit should destroy
+    (block as any).handleCollision(projectile);
+    expect(scoreManager.getScore(player1Id)).toBe(5); // Points awarded
+  });
 }); 

@@ -228,6 +228,15 @@ export class MovingBlockEntity extends Entity {
     this.health -= amount;
     console.log(`Block took damage! Health: ${this.health}`);
     
+    if (this.health <= 0) {
+      console.log('Block destroyed!');
+      if (this.onBlockBroken) {
+        this.onBlockBroken();
+      }
+      this.despawn();
+      return;
+    }
+    
     // Instead of changing opacity, change the block type based on health
     const blockTypes = [
       'blocks/void-sand.png',
@@ -250,8 +259,12 @@ export class MovingBlockEntity extends Entity {
       oscillate: this.oscillate,
       health: this.health,
       isBreakable: this.isBreakable,
-      blockHalfExtents: this.blockHalfExtents
+      blockHalfExtents: this.blockHalfExtents,
+      onBlockBroken: this.onBlockBroken  // Transfer the callback
     });
+
+    // Transfer the player ID to the new block
+    (newBlock as any).playerId = this.playerId;
 
     // Spawn the new block at the current position
     if (this.world) {
@@ -260,18 +273,6 @@ export class MovingBlockEntity extends Entity {
 
     // Despawn the old block
     this.despawn();
-
-    if (this.health <= 0) {
-      console.log('Block destroyed!');
-
-      if (this.onBlockBroken) {
-        this.onBlockBroken();
-      }
-      // TODO: Add particle effects or break animation
-      this.despawn();
-
-      newBlock.despawn();
-    }
   }
 }
 
@@ -284,10 +285,15 @@ export class MovingBlockManager {
   ) {}
 
   public getBlockCount(): number {
+    // Filter out any despawned blocks
+    this.blocks = this.blocks.filter(block => block.isSpawned);
     return this.blocks.length;
   }
 
   public createZAxisBlock(spawnPosition?: Vector3Like): MovingBlockEntity {
+    // Clean up any despawned blocks first
+    this.blocks = this.blocks.filter(block => block.isSpawned);
+
     const block = new MovingBlockEntity({
       onBlockBroken: () => {
         if (this.scoreManager && (block as any).playerId) {
@@ -316,13 +322,7 @@ export class MovingBlockManager {
   public removeBlock(block: MovingBlockEntity): void {
     const index = this.blocks.indexOf(block);
     if (index !== -1) {
-      block.despawn();
       this.blocks.splice(index, 1);
     }
-  }
-
-  public removeAllBlocks(): void {
-    this.blocks.forEach(block => block.despawn());
-    this.blocks = [];
   }
 }

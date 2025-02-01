@@ -1,32 +1,22 @@
 import { MovingBlockEntity, MovingBlockOptions } from '../moving_blocks/moving-block-entity';
 import { ScoreManager } from '../managers/score-manager';
+import { mock, describe, test, expect, beforeEach } from 'bun:test';
 
-// Mock the hytopia imports
-jest.mock('hytopia', () => ({
-  Entity: class MockEntity {
-    name: string;
-    isSpawned: boolean = false;
-    constructor(options: { name: string }) {
-      this.name = options.name;
-    }
-    spawn() {}
-    despawn() {}
-    setPosition() {}
-    setOpacity() {}
-  },
-  World: class MockWorld {},
-  RigidBodyType: {
-    KINEMATIC_POSITION: 'KINEMATIC_POSITION'
-  },
-  ColliderShape: {
-    BLOCK: 'BLOCK'
-  },
-  CollisionGroup: {
-    BLOCK: 'BLOCK',
-    PLAYER: 'PLAYER',
-    ENTITY: 'ENTITY'
+// Mock hytopia module
+const mockEntity = class MockEntity {
+  name: string;
+  isSpawned: boolean = false;
+  constructor(options: { name: string }) {
+    this.name = options.name;
   }
-}));
+  spawn() {}
+  despawn = mock(() => {});
+  setPosition() {}
+  setOpacity() {}
+};
+
+// Create mock implementations
+const mockWorld = class MockWorld {};
 
 describe('MovingBlockEntity onBlockBroken callback integration', () => {
   const playerId = 'player1';
@@ -39,7 +29,7 @@ describe('MovingBlockEntity onBlockBroken callback integration', () => {
 
   test('should call onBlockBroken callback to add score when block is broken', () => {
     // Create the onBlockBroken callback to add 5 points to the player score
-    const onBlockBrokenMock = jest.fn(() => {
+    const onBlockBrokenMock = mock(() => {
       scoreManager.addScore(playerId, 5);
     });
 
@@ -50,16 +40,13 @@ describe('MovingBlockEntity onBlockBroken callback integration', () => {
       onBlockBroken: onBlockBrokenMock
     };
 
-    const fakeWorld = {} as any;
+    const fakeWorld = new mockWorld();
     const block = new MovingBlockEntity(blockOptions);
-    block.spawn(fakeWorld, { x: 0, y: 0, z: 0 });
+    block.spawn(fakeWorld as any, { x: 0, y: 0, z: 0 });
 
-    // Create a fake projectile entity using our mocked Entity class
-    const fakeProjectile = new (jest.requireMock('hytopia').Entity)({ 
-      name: 'Projectile'
-    });
+    // Create a fake projectile entity
+    const fakeProjectile = new mockEntity({ name: 'Projectile' });
     fakeProjectile.isSpawned = true;
-    fakeProjectile.despawn = jest.fn();
 
     // Simulate collision with the projectile
     (block as any).handleCollision(fakeProjectile);

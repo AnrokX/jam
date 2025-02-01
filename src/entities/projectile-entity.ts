@@ -7,6 +7,7 @@ export interface ProjectileOptions extends EntityOptions {
     damage?: number;
     raycastHandler?: RaycastHandler;
     enablePreview?: boolean;
+    playerId?: string;
 }
 
 interface TrajectoryPoint {
@@ -37,6 +38,7 @@ export class ProjectileEntity extends Entity {
     private static readonly TIME_STEP = 0.1; // 100ms per step
     private static readonly TRAJECTORY_MARKER_URI = 'models/projectiles/energy-orb-projectile.gltf';
     private trajectoryMarkers: Entity[] = [];
+    public readonly playerId?: string;
 
     constructor(options: ProjectileOptions) {
         super({
@@ -52,6 +54,7 @@ export class ProjectileEntity extends Entity {
         this.spawnTime = Date.now();
         this.raycastHandler = options.raycastHandler;
         this.enablePreview = options.enablePreview ?? true;
+        this.playerId = options.playerId;
     }
 
     private validateTrajectory(direction: Vector3Like): boolean {

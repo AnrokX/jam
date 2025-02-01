@@ -11,6 +11,7 @@ import worldMap from './assets/map.json';
 import { RaycastHandler } from './src/raycast/raycast-handler';
 import { PlayerProjectileManager } from './src/managers/player-projectile-manager';
 import { MovingBlockManager } from './src/moving_blocks/moving-block-entity';
+import { ScoreManager } from './src/managers/score-manager';
 
 startServer(world => {
   console.log('Starting server and initializing debug settings...');
@@ -29,10 +30,32 @@ startServer(world => {
   // Initialize the projectile manager
   const projectileManager = new PlayerProjectileManager(world, raycastHandler, SHOW_TRAJECTORY_PREVIEW);
 
-  // Initialize the moving block manager and create the Z-axis obstacle
-  const movingBlockManager = new MovingBlockManager(world);
+  // Initialize the score manager
+  const scoreManager = new ScoreManager();
+
+  const BLOCK_SPAWN_INTERVAL = 5000; // 5 seconds in milliseconds
+  const MAX_BLOCKS = 3; // Maximum number of blocks that can exist at once
+
+  // Initialize the moving block manager and create the initial Z-axis obstacle
+  const movingBlockManager = new MovingBlockManager(world, scoreManager);
   movingBlockManager.createZAxisBlock();
   console.log('MovingBlockManager initialized with Z-axis obstacle');
+
+  // Set up periodic block spawning
+  setInterval(() => {
+    // Only spawn new block if we're under the maximum
+    if (movingBlockManager.getBlockCount() < MAX_BLOCKS) {
+      // Spawn at a random position within bounds
+      const spawnPos = {
+        x: Math.random() * 10 - 5, // Random x between -5 and 5
+        y: 1 + Math.random() * 3,  // Random y between 1 and 4
+        z: Math.random() * 20 - 10 // Random z between -10 and 10
+      };
+
+      movingBlockManager.createZAxisBlock(spawnPos);
+      console.log(`New block spawned at (${spawnPos.x.toFixed(2)}, ${spawnPos.y.toFixed(2)}, ${spawnPos.z.toFixed(2)})`);
+    }
+  }, BLOCK_SPAWN_INTERVAL);
 
   world.loadMap(worldMap);
 
@@ -42,6 +65,9 @@ startServer(world => {
    */
   world.onPlayerJoin = player => {
     console.log('New player joined the game');
+    
+    // Initialize player's score
+    scoreManager.initializePlayer(player.id);
     
     // Initialize player's projectile state
     projectileManager.initializePlayer(player.id);
@@ -141,7 +167,8 @@ startServer(world => {
   world.onPlayerLeave = player => {
     console.log('Player left the game');
     
-    // Clean up player's projectile state
+    // Clean up player states
+    scoreManager.removePlayer(player.id);
     projectileManager.removePlayer(player.id);
     
     world.entityManager.getPlayerEntitiesByPlayer(player).forEach(entity => entity.despawn());

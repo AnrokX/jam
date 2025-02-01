@@ -1,4 +1,5 @@
 import { Entity, EntityOptions, Vector3Like, ColliderShape, CollisionGroup, World, RigidBodyType, BlockType } from 'hytopia';
+import { ScoreManager } from '../managers/score-manager';
 
 // Configuration for our Z-axis moving block
 const MOVING_BLOCK_CONFIG = {
@@ -10,7 +11,8 @@ const MOVING_BLOCK_CONFIG = {
     min: { x: 0, y: 1, z: -15 },
     max: { x: 0, y: 1, z: 16 }
   },
-  SPAWN_POSITION: { x: 0, y: 1, z: 0 }
+  SPAWN_POSITION: { x: 0, y: 1, z: 0 },
+  BREAK_SCORE: 5  // Points awarded for breaking a block
 };
 
 export interface MovingBlockOptions extends EntityOptions {
@@ -25,6 +27,7 @@ export interface MovingBlockOptions extends EntityOptions {
   blockHalfExtents?: Vector3Like; // The size of the block
   health?: number;           // Health of the block before breaking
   isBreakable?: boolean;     // Whether the block can be broken
+  onBlockBroken?: () => void; // Optional callback to be triggered when the block is broken
 }
 
 export class MovingBlockEntity extends Entity {
@@ -36,6 +39,8 @@ export class MovingBlockEntity extends Entity {
   private isReversed: boolean = false;
   private health: number;
   private isBreakable: boolean;
+  private onBlockBroken?: () => void;
+  private playerId?: string;  // Store the ID of player who last hit the block
 
   constructor(options: MovingBlockOptions) {
     super({
@@ -68,6 +73,7 @@ export class MovingBlockEntity extends Entity {
     this.initialPosition = { x: 0, y: 0, z: 0 };
     this.health = options.health ?? MOVING_BLOCK_CONFIG.DEFAULT_HEALTH;
     this.isBreakable = options.isBreakable ?? true;
+    this.onBlockBroken = options.onBlockBroken;
   }
 
   private normalizeDirection(dir: Vector3Like): Vector3Like {
@@ -134,6 +140,11 @@ export class MovingBlockEntity extends Entity {
     // Check if the colliding entity is a projectile
     if (other.name.toLowerCase().includes('projectile')) {
       console.log('Projectile hit detected!');
+      
+      // Store the player ID from the projectile if available
+      this.playerId = (other as any).playerId;
+      console.log(`Projectile from player: ${this.playerId || 'Unknown'}`);
+      
       this.takeDamage(1);
       
       // Despawn the projectile that hit us
@@ -184,6 +195,13 @@ export class MovingBlockEntity extends Entity {
 
     if (this.health <= 0) {
       console.log('Block destroyed!');
+
+      if (this.onBlockBroken) {
+        this.onBlockBroken();
+      }
+      // TODO: Add particle effects or break animation
+      this.despawn();
+
       newBlock.despawn();
     }
   }
@@ -192,11 +210,34 @@ export class MovingBlockEntity extends Entity {
 export class MovingBlockManager {
   private blocks: MovingBlockEntity[] = [];
 
-  constructor(private world: World) {}
+  constructor(
+    private world: World,
+    private scoreManager?: ScoreManager
+  ) {}
 
-  public createZAxisBlock(): MovingBlockEntity {
-    const block = new MovingBlockEntity({});  // Use default config
-    block.spawn(this.world, MOVING_BLOCK_CONFIG.SPAWN_POSITION);
+  public getBlockCount(): number {
+    return this.blocks.length;
+  }
+
+  public createZAxisBlock(spawnPosition?: Vector3Like): MovingBlockEntity {
+    const block = new MovingBlockEntity({
+      onBlockBroken: () => {
+        if (this.scoreManager && (block as any).playerId) {
+          const playerId = (block as any).playerId;
+          const score = MOVING_BLOCK_CONFIG.BREAK_SCORE;
+          
+          this.scoreManager.addScore(playerId, score);
+          console.log(`Block broken by player ${playerId}! Awarded ${score} points`);
+          
+          // Remove the block from our tracking array when broken
+          this.removeBlock(block);
+        } else {
+          console.log('Block broken but no player ID found to award points');
+        }
+      }
+    });
+    
+    block.spawn(this.world, spawnPosition || MOVING_BLOCK_CONFIG.SPAWN_POSITION);
     this.blocks.push(block);
     return block;
   }

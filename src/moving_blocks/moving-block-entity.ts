@@ -2,7 +2,7 @@ import { Entity, EntityOptions, Vector3Like, ColliderShape, CollisionGroup, Worl
 
 // Configuration for our Z-axis moving block
 const MOVING_BLOCK_CONFIG = {
-  DEFAULT_SPEED: 10,
+  DEFAULT_SPEED: 1,
   DEFAULT_HEALTH: 5,
   DEFAULT_TEXTURE: 'blocks/void-sand.png',
   DEFAULT_HALF_EXTENTS: { x: 0.5, y: 2, z: 2 },
@@ -50,7 +50,7 @@ export class MovingBlockEntity extends Entity {
           halfExtents: options.blockHalfExtents || MOVING_BLOCK_CONFIG.DEFAULT_HALF_EXTENTS,
           collisionGroups: {
             belongsTo: [CollisionGroup.BLOCK],
-            collidesWith: [CollisionGroup.PLAYER, CollisionGroup.BLOCK]
+            collidesWith: [CollisionGroup.PLAYER, CollisionGroup.BLOCK, CollisionGroup.ENTITY]
           },
           onCollision: (other: Entity | BlockType, started: boolean) => {
             if (started && this.isBreakable && other instanceof Entity) {
@@ -131,9 +131,15 @@ export class MovingBlockEntity extends Entity {
   }
 
   private handleCollision(other: Entity): void {
-    // Handle projectile hits
-    if (other.name.includes('Projectile')) {
+    // Check if the colliding entity is a projectile
+    if (other.name.toLowerCase().includes('projectile')) {
+      console.log('Projectile hit detected!');
       this.takeDamage(1);
+      
+      // Despawn the projectile that hit us
+      if (other.isSpawned) {
+        other.despawn();
+      }
     }
   }
 
@@ -141,12 +147,14 @@ export class MovingBlockEntity extends Entity {
     if (!this.isBreakable) return;
 
     this.health -= amount;
+    console.log(`Block took damage! Health: ${this.health}`);
     
     // Visual feedback - make the block more transparent as it takes damage
     const opacity = Math.max(0.3, this.health / MOVING_BLOCK_CONFIG.DEFAULT_HEALTH);
     this.setOpacity(opacity);
 
     if (this.health <= 0) {
+      console.log('Block destroyed!');
       // TODO: Add particle effects or break animation
       this.despawn();
     }

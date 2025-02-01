@@ -2,7 +2,7 @@ import { Entity, EntityOptions, Vector3Like, ColliderShape, CollisionGroup, Worl
 
 // Configuration for our Z-axis moving block
 const MOVING_BLOCK_CONFIG = {
-  DEFAULT_SPEED: 1,
+  DEFAULT_SPEED: 10,
   DEFAULT_HEALTH: 5,
   DEFAULT_TEXTURE: 'blocks/void-sand.png',
   DEFAULT_HALF_EXTENTS: { x: 0.5, y: 2, z: 2 },
@@ -149,14 +149,42 @@ export class MovingBlockEntity extends Entity {
     this.health -= amount;
     console.log(`Block took damage! Health: ${this.health}`);
     
-    // Visual feedback - make the block more transparent as it takes damage
-    const opacity = Math.max(0.3, this.health / MOVING_BLOCK_CONFIG.DEFAULT_HEALTH);
-    this.setOpacity(opacity);
+    // Instead of changing opacity, change the block type based on health
+    const blockTypes = [
+      'blocks/void-sand.png',
+      'blocks/infected-shadowrock.png',
+      'blocks/dragons-stone.png',
+      'blocks/diamond-ore.png',
+      'blocks/clay.png'
+    ];
+    
+    // Calculate which block type to use based on health
+    const blockIndex = Math.floor((this.health / MOVING_BLOCK_CONFIG.DEFAULT_HEALTH) * (blockTypes.length - 1));
+    const newBlockType = blockTypes[Math.max(0, Math.min(blockIndex, blockTypes.length - 1))];
+    
+    // Create a new block with the same properties but different texture
+    const newBlock = new MovingBlockEntity({
+      blockTextureUri: newBlockType,
+      moveSpeed: this.moveSpeed,
+      direction: this.direction,
+      movementBounds: this.movementBounds,
+      oscillate: this.oscillate,
+      health: this.health,
+      isBreakable: this.isBreakable,
+      blockHalfExtents: this.blockHalfExtents
+    });
+
+    // Spawn the new block at the current position
+    if (this.world) {
+      newBlock.spawn(this.world, this.position);
+    }
+
+    // Despawn the old block
+    this.despawn();
 
     if (this.health <= 0) {
       console.log('Block destroyed!');
-      // TODO: Add particle effects or break animation
-      this.despawn();
+      newBlock.despawn();
     }
   }
 }

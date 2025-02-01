@@ -329,6 +329,7 @@ export class MovingBlockEntity extends Entity {
     Texture: ${this.blockTextureUri}
     Half Extents: x=${this.blockHalfExtents.x}, y=${this.blockHalfExtents.y}, z=${this.blockHalfExtents.z}
     Is Spawned: ${this.isSpawned}`;
+  }
 
   private createDestructionEffect(): void {
     if (!this.world) return;

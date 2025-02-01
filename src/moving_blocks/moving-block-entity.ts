@@ -12,8 +12,15 @@ const MOVING_BLOCK_CONFIG = {
     max: { x: 0, y: 1, z: 16 }
   },
   SPAWN_POSITION: { x: 0, y: 1, z: 0 },
-  BREAK_SCORE: 5  // Points awarded for breaking a block
+  BREAK_SCORE: 5,  // Points awarded for breaking a block
+  PARTICLE_CONFIG: {
+    COUNT: 100,
+    MODEL_URI: 'models/projectiles/laser-bullet-green-small.gltf',
+    SCALE: 0.3,
+    LIFETIME: 1000
+  }
 };
+
 
 export interface MovingBlockOptions extends EntityOptions {
   moveSpeed?: number;         // Speed at which the block moves (units per second)
@@ -41,6 +48,7 @@ export class MovingBlockEntity extends Entity {
   private isBreakable: boolean;
   private onBlockBroken?: () => void;
   private playerId?: string;  // Store the ID of player who last hit the block
+  private particles: Entity[] = [];
 
   constructor(options: MovingBlockOptions) {
     super({
@@ -136,10 +144,70 @@ export class MovingBlockEntity extends Entity {
     this.setPosition(newPosition);
   }
 
+  private createHitEffect(hitPosition: Vector3Like): void {
+    if (!this.world) return;
+
+    // Create particles in a circular pattern
+    for (let i = 0; i < MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.COUNT; i++) {
+      const angle = (i / MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.COUNT) * Math.PI * 2;
+      const radius = 0.5; // Distance from center
+
+      const particle = new Entity({
+        name: 'HitParticle',
+        modelUri: MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.MODEL_URI,
+        modelScale: MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.SCALE,
+        opacity: 1
+      });
+
+      // Calculate initial position offset from hit point
+      const particlePosition = {
+        x: hitPosition.x + Math.cos(angle) * radius,
+        y: hitPosition.y,
+        z: hitPosition.z + Math.sin(angle) * radius
+      };
+
+      particle.spawn(this.world, particlePosition);
+      this.particles.push(particle);
+
+      // Create a movement interval
+      const moveInterval = setInterval(() => {
+        if (!particle.isSpawned) {
+          clearInterval(moveInterval);
+          return;
+        }
+
+        const currentPos = particle.position;
+        // Move outward and upward
+        particle.setPosition({
+          x: currentPos.x + Math.cos(angle) * 0.1,
+          y: currentPos.y + 0.1,
+          z: currentPos.z + Math.sin(angle) * 0.1
+        });
+
+        // Gradually reduce opacity
+        if (typeof particle.opacity === 'number' && particle.opacity > 0) {
+          particle.setOpacity(particle.opacity - 0.1);
+        }
+      }, 50); // Update every 50ms
+
+      // Clean up after lifetime
+      setTimeout(() => {
+        clearInterval(moveInterval);
+        if (particle.isSpawned) {
+          particle.despawn();
+        }
+        this.particles = this.particles.filter(p => p !== particle);
+      }, MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.LIFETIME);
+    }
+  }
+
   private handleCollision(other: Entity): void {
     // Check if the colliding entity is a projectile
     if (other.name.toLowerCase().includes('projectile')) {
       console.log('Projectile hit detected!');
+      
+      // Create hit effect at the projectile's position
+      this.createHitEffect(other.position);
       
       // Store the player ID from the projectile if available
       this.playerId = (other as any).playerId;

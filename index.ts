@@ -81,6 +81,13 @@ startServer(world => {
       count: projectileManager.getProjectilesRemaining(player.id)
     });
     
+    // Generate random spawn position
+    const spawnPos = {
+      x: Math.random() * 20 - 10,  // Random x between -10 and 10
+      y: 10,                       // Fixed height
+      z: Math.random() * 20 - 10   // Random z between -10 and 10
+    };
+
     const playerEntity = new PlayerEntity({
       player,
       name: 'Player',
@@ -89,9 +96,9 @@ startServer(world => {
       modelScale: 0.5,
     });
 
-    // Spawn the entity first
-    playerEntity.spawn(world, { x: 0, y: 10, z: 0 });
-    console.log(`Player spawned at (0, 10, 0)`);
+    // Spawn the entity at random position
+    playerEntity.spawn(world, spawnPos);
+    console.log(`Player spawned at (${spawnPos.x.toFixed(2)}, ${spawnPos.y}, ${spawnPos.z.toFixed(2)})`);
 
     // Configure first-person camera after spawning
     playerEntity.player.camera.setMode(PlayerCameraMode.THIRD_PERSON);

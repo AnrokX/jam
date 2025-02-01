@@ -10,6 +10,7 @@ import {
 import worldMap from './assets/map.json';
 import { RaycastHandler } from './src/raycast/raycast-handler';
 import { PlayerProjectileManager } from './src/managers/player-projectile-manager';
+import { MovingBlockManager } from './src/moving_blocks/moving-block-entity';
 
 startServer(world => {
   console.log('Starting server and initializing debug settings...');
@@ -27,6 +28,11 @@ startServer(world => {
 
   // Initialize the projectile manager
   const projectileManager = new PlayerProjectileManager(world, raycastHandler, SHOW_TRAJECTORY_PREVIEW);
+
+  // Initialize the moving block manager and create the Z-axis obstacle
+  const movingBlockManager = new MovingBlockManager(world);
+  movingBlockManager.createZAxisBlock();
+  console.log('MovingBlockManager initialized with Z-axis obstacle');
 
   world.loadMap(worldMap);
 
@@ -119,6 +125,7 @@ startServer(world => {
     world.chatManager.sendPlayerMessage(player, 'Hold shift to sprint.');
     world.chatManager.sendPlayerMessage(player, 'Left click to raycast.');
     world.chatManager.sendPlayerMessage(player, 'Right click to throw projectiles.');
+    world.chatManager.sendPlayerMessage(player, 'Watch out for moving platforms!', 'FFFF00');
     world.chatManager.sendPlayerMessage(player, 'Press \\ to enter or exit debug view.');
   };
 

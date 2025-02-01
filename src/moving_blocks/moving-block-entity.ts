@@ -1,6 +1,8 @@
 import { Entity, EntityOptions, Vector3Like, ColliderShape, CollisionGroup, World, RigidBodyType, BlockType } from 'hytopia';
 import { ScoreManager } from '../managers/score-manager';
+import { BlockMovementBehavior, DefaultBlockMovement } from './block-movement';
 import { DESTRUCTION_PARTICLE_CONFIG } from '../config/particle-config';
+
 
 // Configuration for our Z-axis moving block
 const MOVING_BLOCK_CONFIG = {
@@ -37,6 +39,7 @@ export interface MovingBlockOptions extends EntityOptions {
   health?: number;           // Health of the block before breaking
   isBreakable?: boolean;     // Whether the block can be broken
   onBlockBroken?: () => void; // Optional callback to be triggered when the block is broken
+  movementBehavior?: BlockMovementBehavior; // New: inject block-specific movement logic
 }
 
 export class MovingBlockEntity extends Entity {
@@ -50,6 +53,7 @@ export class MovingBlockEntity extends Entity {
   private isBreakable: boolean;
   private onBlockBroken?: () => void;
   private playerId?: string;  // Store the ID of player who last hit the block
+  private movementBehavior: BlockMovementBehavior;
   private particles: Entity[] = [];
 
   constructor(options: MovingBlockOptions) {
@@ -84,6 +88,7 @@ export class MovingBlockEntity extends Entity {
     this.health = options.health ?? MOVING_BLOCK_CONFIG.DEFAULT_HEALTH;
     this.isBreakable = options.isBreakable ?? true;
     this.onBlockBroken = options.onBlockBroken;
+    this.movementBehavior = options.movementBehavior || new DefaultBlockMovement();
   }
 
   private normalizeDirection(dir: Vector3Like): Vector3Like {
@@ -104,13 +109,21 @@ export class MovingBlockEntity extends Entity {
   private isWithinBounds(position: Vector3Like): boolean {
     if (!this.movementBounds) return true;
 
+    // Add small epsilon to handle floating point precision
+    const epsilon = 0.001;
+    
+    // Only check axes where we have movement bounds defined
+    const checkX = Math.abs(this.movementBounds.max.x - this.movementBounds.min.x) > epsilon;
+    const checkY = Math.abs(this.movementBounds.max.y - this.movementBounds.min.y) > epsilon;
+    const checkZ = Math.abs(this.movementBounds.max.z - this.movementBounds.min.z) > epsilon;
+
     return (
-      position.x >= this.movementBounds.min.x &&
-      position.x <= this.movementBounds.max.x &&
-      position.y >= this.movementBounds.min.y &&
-      position.y <= this.movementBounds.max.y &&
-      position.z >= this.movementBounds.min.z &&
-      position.z <= this.movementBounds.max.z
+      (!checkX || (position.x >= this.movementBounds.min.x - epsilon && 
+                  position.x <= this.movementBounds.max.x + epsilon)) &&
+      (!checkY || (position.y >= this.movementBounds.min.y - epsilon && 
+                  position.y <= this.movementBounds.max.y + epsilon)) &&
+      (!checkZ || (position.z >= this.movementBounds.min.z - epsilon && 
+                  position.z <= this.movementBounds.max.z + epsilon))
     );
   }
 
@@ -122,28 +135,8 @@ export class MovingBlockEntity extends Entity {
   }
 
   override onTick = (entity: Entity, deltaTimeMs: number): void => {
-    const deltaSeconds = deltaTimeMs / 1000;
-    
-    // Calculate new position
-    const newPosition = {
-      x: this.position.x + this.direction.x * this.moveSpeed * deltaSeconds,
-      y: this.position.y + this.direction.y * this.moveSpeed * deltaSeconds,
-      z: this.position.z + this.direction.z * this.moveSpeed * deltaSeconds
-    };
-
-    // Check if the new position would be within bounds
-    if (!this.isWithinBounds(newPosition)) {
-      if (this.oscillate) {
-        this.reverseDirection();
-      } else {
-        // Reset to initial position if not oscillating
-        this.setPosition(this.initialPosition);
-        return;
-      }
-    }
-
-    // Update the position
-    this.setPosition(newPosition);
+    // Delegate movement update to injected behavior
+    this.movementBehavior.update(this, deltaTimeMs);
   }
 
   private createHitEffect(hitPosition: Vector3Like): void {
@@ -291,6 +284,51 @@ export class MovingBlockEntity extends Entity {
     // Despawn the old block
     this.despawn();
   }
+
+  // --- Added getter and helper methods for movement behavior use ---
+
+  public getDirection(): Vector3Like {
+    return this.direction;
+  }
+
+  public getMoveSpeed(): number {
+    return this.moveSpeed;
+  }
+
+  public isWithinMovementBounds(position: Vector3Like): boolean {
+    return this.isWithinBounds(position);
+  }
+
+  public shouldOscillate(): boolean {
+    return this.oscillate;
+  }
+
+  public reverseMovementDirection(): void {
+    this.reverseDirection();
+  }
+
+  public resetToInitialPosition(): void {
+    this.setPosition(this.initialPosition);
+  }
+
+  public getDebugInfo(): string {
+    return `MovingBlock Debug Info:
+    ID: ${this.id}
+    Position: x=${this.position.x.toFixed(2)}, y=${this.position.y.toFixed(2)}, z=${this.position.z.toFixed(2)}
+    Direction: x=${this.direction.x.toFixed(2)}, y=${this.direction.y.toFixed(2)}, z=${this.direction.z.toFixed(2)}
+    Speed: ${this.moveSpeed}
+    Health: ${this.health}
+    Is Breakable: ${this.isBreakable}
+    Oscillating: ${this.oscillate}
+    Is Reversed: ${this.isReversed}
+    Movement Bounds: ${this.movementBounds ? 
+      `\n      Min: x=${this.movementBounds.min.x}, y=${this.movementBounds.min.y}, z=${this.movementBounds.min.z}
+      Max: x=${this.movementBounds.max.x}, y=${this.movementBounds.max.y}, z=${this.movementBounds.max.z}` 
+      : 'None'}
+    Last Hit By Player: ${this.playerId || 'None'}
+    Texture: ${this.blockTextureUri}
+    Half Extents: x=${this.blockHalfExtents.x}, y=${this.blockHalfExtents.y}, z=${this.blockHalfExtents.z}
+    Is Spawned: ${this.isSpawned}`;
 
   private createDestructionEffect(): void {
     if (!this.world) return;

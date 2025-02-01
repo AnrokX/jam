@@ -23,13 +23,12 @@ describe('Block Movement Behavior', () => {
     });
 
     const movement = new DefaultBlockMovement();
-    const mockSetPosition = mock((pos: Vector3Like) => {
-      block.position = pos;
-    });
-    
-    block.position = { x: 0, y: 0, z: 0 };
+    const mockSetPosition = mock((pos: Vector3Like) => {});
     block.setPosition = mockSetPosition;
 
+    // Initialize position through setPosition
+    block.setPosition({ x: 0, y: 0, z: 0 });
+    
     movement.update(block, 1000); // 1 second
 
     expect(mockSetPosition).toHaveBeenCalledWith({
@@ -50,13 +49,12 @@ describe('Block Movement Behavior', () => {
     });
 
     const movement = new DefaultBlockMovement();
-    const mockSetPosition = mock((pos: Vector3Like) => {
-      block.position = pos;
-    });
-    
-    block.position = { x: 0, y: 0, z: 0 };
+    const mockSetPosition = mock((pos: Vector3Like) => {});
     block.setPosition = mockSetPosition;
 
+    // Initialize position through setPosition
+    block.setPosition({ x: 0, y: 0, z: 0 });
+    
     movement.update(block, 1000); // Would move to x=10, beyond bounds
     
     // Should have triggered bounds check and reversal
@@ -70,13 +68,12 @@ describe('Block Movement Behavior', () => {
     });
 
     const movement = new DefaultBlockMovement();
-    const mockSetPosition = mock((pos: Vector3Like) => {
-      block.position = pos;
-    });
-    
-    block.position = { x: 0, y: 0, z: 0 };
+    const mockSetPosition = mock((pos: Vector3Like) => {});
     block.setPosition = mockSetPosition;
 
+    // Initialize position through setPosition
+    block.setPosition({ x: 0, y: 0, z: 0 });
+    
     movement.update(block, 1000);
     
     expect(mockSetPosition).toHaveBeenCalledWith({
@@ -93,13 +90,12 @@ describe('Block Movement Behavior', () => {
     });
 
     const movement = new DefaultBlockMovement();
-    const mockSetPosition = mock((pos: Vector3Like) => {
-      block.position = pos;
-    });
-    
-    block.position = { x: 0, y: 0, z: 0 };
+    const mockSetPosition = mock((pos: Vector3Like) => {});
     block.setPosition = mockSetPosition;
 
+    // Initialize position through setPosition
+    block.setPosition({ x: 0, y: 0, z: 0 });
+    
     movement.update(block, 1000);
     
     const expectedMove = 10 / Math.sqrt(3); // Normalized movement in each direction

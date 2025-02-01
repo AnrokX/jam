@@ -202,15 +202,7 @@ export class MovingBlockEntity extends Entity {
   }
 
   public isWithinMovementBounds(position: Vector3Like): boolean {
-    if (!this.movementBounds) return true;
-    return (
-      position.x >= this.movementBounds.min.x &&
-      position.x <= this.movementBounds.max.x &&
-      position.y >= this.movementBounds.min.y &&
-      position.y <= this.movementBounds.max.y &&
-      position.z >= this.movementBounds.min.z &&
-      position.z <= this.movementBounds.max.z
-    );
+    return this.isWithinBounds(position);
   }
 
   public shouldOscillate(): boolean {
@@ -218,12 +210,7 @@ export class MovingBlockEntity extends Entity {
   }
 
   public reverseMovementDirection(): void {
-    this.direction = {
-      x: -this.direction.x,
-      y: -this.direction.y,
-      z: -this.direction.z
-    };
-    this.isReversed = !this.isReversed;
+    this.reverseDirection();
   }
 
   public resetToInitialPosition(): void {

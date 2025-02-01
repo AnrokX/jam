@@ -14,10 +14,11 @@ const MOVING_BLOCK_CONFIG = {
   SPAWN_POSITION: { x: 0, y: 1, z: 0 },
   BREAK_SCORE: 5,  // Points awarded for breaking a block
   PARTICLE_CONFIG: {
-    COUNT: 100,
-    MODEL_URI: 'models/projectiles/laser-bullet-green-small.gltf',
-    SCALE: 0.3,
-    LIFETIME: 1000
+    COUNT: 50,               // Number of particles
+    SCALE: 0.15,            // Small blocks
+    LIFETIME: 800,          // Shorter lifetime since we won't fade
+    SPREAD_RADIUS: 0.3,     // Initial spread from hit point
+    SPEED: 0.15             // Movement speed
   }
 };
 
@@ -150,49 +151,62 @@ export class MovingBlockEntity extends Entity {
     // Create particles in a circular pattern
     for (let i = 0; i < MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.COUNT; i++) {
       const angle = (i / MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.COUNT) * Math.PI * 2;
-      const radius = 0.5; // Distance from center
+      const radius = MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.SPREAD_RADIUS;
 
+      // Create a small block entity using the same texture as the parent block
       const particle = new Entity({
         name: 'HitParticle',
-        modelUri: MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.MODEL_URI,
-        modelScale: MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.SCALE,
-        opacity: 1
+        blockTextureUri: this.blockTextureUri,
+        blockHalfExtents: {
+          x: MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.SCALE,
+          y: MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.SCALE,
+          z: MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.SCALE
+        },
+        rigidBodyOptions: {
+          type: RigidBodyType.DYNAMIC,
+          colliders: [{
+            shape: ColliderShape.BLOCK,
+            halfExtents: {
+              x: MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.SCALE,
+              y: MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.SCALE,
+              z: MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.SCALE
+            },
+            mass: 0.1,
+            friction: 0.2,
+            bounciness: 0.3
+          }]
+        }
       });
 
-      // Calculate initial position offset from hit point
+      // Calculate spawn position with some randomization
       const particlePosition = {
-        x: hitPosition.x + Math.cos(angle) * radius,
-        y: hitPosition.y,
-        z: hitPosition.z + Math.sin(angle) * radius
+        x: hitPosition.x + Math.cos(angle) * radius * (0.8 + Math.random() * 0.4),
+        y: hitPosition.y + Math.random() * 0.2,
+        z: hitPosition.z + Math.sin(angle) * radius * (0.8 + Math.random() * 0.4)
       };
 
       particle.spawn(this.world, particlePosition);
       this.particles.push(particle);
 
-      // Create a movement interval
-      const moveInterval = setInterval(() => {
-        if (!particle.isSpawned) {
-          clearInterval(moveInterval);
-          return;
-        }
-
-        const currentPos = particle.position;
-        // Move outward and upward
-        particle.setPosition({
-          x: currentPos.x + Math.cos(angle) * 0.1,
-          y: currentPos.y + 0.1,
-          z: currentPos.z + Math.sin(angle) * 0.1
+      // Apply initial impulse for movement
+      if (particle.rawRigidBody) {
+        const speed = MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.SPEED * (0.8 + Math.random() * 0.4);
+        particle.rawRigidBody.applyImpulse({
+          x: Math.cos(angle) * speed,
+          y: 0.2 + Math.random() * 0.3, // Upward bias
+          z: Math.sin(angle) * speed
         });
 
-        // Gradually reduce opacity
-        if (typeof particle.opacity === 'number' && particle.opacity > 0) {
-          particle.setOpacity(particle.opacity - 0.1);
-        }
-      }, 50); // Update every 50ms
+        // Add some spin
+        particle.rawRigidBody.applyTorqueImpulse({
+          x: (Math.random() - 0.5) * 0.1,
+          y: (Math.random() - 0.5) * 0.1,
+          z: (Math.random() - 0.5) * 0.1
+        });
+      }
 
       // Clean up after lifetime
       setTimeout(() => {
-        clearInterval(moveInterval);
         if (particle.isSpawned) {
           particle.despawn();
         }
@@ -205,9 +219,6 @@ export class MovingBlockEntity extends Entity {
     // Check if the colliding entity is a projectile
     if (other.name.toLowerCase().includes('projectile')) {
       console.log('Projectile hit detected!');
-      
-      // Create hit effect at the projectile's position
-      this.createHitEffect(other.position);
       
       // Store the player ID from the projectile if available
       this.playerId = (other as any).playerId;
@@ -230,9 +241,14 @@ export class MovingBlockEntity extends Entity {
     
     if (this.health <= 0) {
       console.log('Block destroyed!');
+      
+      // Create destruction effect before despawning
+      this.createDestructionEffect();
+      
       if (this.onBlockBroken) {
         this.onBlockBroken();
       }
+      
       this.despawn();
       return;
     }
@@ -273,6 +289,76 @@ export class MovingBlockEntity extends Entity {
 
     // Despawn the old block
     this.despawn();
+  }
+
+  private createDestructionEffect(): void {
+    if (!this.world) return;
+
+    // Create particles in a more explosive pattern
+    for (let i = 0; i < MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.COUNT; i++) {
+      const angle = (i / MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.COUNT) * Math.PI * 2;
+      const radius = MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.SPREAD_RADIUS;
+
+      // Create block pieces using the current block's texture
+      const particle = new Entity({
+        name: 'DestroyedBlockPiece',
+        blockTextureUri: this.blockTextureUri,
+        blockHalfExtents: {
+          x: MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.SCALE,
+          y: MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.SCALE,
+          z: MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.SCALE
+        },
+        rigidBodyOptions: {
+          type: RigidBodyType.DYNAMIC,
+          colliders: [{
+            shape: ColliderShape.BLOCK,
+            halfExtents: {
+              x: MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.SCALE,
+              y: MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.SCALE,
+              z: MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.SCALE
+            },
+            mass: 0.1,
+            friction: 0.2,
+            bounciness: 0.5  // More bounce for destruction effect
+          }]
+        }
+      });
+
+      // Spawn around the block's position
+      const particlePosition = {
+        x: this.position.x + (Math.random() - 0.5) * 0.2,
+        y: this.position.y + (Math.random() - 0.5) * 0.2,
+        z: this.position.z + (Math.random() - 0.5) * 0.2
+      };
+
+      particle.spawn(this.world, particlePosition);
+      this.particles.push(particle);
+
+      // Apply stronger impulse for destruction
+      if (particle.rawRigidBody) {
+        const speed = MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.SPEED * 2; // Stronger impulse
+        particle.rawRigidBody.applyImpulse({
+          x: Math.cos(angle) * speed * (0.8 + Math.random() * 0.4),
+          y: 0.3 + Math.random() * 0.4, // More upward force
+          z: Math.sin(angle) * speed * (0.8 + Math.random() * 0.4)
+        });
+
+        // Add more spin for dramatic effect
+        particle.rawRigidBody.applyTorqueImpulse({
+          x: (Math.random() - 0.5) * 0.2,
+          y: (Math.random() - 0.5) * 0.2,
+          z: (Math.random() - 0.5) * 0.2
+        });
+      }
+
+      // Clean up after lifetime
+      setTimeout(() => {
+        if (particle.isSpawned) {
+          particle.despawn();
+        }
+        this.particles = this.particles.filter(p => p !== particle);
+      }, MOVING_BLOCK_CONFIG.PARTICLE_CONFIG.LIFETIME);
+    }
   }
 }
 

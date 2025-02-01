@@ -9,7 +9,7 @@ export interface PlayerProjectileState {
 }
 
 export class PlayerProjectileManager {
-  private static readonly INITIAL_PROJECTILE_COUNT = 5;
+  private static readonly INITIAL_PROJECTILE_COUNT = 100;
   private playerStates = new Map<string, PlayerProjectileState>();
   private readonly world: World;
   private readonly raycastHandler: RaycastHandler;

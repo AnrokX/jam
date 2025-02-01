@@ -2,24 +2,15 @@ import { Entity, EntityOptions, Vector3Like, ColliderShape, CollisionGroup, Worl
 
 // Configuration for our Z-axis moving block
 const MOVING_BLOCK_CONFIG = {
-  DEFAULT_SPEED: 1,
+  DEFAULT_SPEED: 10,
   DEFAULT_HEALTH: 5,
-  DEFAULT_TEXTURE: 'blocks/diamond-block.png',
+  DEFAULT_TEXTURE: 'blocks/void-sand.png',
   DEFAULT_HALF_EXTENTS: { x: 0.5, y: 2, z: 2 },
   MOVEMENT_BOUNDS: {
     min: { x: 0, y: 1, z: -15 },
     max: { x: 0, y: 1, z: 16 }
   },
   SPAWN_POSITION: { x: 0, y: 1, z: 0 }
-};
-
-// Block states based on health
-const BLOCK_HEALTH_STATES = {
-  5: 'blocks/diamond-block.png',    // Full health - strongest
-  4: 'blocks/stone-bricks.png',     // Strong
-  3: 'blocks/stone.png',            // Medium
-  2: 'blocks/cobblestone.png',      // Weakened
-  1: 'blocks/gravel.png'            // About to break
 };
 
 export interface MovingBlockOptions extends EntityOptions {
@@ -158,49 +149,42 @@ export class MovingBlockEntity extends Entity {
     this.health -= amount;
     console.log(`Block took damage! Health: ${this.health}`);
     
-    // Update block texture based on current health
-    const newTexture = BLOCK_HEALTH_STATES[this.health as keyof typeof BLOCK_HEALTH_STATES];
-    if (newTexture && this.world) {
-      // Store current state
-      const currentState = {
-        position: { ...this.position },
-        direction: { ...this.direction },
-        isReversed: this.isReversed,
-        moveSpeed: this.moveSpeed,
-        health: this.health,
-        movementBounds: this.movementBounds ? {
-          min: { ...this.movementBounds.min },
-          max: { ...this.movementBounds.max }
-        } : undefined,
-        oscillate: this.oscillate,
-        isBreakable: this.isBreakable
-      };
+    // Instead of changing opacity, change the block type based on health
+    const blockTypes = [
+      'blocks/void-sand.png',
+      'blocks/infected-shadowrock.png',
+      'blocks/dragons-stone.png',
+      'blocks/diamond-ore.png',
+      'blocks/clay.png'
+    ];
+    
+    // Calculate which block type to use based on health
+    const blockIndex = Math.floor((this.health / MOVING_BLOCK_CONFIG.DEFAULT_HEALTH) * (blockTypes.length - 1));
+    const newBlockType = blockTypes[Math.max(0, Math.min(blockIndex, blockTypes.length - 1))];
+    
+    // Create a new block with the same properties but different texture
+    const newBlock = new MovingBlockEntity({
+      blockTextureUri: newBlockType,
+      moveSpeed: this.moveSpeed,
+      direction: this.direction,
+      movementBounds: this.movementBounds,
+      oscillate: this.oscillate,
+      health: this.health,
+      isBreakable: this.isBreakable,
+      blockHalfExtents: this.blockHalfExtents
+    });
 
-      // Create a new block with the updated texture and state
-      const newBlock = new MovingBlockEntity({
-        blockTextureUri: newTexture,
-        moveSpeed: currentState.moveSpeed,
-        direction: currentState.direction,
-        movementBounds: currentState.movementBounds,
-        oscillate: currentState.oscillate,
-        health: currentState.health,
-        isBreakable: currentState.isBreakable
-      });
-
-      // Spawn the new block and update its state
-      newBlock.spawn(this.world, currentState.position);
-      if (currentState.isReversed) {
-        newBlock.reverseDirection();
-      }
-
-      // Despawn the old block
-      this.despawn();
+    // Spawn the new block at the current position
+    if (this.world) {
+      newBlock.spawn(this.world, this.position);
     }
+
+    // Despawn the old block
+    this.despawn();
 
     if (this.health <= 0) {
       console.log('Block destroyed!');
-      // TODO: Add particle effects or break animation
-      this.despawn();
+      newBlock.despawn();
     }
   }
 }

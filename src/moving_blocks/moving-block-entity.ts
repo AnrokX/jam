@@ -1,4 +1,5 @@
 import { Entity, EntityOptions, Vector3Like, ColliderShape, CollisionGroup, World, RigidBodyType, BlockType } from 'hytopia';
+import { ScoreManager } from '../managers/score-manager';
 
 // Configuration for our Z-axis moving block
 const MOVING_BLOCK_CONFIG = {
@@ -170,10 +171,23 @@ export class MovingBlockEntity extends Entity {
 export class MovingBlockManager {
   private blocks: MovingBlockEntity[] = [];
 
-  constructor(private world: World) {}
+  constructor(
+    private world: World,
+    private scoreManager?: ScoreManager  // Add ScoreManager as optional dependency
+  ) {}
 
   public createZAxisBlock(): MovingBlockEntity {
-    const block = new MovingBlockEntity({});  // Use default config
+    const block = new MovingBlockEntity({
+      // Use default config
+      onBlockBroken: () => {
+        // When block is broken, award points if we have a ScoreManager
+        if (this.scoreManager) {
+          // Award 5 points for breaking a block
+          this.scoreManager.addScore('player1', 5); // TODO: Get actual player ID
+        }
+      }
+    });
+    
     block.spawn(this.world, MOVING_BLOCK_CONFIG.SPAWN_POSITION);
     this.blocks.push(block);
     return block;

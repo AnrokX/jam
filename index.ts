@@ -11,6 +11,7 @@ import worldMap from './assets/map.json';
 import { RaycastHandler } from './src/raycast/raycast-handler';
 import { PlayerProjectileManager } from './src/managers/player-projectile-manager';
 import { MovingBlockManager } from './src/moving_blocks/moving-block-entity';
+import { ScoreManager } from './src/managers/score-manager';
 
 startServer(world => {
   console.log('Starting server and initializing debug settings...');
@@ -29,8 +30,11 @@ startServer(world => {
   // Initialize the projectile manager
   const projectileManager = new PlayerProjectileManager(world, raycastHandler, SHOW_TRAJECTORY_PREVIEW);
 
+  // Initialize the score manager
+  const scoreManager = new ScoreManager();
+
   // Initialize the moving block manager and create the Z-axis obstacle
-  const movingBlockManager = new MovingBlockManager(world);
+  const movingBlockManager = new MovingBlockManager(world, scoreManager);
   movingBlockManager.createZAxisBlock();
   console.log('MovingBlockManager initialized with Z-axis obstacle');
 

@@ -29,6 +29,7 @@ export class ScoreManager {
     }
     const currentScore = this.playerScores.get(playerId) ?? 0;
     this.playerScores.set(playerId, currentScore + points);
+    console.log(`Player ${playerId} score updated: ${this.playerScores.get(playerId)}`);
   }
 
   // Get the current score for a player. Returns 0 if the player is not initialized.

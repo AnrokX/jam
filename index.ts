@@ -10,6 +10,7 @@ import {
 import worldMap from './assets/map.json';
 import { RaycastHandler } from './src/raycast/raycast-handler';
 import { PlayerProjectileManager } from './src/managers/player-projectile-manager';
+import { MovingBlockManager } from './src/moving_blocks/moving-block-entity';
 
 startServer(world => {
   console.log('Starting server and initializing debug settings...');
@@ -27,6 +28,11 @@ startServer(world => {
 
   // Initialize the projectile manager
   const projectileManager = new PlayerProjectileManager(world, raycastHandler, SHOW_TRAJECTORY_PREVIEW);
+
+  // Initialize the moving block manager and create the Z-axis obstacle
+  const movingBlockManager = new MovingBlockManager(world);
+  movingBlockManager.createZAxisBlock();
+  console.log('MovingBlockManager initialized with Z-axis obstacle');
 
   world.loadMap(worldMap);
 
@@ -76,8 +82,8 @@ startServer(world => {
   
     // Wire up raycast handler and projectile system to the SDK's input system
     playerEntity.controller!.onTickWithPlayerInput = (entity, input, cameraOrientation, deltaTimeMs) => {
-      // Left click for raycast
-      if (input.ml) {
+      // Right click for raycast
+      if (input.mr) {
         const result = raycastHandler.raycast(
           entity.position,
           entity.player.camera.facingDirection,
@@ -94,15 +100,21 @@ startServer(world => {
           console.log('Raycast missed');
         }
         
-        input.ml = false;
+        input.mr = false;
       }
 
-      // Handle projectile input through the manager
+      // Handle projectile input through the manager with left click
+      const modifiedInput = { ...input };
+      if (input.ml) {
+        modifiedInput.mr = true;
+        modifiedInput.ml = false;
+      }
+      
       projectileManager.handleProjectileInput(
         player.id,
         entity.position,
         entity.player.camera.facingDirection,
-        input,
+        modifiedInput,
         player
       );
 
@@ -117,8 +129,9 @@ startServer(world => {
     world.chatManager.sendPlayerMessage(player, 'Use WASD to move around.');
     world.chatManager.sendPlayerMessage(player, 'Press space to jump.');
     world.chatManager.sendPlayerMessage(player, 'Hold shift to sprint.');
-    world.chatManager.sendPlayerMessage(player, 'Left click to raycast.');
-    world.chatManager.sendPlayerMessage(player, 'Right click to throw projectiles.');
+    world.chatManager.sendPlayerMessage(player, 'Right click to raycast.');
+    world.chatManager.sendPlayerMessage(player, 'Left click to throw projectiles.');
+    world.chatManager.sendPlayerMessage(player, 'Watch out for moving platforms!', 'FFFF00');
     world.chatManager.sendPlayerMessage(player, 'Press \\ to enter or exit debug view.');
   };
 

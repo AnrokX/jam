@@ -4,13 +4,22 @@ import { Entity, EntityOptions, Vector3Like, ColliderShape, CollisionGroup, Worl
 const MOVING_BLOCK_CONFIG = {
   DEFAULT_SPEED: 1,
   DEFAULT_HEALTH: 5,
-  DEFAULT_TEXTURE: 'blocks/void-sand.png',
+  DEFAULT_TEXTURE: 'blocks/diamond-block.png',
   DEFAULT_HALF_EXTENTS: { x: 0.5, y: 2, z: 2 },
   MOVEMENT_BOUNDS: {
     min: { x: 0, y: 1, z: -15 },
     max: { x: 0, y: 1, z: 16 }
   },
   SPAWN_POSITION: { x: 0, y: 1, z: 0 }
+};
+
+// Block states based on health
+const BLOCK_HEALTH_STATES = {
+  5: 'blocks/diamond-block.png',    // Full health - strongest
+  4: 'blocks/stone-bricks.png',     // Strong
+  3: 'blocks/stone.png',            // Medium
+  2: 'blocks/cobblestone.png',      // Weakened
+  1: 'blocks/gravel.png'            // About to break
 };
 
 export interface MovingBlockOptions extends EntityOptions {
@@ -149,9 +158,44 @@ export class MovingBlockEntity extends Entity {
     this.health -= amount;
     console.log(`Block took damage! Health: ${this.health}`);
     
-    // Visual feedback - make the block more transparent as it takes damage
-    const opacity = Math.max(0.3, this.health / MOVING_BLOCK_CONFIG.DEFAULT_HEALTH);
-    this.setOpacity(opacity);
+    // Update block texture based on current health
+    const newTexture = BLOCK_HEALTH_STATES[this.health as keyof typeof BLOCK_HEALTH_STATES];
+    if (newTexture && this.world) {
+      // Store current state
+      const currentState = {
+        position: { ...this.position },
+        direction: { ...this.direction },
+        isReversed: this.isReversed,
+        moveSpeed: this.moveSpeed,
+        health: this.health,
+        movementBounds: this.movementBounds ? {
+          min: { ...this.movementBounds.min },
+          max: { ...this.movementBounds.max }
+        } : undefined,
+        oscillate: this.oscillate,
+        isBreakable: this.isBreakable
+      };
+
+      // Create a new block with the updated texture and state
+      const newBlock = new MovingBlockEntity({
+        blockTextureUri: newTexture,
+        moveSpeed: currentState.moveSpeed,
+        direction: currentState.direction,
+        movementBounds: currentState.movementBounds,
+        oscillate: currentState.oscillate,
+        health: currentState.health,
+        isBreakable: currentState.isBreakable
+      });
+
+      // Spawn the new block and update its state
+      newBlock.spawn(this.world, currentState.position);
+      if (currentState.isReversed) {
+        newBlock.reverseDirection();
+      }
+
+      // Despawn the old block
+      this.despawn();
+    }
 
     if (this.health <= 0) {
       console.log('Block destroyed!');

@@ -108,7 +108,46 @@
     border-radius: 50%;
     pointer-events: none;
   }
+
+  .scoreboard {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.4);
+    padding: 10px 20px;
+    border-radius: 8px;
+    color: #ffffff;
+    font-family: 'Arial', sans-serif;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    gap: 20px;
+  }
+
+  .player-score {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .player-label {
+    color: #FFD700;
+    font-weight: bold;
+  }
+
+  .score-value {
+    font-size: 24px;
+    min-width: 30px;
+    text-align: center;
+  }
 </style>
+
+<div class="scoreboard">
+  <div id="scores-container">
+    <!-- Scores will be added here dynamically -->
+  </div>
+</div>
 
 <div class="projectile-counter">
   <div class="particles"></div>
@@ -119,6 +158,8 @@
 <script>
 let projectileCount = 5;
 let particles = [];
+
+const scoresContainer = document.getElementById('scores-container');
 
 // Create particle effect
 function createParticle() {
@@ -155,6 +196,8 @@ hytopia.onData(data => {
     updateProjectileCount(data.count);
   } else if (data.type === 'attemptShootNoAmmo') {
     triggerShakeAnimation();
+  } else if (data.type === 'updateScores') {
+    updateScoreboard(data.scores);
   }
 });
 
@@ -195,5 +238,18 @@ function updateProjectileCount(count) {
   }
   
   projectileCount = count;
+}
+
+function updateScoreboard(scores) {
+  scoresContainer.innerHTML = '';
+  scores.forEach((score, index) => {
+    const playerDiv = document.createElement('div');
+    playerDiv.className = 'player-score';
+    playerDiv.innerHTML = `
+      <span class="player-label">P${index + 1}</span>
+      <span class="score-value">${score.score}</span>
+    `;
+    scoresContainer.appendChild(playerDiv);
+  });
 }
 </script>

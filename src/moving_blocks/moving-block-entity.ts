@@ -229,6 +229,9 @@ export class MovingBlockManager {
           this.scoreManager.addScore(playerId, score);
           console.log(`Block broken by player ${playerId}! Awarded ${score} points`);
           
+          // Broadcast updated scores
+          this.scoreManager.broadcastScores(this.world);
+          
           // Remove the block from our tracking array when broken
           this.removeBlock(block);
         } else {

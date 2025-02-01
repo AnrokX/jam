@@ -1,6 +1,7 @@
 // The ScoreManager handles player scoring for block breaks and other game events
 
 import { Player } from 'hytopia';
+import { World } from 'hytopia';
 
 export interface ScoreOptions {
   score: number;
@@ -40,5 +41,20 @@ export class ScoreManager {
   // Reset the player's score to zero (e.g., for a new game or specific events)
   public resetScore(playerId: string): void {
     this.playerScores.set(playerId, 0);
+  }
+
+  // Add this method to broadcast score updates
+  public broadcastScores(world: World) {
+    const scores = Array.from(world.entityManager.getAllPlayerEntities()).map(playerEntity => ({
+      playerId: playerEntity.player.id,
+      score: this.getScore(playerEntity.player.id)
+    }));
+
+    world.entityManager.getAllPlayerEntities().forEach(playerEntity => {
+      playerEntity.player.ui.sendData({
+        type: 'updateScores',
+        scores
+      });
+    });
   }
 } 

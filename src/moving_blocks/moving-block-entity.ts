@@ -190,6 +190,45 @@ export class MovingBlockEntity extends Entity {
     // Despawn the old block
     this.despawn();
   }
+
+  // --- Added getter and helper methods for movement behavior use ---
+
+  public getDirection(): Vector3Like {
+    return this.direction;
+  }
+
+  public getMoveSpeed(): number {
+    return this.moveSpeed;
+  }
+
+  public isWithinMovementBounds(position: Vector3Like): boolean {
+    if (!this.movementBounds) return true;
+    return (
+      position.x >= this.movementBounds.min.x &&
+      position.x <= this.movementBounds.max.x &&
+      position.y >= this.movementBounds.min.y &&
+      position.y <= this.movementBounds.max.y &&
+      position.z >= this.movementBounds.min.z &&
+      position.z <= this.movementBounds.max.z
+    );
+  }
+
+  public shouldOscillate(): boolean {
+    return this.oscillate;
+  }
+
+  public reverseMovementDirection(): void {
+    this.direction = {
+      x: -this.direction.x,
+      y: -this.direction.y,
+      z: -this.direction.z
+    };
+    this.isReversed = !this.isReversed;
+  }
+
+  public resetToInitialPosition(): void {
+    this.setPosition(this.initialPosition);
+  }
 }
 
 export class MovingBlockManager {

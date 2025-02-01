@@ -44,17 +44,17 @@ export interface MovingBlockOptions extends EntityOptions {
 }
 
 export class MovingBlockEntity extends Entity {
-  private moveSpeed: number;
-  private direction: Vector3Like;
-  private initialPosition: Vector3Like;
-  private movementBounds?: { min: Vector3Like; max: Vector3Like };
-  private oscillate: boolean;
+  protected moveSpeed: number;
+  protected direction: Vector3Like;
+  protected initialPosition: Vector3Like;
+  protected movementBounds?: { min: Vector3Like; max: Vector3Like };
+  protected oscillate: boolean;
   private isReversed: boolean = false;
   private health: number;
   private isBreakable: boolean;
   private onBlockBroken?: () => void;
   private playerId?: string;  // Store the ID of player who last hit the block
-  private movementBehavior: BlockMovementBehavior;
+  protected movementBehavior: BlockMovementBehavior;
   private particles: Entity[] = [];
   private particleEffects: BlockParticleEffects;
 
@@ -222,7 +222,7 @@ export class MovingBlockEntity extends Entity {
   // --- Added getter and helper methods for movement behavior use ---
 
   public getDirection(): Vector3Like {
-    return this.direction;
+    return { ...this.direction }; // Return a copy to prevent direct modification
   }
 
   public getMoveSpeed(): number {

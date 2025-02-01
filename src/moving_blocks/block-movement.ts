@@ -1,12 +1,13 @@
-import { BlockMovementBehavior } from 'hytopia';
-import { MovingBlockEntity } from './moving-block-entity';
 import { Vector3Like } from 'hytopia';
+import { MovingBlockEntity } from './moving-block-entity';
 
 export interface BlockMovementBehavior {
   update(block: MovingBlockEntity, deltaTimeMs: number): void;
 }
 
 export class DefaultBlockMovement implements BlockMovementBehavior {
+  private readonly DEBUG_ENABLED = false; // Set to true only during development
+
   update(block: MovingBlockEntity, deltaTimeMs: number): void {
     const deltaSeconds = deltaTimeMs / 1000;
     const newPosition = {
@@ -15,29 +16,21 @@ export class DefaultBlockMovement implements BlockMovementBehavior {
       z: block.position.z + block.getDirection().z * block.getMoveSpeed() * deltaSeconds,
     };
 
-    console.debug(`[BlockMovement] Calculating new position:
-      Current: ${JSON.stringify(block.position)}
-      Delta: ${deltaSeconds}s
-      New: ${JSON.stringify(newPosition)}
-      ${block.getDebugInfo()}`);
-
-    console.debug(`[BlockMovement] Boundary check:
-      Position: ${JSON.stringify(newPosition)}
-      Bounds: ${JSON.stringify(block.movementBounds)}
-      Within bounds: ${block.isWithinMovementBounds(newPosition)}
-      Current direction: ${JSON.stringify(block.getDirection())}
-    `);
+    if (this.DEBUG_ENABLED) {
+      console.debug(`[BlockMovement] New position calculated: ${JSON.stringify(newPosition)}`);
+    }
 
     if (!block.isWithinMovementBounds(newPosition)) {
-      console.debug(`[BlockMovement] Block out of bounds, handling...
-        Oscillate: ${block.shouldOscillate()}`);
-      
       if (block.shouldOscillate()) {
         block.reverseMovementDirection();
-        console.debug('[BlockMovement] Direction reversed');
+        if (this.DEBUG_ENABLED) {
+          console.debug('[BlockMovement] Direction reversed due to boundary');
+        }
       } else {
         block.resetToInitialPosition();
-        console.debug('[BlockMovement] Position reset to initial');
+        if (this.DEBUG_ENABLED) {
+          console.debug('[BlockMovement] Position reset to initial');
+        }
         return;
       }
     }

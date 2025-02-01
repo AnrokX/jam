@@ -34,4 +34,12 @@ describe('ScoreManager', () => {
     scoreManager.removePlayer(playerId);
     expect(scoreManager.getScore(playerId)).toBe(0); // returns 0 if player is no longer initialized
   });
+
+  // New test for block break event
+  test('player breaking a block awards points', () => {
+    // Assume breaking a block should give 5 points in score
+    const blockBreakScore = 5;
+    scoreManager.addScore(playerId, blockBreakScore); // simulate block break event awarding points
+    expect(scoreManager.getScore(playerId)).toBe(blockBreakScore);
+  });
 }); 

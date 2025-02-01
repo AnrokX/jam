@@ -15,15 +15,33 @@ export class DefaultBlockMovement implements BlockMovementBehavior {
       z: block.position.z + block.getDirection().z * block.getMoveSpeed() * deltaSeconds,
     };
 
-    // Check bounds via block method (using the block's internal configuration)
+    console.debug(`[BlockMovement] Calculating new position:
+      Current: ${JSON.stringify(block.position)}
+      Delta: ${deltaSeconds}s
+      New: ${JSON.stringify(newPosition)}
+      ${block.getDebugInfo()}`);
+
+    console.debug(`[BlockMovement] Boundary check:
+      Position: ${JSON.stringify(newPosition)}
+      Bounds: ${JSON.stringify(block.movementBounds)}
+      Within bounds: ${block.isWithinMovementBounds(newPosition)}
+      Current direction: ${JSON.stringify(block.getDirection())}
+    `);
+
     if (!block.isWithinMovementBounds(newPosition)) {
+      console.debug(`[BlockMovement] Block out of bounds, handling...
+        Oscillate: ${block.shouldOscillate()}`);
+      
       if (block.shouldOscillate()) {
         block.reverseMovementDirection();
+        console.debug('[BlockMovement] Direction reversed');
       } else {
         block.resetToInitialPosition();
+        console.debug('[BlockMovement] Position reset to initial');
         return;
       }
     }
+    
     block.setPosition(newPosition);
   }
 } 

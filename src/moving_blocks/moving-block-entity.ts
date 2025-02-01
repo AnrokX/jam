@@ -98,13 +98,21 @@ export class MovingBlockEntity extends Entity {
   private isWithinBounds(position: Vector3Like): boolean {
     if (!this.movementBounds) return true;
 
+    // Add small epsilon to handle floating point precision
+    const epsilon = 0.001;
+    
+    // Only check axes where we have movement bounds defined
+    const checkX = Math.abs(this.movementBounds.max.x - this.movementBounds.min.x) > epsilon;
+    const checkY = Math.abs(this.movementBounds.max.y - this.movementBounds.min.y) > epsilon;
+    const checkZ = Math.abs(this.movementBounds.max.z - this.movementBounds.min.z) > epsilon;
+
     return (
-      position.x >= this.movementBounds.min.x &&
-      position.x <= this.movementBounds.max.x &&
-      position.y >= this.movementBounds.min.y &&
-      position.y <= this.movementBounds.max.y &&
-      position.z >= this.movementBounds.min.z &&
-      position.z <= this.movementBounds.max.z
+      (!checkX || (position.x >= this.movementBounds.min.x - epsilon && 
+                  position.x <= this.movementBounds.max.x + epsilon)) &&
+      (!checkY || (position.y >= this.movementBounds.min.y - epsilon && 
+                  position.y <= this.movementBounds.max.y + epsilon)) &&
+      (!checkZ || (position.z >= this.movementBounds.min.z - epsilon && 
+                  position.z <= this.movementBounds.max.z + epsilon))
     );
   }
 
@@ -215,6 +223,26 @@ export class MovingBlockEntity extends Entity {
 
   public resetToInitialPosition(): void {
     this.setPosition(this.initialPosition);
+  }
+
+  public getDebugInfo(): string {
+    return `MovingBlock Debug Info:
+    ID: ${this.id}
+    Position: x=${this.position.x.toFixed(2)}, y=${this.position.y.toFixed(2)}, z=${this.position.z.toFixed(2)}
+    Direction: x=${this.direction.x.toFixed(2)}, y=${this.direction.y.toFixed(2)}, z=${this.direction.z.toFixed(2)}
+    Speed: ${this.moveSpeed}
+    Health: ${this.health}
+    Is Breakable: ${this.isBreakable}
+    Oscillating: ${this.oscillate}
+    Is Reversed: ${this.isReversed}
+    Movement Bounds: ${this.movementBounds ? 
+      `\n      Min: x=${this.movementBounds.min.x}, y=${this.movementBounds.min.y}, z=${this.movementBounds.min.z}
+      Max: x=${this.movementBounds.max.x}, y=${this.movementBounds.max.y}, z=${this.movementBounds.max.z}` 
+      : 'None'}
+    Last Hit By Player: ${this.playerId || 'None'}
+    Texture: ${this.blockTextureUri}
+    Half Extents: x=${this.blockHalfExtents.x}, y=${this.blockHalfExtents.y}, z=${this.blockHalfExtents.z}
+    Is Spawned: ${this.isSpawned}`;
   }
 }
 

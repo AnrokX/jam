@@ -1,5 +1,6 @@
 import { Entity, EntityOptions, Vector3Like, ColliderShape, CollisionGroup, World, RigidBodyType, BlockType } from 'hytopia';
 import { ScoreManager } from '../managers/score-manager';
+import { BlockMovementBehavior, DefaultBlockMovement } from './block-movement';
 
 // Configuration for our Z-axis moving block
 const MOVING_BLOCK_CONFIG = {
@@ -28,6 +29,7 @@ export interface MovingBlockOptions extends EntityOptions {
   health?: number;           // Health of the block before breaking
   isBreakable?: boolean;     // Whether the block can be broken
   onBlockBroken?: () => void; // Optional callback to be triggered when the block is broken
+  movementBehavior?: BlockMovementBehavior; // New: inject block-specific movement logic
 }
 
 export class MovingBlockEntity extends Entity {
@@ -41,6 +43,7 @@ export class MovingBlockEntity extends Entity {
   private isBreakable: boolean;
   private onBlockBroken?: () => void;
   private playerId?: string;  // Store the ID of player who last hit the block
+  private movementBehavior: BlockMovementBehavior;
 
   constructor(options: MovingBlockOptions) {
     super({
@@ -74,6 +77,7 @@ export class MovingBlockEntity extends Entity {
     this.health = options.health ?? MOVING_BLOCK_CONFIG.DEFAULT_HEALTH;
     this.isBreakable = options.isBreakable ?? true;
     this.onBlockBroken = options.onBlockBroken;
+    this.movementBehavior = options.movementBehavior || new DefaultBlockMovement();
   }
 
   private normalizeDirection(dir: Vector3Like): Vector3Like {
@@ -112,28 +116,8 @@ export class MovingBlockEntity extends Entity {
   }
 
   override onTick = (entity: Entity, deltaTimeMs: number): void => {
-    const deltaSeconds = deltaTimeMs / 1000;
-    
-    // Calculate new position
-    const newPosition = {
-      x: this.position.x + this.direction.x * this.moveSpeed * deltaSeconds,
-      y: this.position.y + this.direction.y * this.moveSpeed * deltaSeconds,
-      z: this.position.z + this.direction.z * this.moveSpeed * deltaSeconds
-    };
-
-    // Check if the new position would be within bounds
-    if (!this.isWithinBounds(newPosition)) {
-      if (this.oscillate) {
-        this.reverseDirection();
-      } else {
-        // Reset to initial position if not oscillating
-        this.setPosition(this.initialPosition);
-        return;
-      }
-    }
-
-    // Update the position
-    this.setPosition(newPosition);
+    // Delegate movement update to injected behavior
+    this.movementBehavior.update(this, deltaTimeMs);
   }
 
   private handleCollision(other: Entity): void {

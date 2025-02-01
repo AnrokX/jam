@@ -217,10 +217,15 @@ export class MovingBlockManager {
   ) {}
 
   public getBlockCount(): number {
+    // Filter out any despawned blocks
+    this.blocks = this.blocks.filter(block => block.isSpawned);
     return this.blocks.length;
   }
 
   public createZAxisBlock(spawnPosition?: Vector3Like): MovingBlockEntity {
+    // Clean up any despawned blocks first
+    this.blocks = this.blocks.filter(block => block.isSpawned);
+
     const block = new MovingBlockEntity({
       onBlockBroken: () => {
         if (this.scoreManager && (block as any).playerId) {
@@ -249,13 +254,7 @@ export class MovingBlockManager {
   public removeBlock(block: MovingBlockEntity): void {
     const index = this.blocks.indexOf(block);
     if (index !== -1) {
-      block.despawn();
       this.blocks.splice(index, 1);
     }
-  }
-
-  public removeAllBlocks(): void {
-    this.blocks.forEach(block => block.despawn());
-    this.blocks = [];
   }
 }

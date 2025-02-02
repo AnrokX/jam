@@ -10,7 +10,7 @@ import {
 import worldMap from './assets/map.json';
 import { RaycastHandler } from './src/raycast/raycast-handler';
 import { PlayerProjectileManager } from './src/managers/player-projectile-manager';
-import { MovingBlockManager } from './src/moving_blocks/moving-block-entity';
+import { MovingBlockManager, MOVING_BLOCK_CONFIG } from './src/moving_blocks/moving-block-entity';
 import { ScoreManager } from './src/managers/score-manager';
 
 startServer(world => {
@@ -46,30 +46,51 @@ startServer(world => {
     amplitude: 4,
     frequency: 0.5
   });
+  movingBlockManager.createStaticTarget();
+  movingBlockManager.createVerticalWaveBlock(); // Let it use its default spawn position
 
   // Set up periodic block spawning with different patterns
   setInterval(() => {
     // Only spawn new block if we're under the maximum
     if (movingBlockManager.getBlockCount() < MAX_BLOCKS) {
-      // Spawn at a random position within bounds
+      // Spawn at a random position within bounds - Note: Y position will be overridden for specific block types
       const spawnPos = {
         x: Math.random() * 10 - 5, // Random x between -5 and 5
-        y: 1 + Math.random() * 3,  // Random y between 1 and 4
         z: Math.random() * 20 - 10 // Random z between -10 and 10
       };
 
       // Randomly choose between different block types
       const blockType = Math.random();
-      if (blockType < 0.5) {
-        movingBlockManager.createZAxisBlock(spawnPos);
-        console.log(`New Z-axis block spawned at (${spawnPos.x.toFixed(2)}, ${spawnPos.y.toFixed(2)}, ${spawnPos.z.toFixed(2)})`);
-      } else {
+      if (blockType < 0.25) {
+        movingBlockManager.createZAxisBlock({
+          ...spawnPos,
+          y: 1  // Ground level for regular blocks
+        });
+        console.log(`New Z-axis block spawned at (${spawnPos.x.toFixed(2)}, 1, ${spawnPos.z.toFixed(2)})`);
+      } else if (blockType < 0.5) {
         movingBlockManager.createSineWaveBlock({
-          spawnPosition: spawnPos,
+          spawnPosition: {
+            ...spawnPos,
+            y: 1  // Ground level for horizontal wave
+          },
           amplitude: 2 + Math.random() * 3, // Random amplitude between 2 and 5
           frequency: 0.3 + Math.random() * 0.7 // Random frequency between 0.3 and 1
         });
-        console.log(`New sine wave block spawned at (${spawnPos.x.toFixed(2)}, ${spawnPos.y.toFixed(2)}, ${spawnPos.z.toFixed(2)})`);
+        console.log(`New sine wave block spawned at (${spawnPos.x.toFixed(2)}, 1, ${spawnPos.z.toFixed(2)})`);
+      } else if (blockType < 0.75) {
+        // For vertical wave blocks, let the manager handle the Y position
+        movingBlockManager.createVerticalWaveBlock({
+          spawnPosition: {
+            x: spawnPos.x,
+            y: MOVING_BLOCK_CONFIG.VERTICAL_WAVE.HEIGHT_OFFSET,  // Use configured height
+            z: spawnPos.z
+          },
+          amplitude: 2 + Math.random() * 2, // Random amplitude between 2 and 4
+          frequency: 0.5 + Math.random() * 0.5 // Random frequency between 0.5 and 1
+        });
+        console.log('New vertical wave block spawned');
+      } else {
+        movingBlockManager.createStaticTarget();
       }
     }
   }, BLOCK_SPAWN_INTERVAL);

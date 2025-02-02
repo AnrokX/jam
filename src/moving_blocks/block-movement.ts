@@ -45,7 +45,8 @@ export class SineWaveMovement implements BlockMovementBehavior {
   private readonly frequency: number;
   private readonly baseAxis: 'x' | 'y' | 'z';
   private readonly waveAxis: 'x' | 'y' | 'z';
-  private readonly DEBUG_ENABLED = false; // Enable debug logging temporarily
+  private readonly initialY: number;
+  private readonly DEBUG_ENABLED = false;
 
   constructor(options: {
     amplitude?: number;
@@ -53,10 +54,11 @@ export class SineWaveMovement implements BlockMovementBehavior {
     baseAxis?: 'x' | 'y' | 'z';
     waveAxis?: 'x' | 'y' | 'z';
   } = {}) {
-    this.amplitude = options.amplitude ?? 3;  // Default amplitude of 3 units
-    this.frequency = options.frequency ?? 1;  // Default 1 cycle per second
-    this.baseAxis = options.baseAxis ?? 'z';  // Default moves along z-axis
-    this.waveAxis = options.waveAxis ?? 'x';  // Default waves on x-axis
+    this.amplitude = options.amplitude ?? 3;
+    this.frequency = options.frequency ?? 1;
+    this.baseAxis = options.baseAxis ?? 'z';
+    this.waveAxis = options.waveAxis ?? 'x';
+    this.initialY = 0; // Will be set on first update
     
     if (this.DEBUG_ENABLED) {
       console.log('Created SineWaveMovement with:', {
@@ -69,9 +71,14 @@ export class SineWaveMovement implements BlockMovementBehavior {
   }
 
   update(block: MovingBlockEntity, deltaTimeMs: number): void {
+    // Store initial Y position on first update
+    if (this.elapsedTime === 0) {
+      (this as any).initialY = block.position.y;
+    }
+
     this.elapsedTime += deltaTimeMs / 1000;
     
-    // Calculate base movement
+    // Calculate base movement along the primary axis (usually Z)
     const baseSpeed = block.getMoveSpeed() * (deltaTimeMs / 1000);
     const baseMovement = block.getDirection()[this.baseAxis] * baseSpeed;
     
@@ -80,13 +87,22 @@ export class SineWaveMovement implements BlockMovementBehavior {
     
     const newPosition = { ...block.position };
     newPosition[this.baseAxis] += baseMovement;
-    newPosition[this.waveAxis] = waveOffset;
+
+    // Handle wave movement differently based on axis
+    if (this.waveAxis === 'y') {
+      // For Y-axis, oscillate around the initial spawn height
+      newPosition.y = (this as any).initialY + waveOffset;
+    } else {
+      // For X or Z axis waves, just apply the offset directly
+      newPosition[this.waveAxis] = waveOffset;
+    }
 
     if (this.DEBUG_ENABLED) {
       console.log('SineWave Update:', {
         elapsedTime: this.elapsedTime.toFixed(2),
         baseMovement: baseMovement.toFixed(2),
         waveOffset: waveOffset.toFixed(2),
+        initialY: (this as any).initialY,
         newPos: {
           x: newPosition.x.toFixed(2),
           y: newPosition.y.toFixed(2),
@@ -114,5 +130,19 @@ export class SineWaveMovement implements BlockMovementBehavior {
     }
     
     block.setPosition(newPosition);
+  }
+}
+
+export class StaticMovement implements BlockMovementBehavior {
+  private readonly DEBUG_ENABLED = false;
+
+  update(block: MovingBlockEntity, deltaTimeMs: number): void {
+    // Static blocks don't move, but we still need to check if they're within bounds
+    if (!block.isWithinMovementBounds(block.position)) {
+      block.resetToInitialPosition();
+      if (this.DEBUG_ENABLED) {
+        console.debug('[StaticMovement] Position reset to initial');
+      }
+    }
   }
 } 

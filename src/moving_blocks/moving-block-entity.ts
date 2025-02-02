@@ -1,6 +1,6 @@
 import { Entity, EntityOptions, Vector3Like, ColliderShape, CollisionGroup, World, RigidBodyType, BlockType } from 'hytopia';
 import { ScoreManager } from '../managers/score-manager';
-import { BlockMovementBehavior, DefaultBlockMovement, SineWaveMovement } from './block-movement';
+import { BlockMovementBehavior, DefaultBlockMovement, SineWaveMovement, StaticMovement } from './block-movement';
 import { DESTRUCTION_PARTICLE_CONFIG } from '../config/particle-config';
 import { BlockParticleEffects } from '../effects/block-particle-effects';
 
@@ -12,17 +12,37 @@ export const MOVING_BLOCK_CONFIG = {
   DEFAULT_TEXTURE: 'blocks/void-sand.png',
   DEFAULT_HALF_EXTENTS: { x: 0.5, y: 2, z: 2 },
   MOVEMENT_BOUNDS: {
-    min: { x: 0, y: 1, z: -15 },
-    max: { x: 0, y: 1, z: 16 }
+    min: { x: -5, y: 1, z: -15 },
+    max: { x: 5, y: 1, z: 16 }
   },
   SPAWN_POSITION: { x: 0, y: 1, z: 0 },
   BREAK_SCORE: 5,  // Points awarded for breaking a block
+  STATIC_TARGET: {
+    TEXTURE: 'blocks/gold-ore.png',
+    HALF_EXTENTS: { x: 0.8, y: 0.8, z: 0.8 }, // Balanced size for visibility and challenge
+    HEIGHT_RANGE: { min: 3, max: 8 },  // Higher range for better visibility
+    SCORE: 10, // More points for hitting target
+    HEALTH: 1,  // One-shot kill
+    LIFETIME: 3000, // Time in milliseconds before despawning
+    FADE_START: 2000 // Start fading at 2 seconds to warn player
+  },
+  VERTICAL_WAVE: {  // New configuration for vertical sine wave blocks
+    TEXTURE: 'blocks/emerald-ore.png',
+    HALF_EXTENTS: { x: 1, y: 1, z: 1 },
+    DEFAULT_AMPLITUDE: 2,  // Reduced amplitude to prevent floor collision
+    DEFAULT_FREQUENCY: 0.7,  // Slightly faster than horizontal sine wave
+    HEIGHT_OFFSET: 10,  // Significantly increased base height
+    SAFETY_MARGIN: 2,   // Extra space to prevent any collision
+    SCORE_MULTIPLIER: 2,  // Double points for hitting this challenging target
+    SPEED_MULTIPLIER: 0.7,  // Slightly slower forward movement for better visibility
+    HEALTH: 1  // One-shot kill, like static targets
+  },
   PARTICLE_CONFIG: {
-    COUNT: 50,               // Number of particles
-    SCALE: 0.15,            // Small blocks
-    LIFETIME: 800,          // Shorter lifetime since we won't fade
-    SPREAD_RADIUS: 0.3,     // Initial spread from hit point
-    SPEED: 0.15             // Movement speed
+    COUNT: 50,               
+    SCALE: 0.15,            
+    LIFETIME: 800,          
+    SPREAD_RADIUS: 0.3,     
+    SPEED: 0.15             
   }
 };
 
@@ -369,6 +389,144 @@ export class MovingBlockManager {
     const spawnPosition = options.spawnPosition || { ...MOVING_BLOCK_CONFIG.SPAWN_POSITION, z: -5 };
     console.log('Spawning sine wave block at:', spawnPosition);
     
+    block.spawn(this.world, spawnPosition);
+    this.blocks.push(block);
+    
+    return block;
+  }
+
+  public createStaticTarget(spawnPosition?: Vector3Like): MovingBlockEntity {
+    // Clean up any despawned blocks first
+    this.blocks = this.blocks.filter(block => block.isSpawned);
+
+    // Generate random height if not specified
+    const randomHeight = MOVING_BLOCK_CONFIG.STATIC_TARGET.HEIGHT_RANGE.min + 
+      Math.random() * (MOVING_BLOCK_CONFIG.STATIC_TARGET.HEIGHT_RANGE.max - 
+                      MOVING_BLOCK_CONFIG.STATIC_TARGET.HEIGHT_RANGE.min);
+
+    const finalSpawnPosition = spawnPosition || {
+      x: Math.random() * 10 - 5, // Random x between -5 and 5
+      y: randomHeight,
+      z: Math.random() * 20 - 10 // Random z between -10 and 10
+    };
+
+    const block = new MovingBlockEntity({
+      blockTextureUri: MOVING_BLOCK_CONFIG.STATIC_TARGET.TEXTURE,
+      blockHalfExtents: MOVING_BLOCK_CONFIG.STATIC_TARGET.HALF_EXTENTS,
+      health: MOVING_BLOCK_CONFIG.STATIC_TARGET.HEALTH,
+      movementBehavior: new StaticMovement(),
+      // Wide bounds to allow spawning anywhere in the play area
+      movementBounds: {
+        min: { 
+          x: -5,
+          y: MOVING_BLOCK_CONFIG.STATIC_TARGET.HEIGHT_RANGE.min,
+          z: MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.min.z
+        },
+        max: {
+          x: 5,
+          y: MOVING_BLOCK_CONFIG.STATIC_TARGET.HEIGHT_RANGE.max,
+          z: MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.max.z
+        }
+      },
+      onBlockBroken: () => {
+        if (this.scoreManager && (block as any).playerId) {
+          const playerId = (block as any).playerId;
+          const score = MOVING_BLOCK_CONFIG.STATIC_TARGET.SCORE;
+          
+          this.scoreManager.addScore(playerId, score);
+          console.log(`Static target broken by player ${playerId}! Awarded ${score} points`);
+          
+          this.scoreManager.broadcastScores(this.world);
+          this.removeBlock(block);
+        }
+      }
+    });
+    
+    console.log('Spawning static target at:', finalSpawnPosition);
+    block.spawn(this.world, finalSpawnPosition);
+    this.blocks.push(block);
+
+    // Set up automatic despawn after lifetime
+    setTimeout(() => {
+      if (block.isSpawned) {
+        console.log('Static target lifetime expired, despawning');
+        block.despawn();
+        this.removeBlock(block);
+      }
+    }, MOVING_BLOCK_CONFIG.STATIC_TARGET.LIFETIME);
+
+    // Optional: Add visual feedback that the block is about to despawn
+    setTimeout(() => {
+      if (block.isSpawned) {
+        // You might want to add a visual effect here to warn the player
+        // For example, making the block flash or change color
+        console.log('Static target about to expire');
+      }
+    }, MOVING_BLOCK_CONFIG.STATIC_TARGET.FADE_START);
+
+    return block;
+  }
+
+  public createVerticalWaveBlock(options: {
+    spawnPosition?: Vector3Like;
+    amplitude?: number;
+    frequency?: number;
+    moveSpeed?: number;
+    blockTextureUri?: string;
+  } = {}): MovingBlockEntity {
+    // Clean up any despawned blocks first
+    this.blocks = this.blocks.filter(block => block.isSpawned);
+
+    const amplitude = options.amplitude ?? MOVING_BLOCK_CONFIG.VERTICAL_WAVE.DEFAULT_AMPLITUDE;
+    const heightOffset = MOVING_BLOCK_CONFIG.VERTICAL_WAVE.HEIGHT_OFFSET;
+    const safetyMargin = MOVING_BLOCK_CONFIG.VERTICAL_WAVE.SAFETY_MARGIN;
+
+    const block = new MovingBlockEntity({
+      moveSpeed: options.moveSpeed ?? MOVING_BLOCK_CONFIG.DEFAULT_SPEED * MOVING_BLOCK_CONFIG.VERTICAL_WAVE.SPEED_MULTIPLIER,
+      blockTextureUri: options.blockTextureUri ?? MOVING_BLOCK_CONFIG.VERTICAL_WAVE.TEXTURE,
+      blockHalfExtents: MOVING_BLOCK_CONFIG.VERTICAL_WAVE.HALF_EXTENTS,
+      health: MOVING_BLOCK_CONFIG.VERTICAL_WAVE.HEALTH,  // Set health to 1
+      movementBehavior: new SineWaveMovement({
+        amplitude: amplitude,
+        frequency: options.frequency ?? MOVING_BLOCK_CONFIG.VERTICAL_WAVE.DEFAULT_FREQUENCY,
+        baseAxis: 'z',  // Move forward along Z axis
+        waveAxis: 'y'   // Oscillate on Y axis
+      }),
+      // Adjusted movement bounds with safety margin
+      movementBounds: {
+        min: { 
+          x: -5,
+          y: heightOffset - amplitude + safetyMargin,  // Added safety margin to minimum height
+          z: MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.min.z
+        },
+        max: {
+          x: 5,
+          y: heightOffset + amplitude + safetyMargin,  // Consistent margin on top
+          z: MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.max.z
+        }
+      },
+      onBlockBroken: () => {
+        if (this.scoreManager && (block as any).playerId) {
+          const playerId = (block as any).playerId;
+          const score = MOVING_BLOCK_CONFIG.BREAK_SCORE * MOVING_BLOCK_CONFIG.VERTICAL_WAVE.SCORE_MULTIPLIER;
+          
+          this.scoreManager.addScore(playerId, score);
+          console.log(`Vertical wave block broken by player ${playerId}! Awarded ${score} points`);
+          
+          this.scoreManager.broadcastScores(this.world);
+          this.removeBlock(block);
+        }
+      }
+    });
+    
+    // Calculate spawn position with appropriate height offset and safety margin
+    const spawnPosition = options.spawnPosition || {
+      ...MOVING_BLOCK_CONFIG.SPAWN_POSITION,
+      y: heightOffset + safetyMargin,  // Added safety margin to initial spawn height
+      z: -5
+    };
+    
+    console.log('Spawning vertical wave block at:', spawnPosition);
     block.spawn(this.world, spawnPosition);
     this.blocks.push(block);
     

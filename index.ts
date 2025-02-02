@@ -68,17 +68,17 @@ startServer(world => {
     // Generate spawn position based on player count
     const playerCount = world.entityManager.getAllPlayerEntities().length;
     const spawnPos = playerCount === 0 ? 
-      // First player spawns on the left platform
+      // First player spawns at the back of the left platform
       {
-        x: -20,
-        y: 10,
+        x: -48,
+        y: 5,
         z: 0
       } :
-      // Second player spawns on the right platform
+      // Second player spawns at the back of the right platform
       {
-        x: 20,
-        y: 10,
-        z: 0
+        x: 49,
+        y: 5,
+        z: 1
       };
 
     const playerEntity = new PlayerEntity({
@@ -100,8 +100,11 @@ startServer(world => {
     playerEntity.player.camera.setOffset({
       x: 0,
       y: 1,  // Eye level height
-      z: 0.1   // Slightly forward to avoid any model clipping
+      z: 0   // Slightly forward to avoid any model clipping
     });
+
+    // Set a comfortable FOV for first-person gameplay (70 degrees is a common value)
+    playerEntity.player.camera.setFov(120);
   
     // Wire up raycast handler and projectile system to the SDK's input system
     playerEntity.controller!.onTickWithPlayerInput = (entity, input, cameraOrientation, deltaTimeMs) => {

@@ -63,6 +63,7 @@ export class ProjectileEntity extends Entity {
     ];
     private trajectoryMarkers: Entity[] = [];
     public readonly playerId?: string;
+    public onCollision?: (position: Vector3Like, blockTextureUri: string) => void;
 
     constructor(options: ProjectileOptions) {
         super({
@@ -387,7 +388,9 @@ export class ProjectileEntity extends Entity {
     }
 
     private onImpact(): void {
-        const particleSystem = BlockParticleEffects.getInstance();
+        if (!this.world) return;
+        
+        const particleSystem = BlockParticleEffects.getInstance(this.world);
         
         if (this.position && this.blockTextureUri) {
             particleSystem.createDestructionEffect(
@@ -396,5 +399,17 @@ export class ProjectileEntity extends Entity {
                 this.blockTextureUri
             );
         }
+    }
+
+    protected handleCollision(other: Entity): void {
+        // ... existing collision code ...
+        
+        if (this.onCollision && this.position && this.blockTextureUri) {
+            this.onCollision(this.position, this.blockTextureUri);
+        }
+        
+        this.onImpact(); // Call onImpact when collision occurs
+        
+        // ... rest of collision handling
     }
 } 

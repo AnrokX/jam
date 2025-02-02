@@ -186,5 +186,5 @@ startServer(world => {
   }).play(world);
 
   // Cleanup particle effects when the scene changes or the game shuts down
-  BlockParticleEffects.getInstance().cleanup();
+  BlockParticleEffects.getInstance(world).cleanup();
 });

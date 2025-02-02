@@ -8,6 +8,7 @@ export class BlockParticleEffects {
   private spatialGrid: Map<string, Set<Entity>> = new Map();
   private static readonly FRAME_BUDGET_MS = 16; // 60fps target
   private pendingEffects: Array<{position: Vector3Like, texture: string}> = [];
+  private readonly world: World; // Add this property
 
   // Use TypedArrays for particle properties
   private particlePositions = new Float32Array(DESTRUCTION_PARTICLE_CONFIG.POOLING.POOL_SIZE * 3);
@@ -21,10 +22,15 @@ export class BlockParticleEffects {
     particleReductionFactor: 1.0
   };
 
-  // Singleton getter
-  public static getInstance(): BlockParticleEffects {
-    if (!BlockParticleEffects.instance) {
-      BlockParticleEffects.instance = new BlockParticleEffects();
+  // Add world parameter to constructor
+  private constructor(world: World) {
+    this.world = world;
+  }
+
+  // Update getInstance to accept world parameter
+  public static getInstance(world?: World): BlockParticleEffects {
+    if (!BlockParticleEffects.instance && world) {
+      BlockParticleEffects.instance = new BlockParticleEffects(world);
     }
     return BlockParticleEffects.instance;
   }
@@ -207,5 +213,17 @@ export class BlockParticleEffects {
     });
     this.activeParticles.clear();
     this.particlePool = [];
+    this.spatialGrid.clear();
+    
+    // Clear typed arrays
+    this.particlePositions = new Float32Array(DESTRUCTION_PARTICLE_CONFIG.POOLING.POOL_SIZE * 3);
+    this.particleVelocities = new Float32Array(DESTRUCTION_PARTICLE_CONFIG.POOLING.POOL_SIZE * 3);
+    this.particleLifetimes = new Float32Array(DESTRUCTION_PARTICLE_CONFIG.POOLING.POOL_SIZE);
+  }
+
+  private createImmediateEffect(position: Vector3Like, texture: string): void {
+    if (this.world) {
+      this.createDestructionEffect(this.world, position, texture);
+    }
   }
 } 

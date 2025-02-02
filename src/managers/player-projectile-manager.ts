@@ -72,7 +72,14 @@ export class PlayerProjectileManager {
     };
 
     projectile.spawn(this.world, spawnPos);
+    this.handleProjectileSpawn(projectile);
     return projectile;
+  }
+
+  private handleProjectileSpawn(projectile: ProjectileEntity): void {
+    projectile.onCollision = (position: Vector3Like, blockTextureUri: string) => {
+      this.handleProjectileImpact(position, blockTextureUri);
+    };
   }
 
   public handleProjectileInput(
@@ -133,8 +140,8 @@ export class PlayerProjectileManager {
   }
 
   private handleProjectileImpact(position: Vector3Like, blockTextureUri: string): void {
-    // Get the singleton instance
-    const particleSystem = BlockParticleEffects.getInstance();
+    // Get the singleton instance with world
+    const particleSystem = BlockParticleEffects.getInstance(this.world);
     
     // Create the effect
     particleSystem.createDestructionEffect(this.world, position, blockTextureUri);

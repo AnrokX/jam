@@ -33,6 +33,13 @@ export interface ParticleConfig {
     MERGE_DISTANCE: number;
     GPU_INSTANCING: boolean;
   };
+  DISTANCE_SCALING: {
+    ENABLED: boolean;
+    FAR_DISTANCE: number;
+    FAR_SCALE: number;
+    MEDIUM_DISTANCE: number;
+    MEDIUM_SCALE: number;
+  };
 }
 
 export const DESTRUCTION_PARTICLE_CONFIG: ParticleConfig = {
@@ -67,5 +74,12 @@ export const DESTRUCTION_PARTICLE_CONFIG: ParticleConfig = {
     ENABLE_MERGING: true,  // Merge nearby particle meshes
     MERGE_DISTANCE: 2.0,   // Distance threshold for merging
     GPU_INSTANCING: true   // Use GPU instancing when available
+  },
+  DISTANCE_SCALING: {
+    ENABLED: true,
+    FAR_DISTANCE: 30,
+    FAR_SCALE: 0.2,
+    MEDIUM_DISTANCE: 20,
+    MEDIUM_SCALE: 0.5
   }
 }; 

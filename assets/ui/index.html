@@ -122,6 +122,77 @@
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.2);
     display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .round-info {
+    text-align: center;
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    width: 100%;
+  }
+
+  .waiting-message {
+    font-size: 24px;
+    color: #FFD700;
+    text-align: center;
+    animation: pulse 1s infinite;
+    margin: 10px 0;
+  }
+
+  .player-count {
+    font-size: 18px;
+    color: #ffffff;
+    text-align: center;
+  }
+
+  .round-number {
+    font-size: 20px;
+    font-weight: bold;
+    color: #FFD700;
+  }
+
+  .round-timer {
+    font-size: 24px;
+    color: #ffffff;
+    font-weight: bold;
+    padding: 5px 15px;
+    border-radius: 8px;
+    margin: 5px 0;
+    transition: all 0.3s ease;
+  }
+
+  .round-timer.warning {
+    color: #FFD700;
+    animation: pulse-warning 1s infinite;
+  }
+
+  .round-timer.danger {
+    color: #ff6b6b;
+    animation: pulse-danger 0.5s infinite;
+  }
+
+  @keyframes pulse-warning {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+
+  @keyframes pulse-danger {
+    0% { transform: scale(1); text-shadow: 0 0 10px rgba(255, 0, 0, 0.5); }
+    50% { transform: scale(1.1); text-shadow: 0 0 20px rgba(255, 0, 0, 0.8); }
+    100% { transform: scale(1); text-shadow: 0 0 10px rgba(255, 0, 0, 0.5); }
+  }
+
+  .score-target {
+    font-size: 14px;
+    color: #4CAF50;
+  }
+
+  .scores-wrapper {
+    display: flex;
     gap: 20px;
   }
 
@@ -141,11 +212,72 @@
     min-width: 30px;
     text-align: center;
   }
+
+  .countdown-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+
+  .countdown-overlay.visible {
+    opacity: 1;
+  }
+
+  .countdown-number {
+    font-size: 120px;
+    color: #FFD700;
+    font-weight: bold;
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+    animation: countdown-pulse 0.5s ease-out;
+  }
+
+  .countdown-go {
+    font-size: 150px;
+    color: #4CAF50;
+    font-weight: bold;
+    text-shadow: 0 0 30px rgba(76, 175, 80, 0.5);
+    animation: countdown-zoom 0.5s ease-out;
+  }
+
+  @keyframes countdown-pulse {
+    0% { transform: scale(1.5); opacity: 0; }
+    50% { transform: scale(0.9); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  @keyframes countdown-zoom {
+    0% { transform: scale(0.5); opacity: 0; }
+    50% { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
 </style>
 
+<div class="countdown-overlay">
+  <div class="countdown-display"></div>
+</div>
+
 <div class="scoreboard">
-  <div id="scores-container">
-    <!-- Scores will be added here dynamically -->
+  <div class="round-info">
+    <div class="waiting-message" style="display: none">Waiting for Players</div>
+    <div class="player-count" style="display: none">Players: 0/2</div>
+    <div class="round-number">Round 1</div>
+    <div class="round-timer">Time: 60s</div>
+    <div class="score-target">Target: 50 points</div>
+  </div>
+  <div class="scores-wrapper">
+    <div id="scores-container">
+      <!-- Scores will be added here dynamically -->
+    </div>
   </div>
 </div>
 
@@ -198,6 +330,18 @@ hytopia.onData(data => {
     triggerShakeAnimation();
   } else if (data.type === 'updateScores') {
     updateScoreboard(data.scores);
+  } else if (data.type === 'roundUpdate') {
+    updateRoundInfo(data.data);
+    startLocalTimer(data.data.timeRemaining);
+  } else if (data.type === 'roundEnd') {
+    handleRoundEnd(data.data);
+    if (timerInterval) {
+      clearInterval(timerInterval);
+    }
+  } else if (data.type === 'waitingForPlayers') {
+    showWaitingForPlayers(data.data);
+  } else if (data.type === 'countdown') {
+    showCountdown(data.count);
   }
 });
 
@@ -240,6 +384,76 @@ function updateProjectileCount(count) {
   projectileCount = count;
 }
 
+function showWaitingForPlayers(data) {
+  const waitingMessage = document.querySelector('.waiting-message');
+  const playerCount = document.querySelector('.player-count');
+  const gameElements = document.querySelectorAll('.round-number, .round-timer, .score-target');
+  
+  // Show waiting elements
+  waitingMessage.style.display = 'block';
+  playerCount.style.display = 'block';
+  playerCount.textContent = `Players: ${data.current}/${data.required}`;
+  
+  // Hide game elements
+  gameElements.forEach(el => el.style.display = 'none');
+}
+
+function updateRoundInfo(roundData) {
+  const waitingMessage = document.querySelector('.waiting-message');
+  const playerCount = document.querySelector('.player-count');
+  const gameElements = document.querySelectorAll('.round-number, .round-timer, .score-target');
+  
+  // Hide waiting elements
+  waitingMessage.style.display = 'none';
+  playerCount.style.display = 'none';
+  
+  // Show game elements
+  gameElements.forEach(el => el.style.display = 'block');
+  
+  // Update round info as before
+  const roundNumber = document.querySelector('.round-number');
+  const roundTimer = document.querySelector('.round-timer');
+  const scoreTarget = document.querySelector('.score-target');
+  
+  roundNumber.textContent = `Round ${roundData.round}`;
+  
+  // Update timer with formatting
+  const timeRemaining = Math.ceil(roundData.timeRemaining / 1000);
+  const minutes = Math.floor(timeRemaining / 60);
+  const seconds = timeRemaining % 60;
+  const formattedTime = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  roundTimer.textContent = formattedTime;
+  
+  // Add visual feedback based on time remaining
+  roundTimer.classList.remove('warning', 'danger');
+  if (timeRemaining <= 10) {
+    roundTimer.classList.add('danger');
+  } else if (timeRemaining <= 30) {
+    roundTimer.classList.add('warning');
+  }
+  
+  scoreTarget.textContent = `Target: ${roundData.scoreToAdvance} points`;
+}
+
+function handleRoundEnd(data) {
+  const roundInfo = document.querySelector('.round-info');
+  
+  // Add temporary status message
+  const statusMessage = document.createElement('div');
+  statusMessage.style.color = data.passed ? '#4CAF50' : '#ff6b6b';
+  statusMessage.textContent = data.passed ? 'Round Complete!' : 'Game Over!';
+  statusMessage.style.fontSize = '24px';
+  statusMessage.style.fontWeight = 'bold';
+  statusMessage.style.animation = 'pulse 0.5s ease-out infinite';
+  
+  roundInfo.appendChild(statusMessage);
+  
+  // Remove after transition to next round
+  setTimeout(() => {
+    statusMessage.remove();
+  }, data.nextRoundIn);
+}
+
 function updateScoreboard(scores) {
   scoresContainer.innerHTML = '';
   scores.forEach((score, index) => {
@@ -247,9 +461,71 @@ function updateScoreboard(scores) {
     playerDiv.className = 'player-score';
     playerDiv.innerHTML = `
       <span class="player-label">P${index + 1}</span>
-      <span class="score-value">${score.score}</span>
+      <span class="score-value">${score.totalScore}</span>
+      <span class="round-score">(+${score.roundScore})</span>
     `;
     scoresContainer.appendChild(playerDiv);
   });
+}
+
+// Add this function to handle continuous timer updates between server updates
+let lastTimeRemaining = 0;
+let timerInterval = null;
+
+function startLocalTimer(initialTimeMs) {
+  lastTimeRemaining = initialTimeMs;
+  
+  if (timerInterval) {
+    clearInterval(timerInterval);
+  }
+  
+  timerInterval = setInterval(() => {
+    lastTimeRemaining = Math.max(0, lastTimeRemaining - 1000);
+    
+    const timeRemaining = Math.ceil(lastTimeRemaining / 1000);
+    const minutes = Math.floor(timeRemaining / 60);
+    const seconds = timeRemaining % 60;
+    const formattedTime = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    
+    const roundTimer = document.querySelector('.round-timer');
+    if (roundTimer) {
+      roundTimer.textContent = formattedTime;
+      
+      // Update visual feedback
+      roundTimer.classList.remove('warning', 'danger');
+      if (timeRemaining <= 10) {
+        roundTimer.classList.add('danger');
+      } else if (timeRemaining <= 30) {
+        roundTimer.classList.add('warning');
+      }
+    }
+    
+    if (timeRemaining <= 0 && timerInterval) {
+      clearInterval(timerInterval);
+    }
+  }, 1000);
+}
+
+function showCountdown(count) {
+  const overlay = document.querySelector('.countdown-overlay');
+  const display = document.querySelector('.countdown-display');
+  
+  // Show overlay
+  overlay.classList.add('visible');
+  
+  // Update display
+  if (count === 'GO!') {
+    display.className = 'countdown-display countdown-go';
+  } else {
+    display.className = 'countdown-display countdown-number';
+  }
+  display.textContent = count;
+  
+  // Remove overlay after GO!
+  if (count === 'GO!') {
+    setTimeout(() => {
+      overlay.classList.remove('visible');
+    }, 1000);
+  }
 }
 </script>

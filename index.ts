@@ -12,6 +12,7 @@ import { RaycastHandler } from './src/raycast/raycast-handler';
 import { PlayerProjectileManager } from './src/managers/player-projectile-manager';
 import { MovingBlockManager, MOVING_BLOCK_CONFIG } from './src/moving_blocks/moving-block-entity';
 import { ScoreManager } from './src/managers/score-manager';
+import { RoundManager } from './src/managers/round-manager';
 
 startServer(world => {
   console.log('Starting server and initializing debug settings...');
@@ -33,67 +34,11 @@ startServer(world => {
   // Initialize the score manager
   const scoreManager = new ScoreManager();
 
-  const BLOCK_SPAWN_INTERVAL = 5000; // 5 seconds in milliseconds
-  const MAX_BLOCKS = 3; // Maximum number of blocks that can exist at once
-
-  // Initialize the moving block manager and create the initial Z-axis obstacle
+  // Initialize the moving block manager
   const movingBlockManager = new MovingBlockManager(world, scoreManager);
   
-  // Create initial blocks with different patterns
-  movingBlockManager.createZAxisBlock();
-  movingBlockManager.createSineWaveBlock({
-    spawnPosition: { x: 0, y: 1, z: -5 },
-    amplitude: 4,
-    frequency: 0.5
-  });
-  movingBlockManager.createStaticTarget();
-  movingBlockManager.createVerticalWaveBlock(); // Let it use its default spawn position
-
-  // Set up periodic block spawning with different patterns
-  setInterval(() => {
-    // Only spawn new block if we're under the maximum
-    if (movingBlockManager.getBlockCount() < MAX_BLOCKS) {
-      // Spawn at a random position within bounds - Note: Y position will be overridden for specific block types
-      const spawnPos = {
-        x: Math.random() * 10 - 5, // Random x between -5 and 5
-        z: Math.random() * 20 - 10 // Random z between -10 and 10
-      };
-
-      // Randomly choose between different block types
-      const blockType = Math.random();
-      if (blockType < 0.25) {
-        movingBlockManager.createZAxisBlock({
-          ...spawnPos,
-          y: 1  // Ground level for regular blocks
-        });
-        console.log(`New Z-axis block spawned at (${spawnPos.x.toFixed(2)}, 1, ${spawnPos.z.toFixed(2)})`);
-      } else if (blockType < 0.5) {
-        movingBlockManager.createSineWaveBlock({
-          spawnPosition: {
-            ...spawnPos,
-            y: 1  // Ground level for horizontal wave
-          },
-          amplitude: 2 + Math.random() * 3, // Random amplitude between 2 and 5
-          frequency: 0.3 + Math.random() * 0.7 // Random frequency between 0.3 and 1
-        });
-        console.log(`New sine wave block spawned at (${spawnPos.x.toFixed(2)}, 1, ${spawnPos.z.toFixed(2)})`);
-      } else if (blockType < 0.75) {
-        // For vertical wave blocks, let the manager handle the Y position
-        movingBlockManager.createVerticalWaveBlock({
-          spawnPosition: {
-            x: spawnPos.x,
-            y: MOVING_BLOCK_CONFIG.VERTICAL_WAVE.HEIGHT_OFFSET,  // Use configured height
-            z: spawnPos.z
-          },
-          amplitude: 2 + Math.random() * 2, // Random amplitude between 2 and 4
-          frequency: 0.5 + Math.random() * 0.5 // Random frequency between 0.5 and 1
-        });
-        console.log('New vertical wave block spawned');
-      } else {
-        movingBlockManager.createStaticTarget();
-      }
-    }
-  }, BLOCK_SPAWN_INTERVAL);
+  // Initialize the round manager
+  const roundManager = new RoundManager(world, movingBlockManager, scoreManager);
 
   world.loadMap(worldMap);
 
@@ -140,9 +85,6 @@ startServer(world => {
 
     // Configure first-person camera after spawning
     playerEntity.player.camera.setMode(PlayerCameraMode.THIRD_PERSON);
-    
-    // Hide the entire player model in first person
-   // playerEntity.setModelHiddenNodes(['*', 'Body', 'Head', 'Arms', 'Legs']);
     
     // Set camera to eye level and slightly forward
     playerEntity.player.camera.setOffset({
@@ -196,13 +138,18 @@ startServer(world => {
       });
     };
 
+    // Start the round if it's not already active (first player starts the game)
+    if (!roundManager.isActive()) {
+      roundManager.startRound();
+    }
+
     world.chatManager.sendPlayerMessage(player, 'Welcome to the game!', '00FF00');
     world.chatManager.sendPlayerMessage(player, 'Use WASD to move around.');
     world.chatManager.sendPlayerMessage(player, 'Press space to jump.');
     world.chatManager.sendPlayerMessage(player, 'Hold shift to sprint.');
     world.chatManager.sendPlayerMessage(player, 'Right click to raycast.');
     world.chatManager.sendPlayerMessage(player, 'Left click to throw projectiles.');
-    world.chatManager.sendPlayerMessage(player, 'Watch out for moving platforms!', 'FFFF00');
+    world.chatManager.sendPlayerMessage(player, `Round ${roundManager.getCurrentRound()} - Break blocks to score points!`, 'FFFF00');
     world.chatManager.sendPlayerMessage(player, 'Press \\ to enter or exit debug view.');
   };
 
@@ -215,6 +162,9 @@ startServer(world => {
     // Clean up player states
     scoreManager.removePlayer(player.id);
     projectileManager.removePlayer(player.id);
+    
+    // Handle round system when player leaves
+    roundManager.handlePlayerLeave();
     
     world.entityManager.getPlayerEntitiesByPlayer(player).forEach(entity => entity.despawn());
   };

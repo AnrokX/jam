@@ -1,23 +1,48 @@
 import { Entity, Vector3Like, RigidBodyType, ColliderShape, World } from 'hytopia';
-import { MOVING_BLOCK_CONFIG } from '../moving_blocks/moving-block-entity';
 import { DESTRUCTION_PARTICLE_CONFIG } from '../config/particle-config';
 
 export class BlockParticleEffects {
-  private particles: Entity[] = [];
+  private activeParticles: Set<Entity> = new Set(); // Use Set for faster lookups/removal
+  private particlePool: Entity[] = [];
+  private static instance: BlockParticleEffects; // Singleton pattern
+  private spatialGrid: Map<string, Set<Entity>> = new Map();
+  private static readonly FRAME_BUDGET_MS = 16; // 60fps target
+  private pendingEffects: Array<{position: Vector3Like, texture: string}> = [];
+  private readonly world: World; // Add this property
 
- 
+  // Use TypedArrays for particle properties
+  private particlePositions = new Float32Array(DESTRUCTION_PARTICLE_CONFIG.POOLING.POOL_SIZE * 3);
+  private particleVelocities = new Float32Array(DESTRUCTION_PARTICLE_CONFIG.POOLING.POOL_SIZE * 3);
+  private particleLifetimes = new Float32Array(DESTRUCTION_PARTICLE_CONFIG.POOLING.POOL_SIZE);
 
-  createDestructionEffect(world: World, position: Vector3Like, blockTextureUri: string): void {
-    if (!world) return;
+  private performanceMetrics = {
+    lastFrameTime: 0,
+    frameCount: 0,
+    averageFrameTime: 16,
+    particleReductionFactor: 1.0
+  };
 
-    // Create particles in a more explosive pattern
-    for (let i = 0; i < DESTRUCTION_PARTICLE_CONFIG.COUNT; i++) {
-      const angle = (i / DESTRUCTION_PARTICLE_CONFIG.COUNT) * Math.PI * 2;
+  // Add world parameter to constructor
+  private constructor(world: World) {
+    this.world = world;
+  }
 
-      // Create block pieces using the current block's texture
-      const particle = new Entity({
+  // Update getInstance to accept world parameter
+  public static getInstance(world?: World): BlockParticleEffects {
+    if (!BlockParticleEffects.instance && world) {
+      BlockParticleEffects.instance = new BlockParticleEffects(world);
+    }
+    return BlockParticleEffects.instance;
+  }
+
+  private getParticleFromPool(world: World, blockTextureUri: string): Entity {
+    let particle = this.particlePool.pop();
+    
+    if (!particle) {
+      // Create new particle if pool is empty
+      particle = new Entity({
         name: 'DestroyedBlockPiece',
-        blockTextureUri: blockTextureUri,
+        blockTextureUri,
         blockHalfExtents: {
           x: DESTRUCTION_PARTICLE_CONFIG.SCALE,
           y: DESTRUCTION_PARTICLE_CONFIG.SCALE,
@@ -39,42 +64,166 @@ export class BlockParticleEffects {
         }
       });
 
-      // Spawn around the block's position with configured randomization
-      const particlePosition = {
-        x: position.x + (Math.random() - 0.5) * DESTRUCTION_PARTICLE_CONFIG.SPAWN.RADIUS,
-        y: position.y + (Math.random() - 0.5) * DESTRUCTION_PARTICLE_CONFIG.SPAWN.HEIGHT_VARIATION,
-        z: position.z + (Math.random() - 0.5) * DESTRUCTION_PARTICLE_CONFIG.SPAWN.RADIUS
-      };
-
-      particle.spawn(world, particlePosition);
-      this.particles.push(particle);
-
-      // Apply configured forces
+      // If the engine supports setting sleep thresholds through the raw rigid body
       if (particle.rawRigidBody) {
-        const speed = DESTRUCTION_PARTICLE_CONFIG.SPEED * DESTRUCTION_PARTICLE_CONFIG.FORCES.EXPLOSION_MULTIPLIER;
+        try {
+          // Attempt to set sleep thresholds if the underlying physics engine supports it
+          particle.rawRigidBody.setSleepThreshold?.(DESTRUCTION_PARTICLE_CONFIG.PHYSICS.SLEEP_THRESHOLD);
+          particle.rawRigidBody.setAngularSleepThreshold?.(DESTRUCTION_PARTICLE_CONFIG.PHYSICS.ANGULAR_SLEEP_THRESHOLD);
+        } catch (e) {
+          // Silently fail if these methods aren't available
+        }
+      }
+    }
+
+    return particle;
+  }
+
+  private returnParticleToPool(particle: Entity): void {
+    if (this.particlePool.length < DESTRUCTION_PARTICLE_CONFIG.POOLING.POOL_SIZE) {
+      this.particlePool.push(particle);
+    } else {
+      particle.despawn();
+    }
+    this.activeParticles.delete(particle);
+  }
+
+  private getParticleCount(playerPosition: Vector3Like, explosionPosition: Vector3Like): number {
+    const distance = Math.sqrt(
+      Math.pow(playerPosition.x - explosionPosition.x, 2) +
+      Math.pow(playerPosition.y - explosionPosition.y, 2) +
+      Math.pow(playerPosition.z - explosionPosition.z, 2)
+    );
+    
+    // Reduce particles based on distance
+    if (distance > 30) return Math.floor(DESTRUCTION_PARTICLE_CONFIG.COUNT * 0.2);  // 20% at far distance
+    if (distance > 20) return Math.floor(DESTRUCTION_PARTICLE_CONFIG.COUNT * 0.5);  // 50% at medium distance
+    return DESTRUCTION_PARTICLE_CONFIG.COUNT; // 100% when close
+  }
+
+  private getGridKey(position: Vector3Like): string {
+    // 5x5x5 grid cells
+    const gridX = Math.floor(position.x / 5);
+    const gridY = Math.floor(position.y / 5);
+    const gridZ = Math.floor(position.z / 5);
+    return `${gridX},${gridY},${gridZ}`;
+  }
+
+  private updateParticleGrid(particle: Entity): void {
+    const gridKey = this.getGridKey(particle.position);
+    if (!this.spatialGrid.has(gridKey)) {
+      this.spatialGrid.set(gridKey, new Set());
+    }
+    this.spatialGrid.get(gridKey)!.add(particle);
+  }
+
+  createDestructionEffect(world: World, position: Vector3Like, blockTextureUri: string): void {
+    if (!world) return;
+
+    // Pre-calculate some values to avoid repeated calculations
+    const angleIncrement = (Math.PI * 2) / DESTRUCTION_PARTICLE_CONFIG.COUNT;
+    const speed = DESTRUCTION_PARTICLE_CONFIG.SPEED * DESTRUCTION_PARTICLE_CONFIG.FORCES.EXPLOSION_MULTIPLIER;
+    const spinForce = DESTRUCTION_PARTICLE_CONFIG.FORCES.SPIN_STRENGTH;
+
+    // Batch creation to reduce overhead
+    for (let i = 0; i < DESTRUCTION_PARTICLE_CONFIG.COUNT; i++) {
+      const particle = this.getParticleFromPool(world, blockTextureUri);
+      const angle = angleIncrement * i;
+
+      // Calculate position with less random calls
+      const offsetX = (Math.random() - 0.5) * DESTRUCTION_PARTICLE_CONFIG.SPAWN.RADIUS;
+      const offsetY = (Math.random() - 0.5) * DESTRUCTION_PARTICLE_CONFIG.SPAWN.HEIGHT_VARIATION;
+      const offsetZ = (Math.random() - 0.5) * DESTRUCTION_PARTICLE_CONFIG.SPAWN.RADIUS;
+
+      particle.spawn(world, {
+        x: position.x + offsetX,
+        y: position.y + offsetY,
+        z: position.z + offsetZ
+      });
+
+      this.activeParticles.add(particle);
+
+      if (particle.rawRigidBody) {
+        // Apply forces with fewer calculations
+        const speedVariation = 0.8 + Math.random() * 0.4;
         particle.rawRigidBody.applyImpulse({
-          x: Math.cos(angle) * speed * (0.8 + Math.random() * 0.4),
+          x: Math.cos(angle) * speed * speedVariation,
           y: DESTRUCTION_PARTICLE_CONFIG.FORCES.UPWARD_MIN + 
              Math.random() * (DESTRUCTION_PARTICLE_CONFIG.FORCES.UPWARD_MAX - DESTRUCTION_PARTICLE_CONFIG.FORCES.UPWARD_MIN),
-          z: Math.sin(angle) * speed * (0.8 + Math.random() * 0.4)
+          z: Math.sin(angle) * speed * speedVariation
         });
 
-        // Add configured spin
-        const spinForce = DESTRUCTION_PARTICLE_CONFIG.FORCES.SPIN_STRENGTH;
+        // Simplified spin calculation
+        const spin = (Math.random() - 0.5) * spinForce;
         particle.rawRigidBody.applyTorqueImpulse({
-          x: (Math.random() - 0.5) * spinForce,
-          y: (Math.random() - 0.5) * spinForce,
-          z: (Math.random() - 0.5) * spinForce
+          x: spin,
+          y: spin,
+          z: spin
         });
       }
 
-      // Clean up after configured lifetime
+      // Use a single timeout per batch of particles
       setTimeout(() => {
         if (particle.isSpawned) {
-          particle.despawn();
+          this.returnParticleToPool(particle);
         }
-        this.particles = this.particles.filter(p => p !== particle);
       }, DESTRUCTION_PARTICLE_CONFIG.LIFETIME);
+    }
+  }
+
+  private processEffectQueue(deltaTime: number): void {
+    const startTime = performance.now();
+    while (this.pendingEffects.length > 0) {
+      if (performance.now() - startTime > BlockParticleEffects.FRAME_BUDGET_MS) {
+        // Defer remaining effects to next frame
+        break;
+      }
+      const effect = this.pendingEffects.shift();
+      if (effect) {
+        this.createImmediateEffect(effect.position, effect.texture);
+      }
+    }
+  }
+
+  private updatePerformanceMetrics(currentTime: number): void {
+    const frameTime = currentTime - this.performanceMetrics.lastFrameTime;
+    this.performanceMetrics.frameCount++;
+    
+    // Update rolling average
+    this.performanceMetrics.averageFrameTime = 
+      (this.performanceMetrics.averageFrameTime * 0.95) + (frameTime * 0.05);
+      
+    // Adjust particle count based on performance
+    if (this.performanceMetrics.averageFrameTime > 16.6) { // Below 60fps
+      this.performanceMetrics.particleReductionFactor *= 0.95;
+    } else if (this.performanceMetrics.averageFrameTime < 14) { // Above 70fps
+      this.performanceMetrics.particleReductionFactor = 
+        Math.min(1.0, this.performanceMetrics.particleReductionFactor * 1.05);
+    }
+    
+    this.performanceMetrics.lastFrameTime = currentTime;
+  }
+
+  // Clean up method for game shutdown or scene changes
+  cleanup(): void {
+    this.activeParticles.forEach(particle => {
+      if (particle.isSpawned) {
+        particle.despawn();
+      }
+    });
+    this.activeParticles.clear();
+    this.particlePool = [];
+    this.spatialGrid.clear();
+    
+    // Clear typed arrays
+    this.particlePositions = new Float32Array(DESTRUCTION_PARTICLE_CONFIG.POOLING.POOL_SIZE * 3);
+    this.particleVelocities = new Float32Array(DESTRUCTION_PARTICLE_CONFIG.POOLING.POOL_SIZE * 3);
+    this.particleLifetimes = new Float32Array(DESTRUCTION_PARTICLE_CONFIG.POOLING.POOL_SIZE);
+  }
+
+  private createImmediateEffect(position: Vector3Like, texture: string): void {
+    if (this.world) {
+      this.createDestructionEffect(this.world, position, texture);
     }
   }
 } 

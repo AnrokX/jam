@@ -1,5 +1,6 @@
 import { Entity, EntityOptions, Vector3Like, ColliderShape, CollisionGroup, BlockType, World } from 'hytopia';
 import { RaycastHandler } from '../raycast/raycast-handler';
+import { BlockParticleEffects } from '../effects/block-particle-effects';
 
 export interface ProjectileOptions extends EntityOptions {
     speed?: number;
@@ -22,7 +23,7 @@ export class ProjectileEntity extends Entity {
         GRAVITY: 15.24,           // TF2's 800 HU/s² converted to m/s²
         DEFAULT_SPEED: 20.00,     // TF2's 1216 HU/s converted to m/s
         DEFAULT_LIFETIME: 2300,    // 2.3 seconds fuse timer
-        DEFAULT_DAMAGE: 100,       // Typical TF2 grenade damage
+        DEFAULT_DAMAGE: 10,       // Typical TF2 grenade damage
         UPWARD_ARC: 1.0,          // Reduced to match TF2's arc
         COLLIDER_RADIUS: 0.2,     // Smaller radius for grenades
         MASS: 0.5,                // Increased mass for better physics
@@ -62,6 +63,7 @@ export class ProjectileEntity extends Entity {
     ];
     private trajectoryMarkers: Entity[] = [];
     public readonly playerId?: string;
+    public onCollision?: (position: Vector3Like, blockTextureUri: string) => void;
 
     constructor(options: ProjectileOptions) {
         super({
@@ -383,5 +385,31 @@ export class ProjectileEntity extends Entity {
 
         // Additional explosion logic can be added here
         // Such as damage, particle effects, or knockback
+    }
+
+    private onImpact(): void {
+        if (!this.world) return;
+        
+        const particleSystem = BlockParticleEffects.getInstance(this.world);
+        
+        if (this.position && this.blockTextureUri) {
+            particleSystem.createDestructionEffect(
+                this.world,
+                this.position,
+                this.blockTextureUri
+            );
+        }
+    }
+
+    protected handleCollision(other: Entity): void {
+        // ... existing collision code ...
+        
+        if (this.onCollision && this.position && this.blockTextureUri) {
+            this.onCollision(this.position, this.blockTextureUri);
+        }
+        
+        this.onImpact(); // Call onImpact when collision occurs
+        
+        // ... rest of collision handling
     }
 } 

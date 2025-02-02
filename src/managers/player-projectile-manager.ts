@@ -2,6 +2,7 @@ import { World, Player } from 'hytopia';
 import { ProjectileEntity } from '../entities/projectile-entity';
 import { RaycastHandler } from '../raycast/raycast-handler';
 import { Vector3Like } from 'hytopia';
+import { BlockParticleEffects } from '../effects/block-particle-effects';
 
 export interface PlayerProjectileState {
   previewProjectile: ProjectileEntity | null;
@@ -10,7 +11,7 @@ export interface PlayerProjectileState {
 }
 
 export class PlayerProjectileManager {
-  private static readonly INITIAL_PROJECTILE_COUNT = 100;
+  private static readonly INITIAL_AMMO_COUNT = 1000;
   private playerStates = new Map<string, PlayerProjectileState>();
   private readonly world: World;
   private readonly raycastHandler: RaycastHandler;
@@ -26,7 +27,7 @@ export class PlayerProjectileManager {
     this.playerStates.set(playerId, {
       previewProjectile: null,
       lastInputState: { mr: false },
-      projectilesRemaining: PlayerProjectileManager.INITIAL_PROJECTILE_COUNT
+      projectilesRemaining: PlayerProjectileManager.INITIAL_AMMO_COUNT
     });
   }
 
@@ -71,7 +72,14 @@ export class PlayerProjectileManager {
     };
 
     projectile.spawn(this.world, spawnPos);
+    this.handleProjectileSpawn(projectile);
     return projectile;
+  }
+
+  private handleProjectileSpawn(projectile: ProjectileEntity): void {
+    projectile.onCollision = (position: Vector3Like, blockTextureUri: string) => {
+      this.handleProjectileImpact(position, blockTextureUri);
+    };
   }
 
   public handleProjectileInput(
@@ -124,10 +132,19 @@ export class PlayerProjectileManager {
   }
 
   // Optional: Method to refill projectiles (could be used for pickups or respawn)
-  refillProjectiles(playerId: string, amount: number = PlayerProjectileManager.INITIAL_PROJECTILE_COUNT): void {
+  refillProjectiles(playerId: string, amount: number = PlayerProjectileManager.INITIAL_AMMO_COUNT): void {
     const state = this.playerStates.get(playerId);
     if (state) {
       state.projectilesRemaining = amount;
+    }
+  }
+
+  private handleProjectileImpact(position: Vector3Like, blockTextureUri: string): void {
+    try {
+      const particleSystem = BlockParticleEffects.getInstance(this.world);
+      particleSystem.createDestructionEffect(this.world, position, blockTextureUri);
+    } catch (error) {
+      console.error('Failed to create particle effect:', error);
     }
   }
 } 

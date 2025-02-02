@@ -13,6 +13,7 @@ import { PlayerProjectileManager } from './src/managers/player-projectile-manage
 import { MovingBlockManager, MOVING_BLOCK_CONFIG } from './src/moving_blocks/moving-block-entity';
 import { ScoreManager } from './src/managers/score-manager';
 import { RoundManager } from './src/managers/round-manager';
+import { BlockParticleEffects } from './src/effects/block-particle-effects';
 
 startServer(world => {
   console.log('Starting server and initializing debug settings...');
@@ -183,4 +184,7 @@ startServer(world => {
     loop: true,
     volume: 0.1,
   }).play(world);
+
+  // Cleanup particle effects when the scene changes or the game shuts down
+  BlockParticleEffects.getInstance(world).cleanup();
 });

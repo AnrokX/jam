@@ -38,10 +38,16 @@ startServer(world => {
 
   // Initialize the moving block manager and create the initial Z-axis obstacle
   const movingBlockManager = new MovingBlockManager(world, scoreManager);
+  
+  // Create initial blocks with different patterns
   movingBlockManager.createZAxisBlock();
-  console.log('MovingBlockManager initialized with Z-axis obstacle');
+  movingBlockManager.createSineWaveBlock({
+    spawnPosition: { x: 0, y: 1, z: -5 },
+    amplitude: 4,
+    frequency: 0.5
+  });
 
-  // Set up periodic block spawning
+  // Set up periodic block spawning with different patterns
   setInterval(() => {
     // Only spawn new block if we're under the maximum
     if (movingBlockManager.getBlockCount() < MAX_BLOCKS) {
@@ -52,8 +58,19 @@ startServer(world => {
         z: Math.random() * 20 - 10 // Random z between -10 and 10
       };
 
-      movingBlockManager.createZAxisBlock(spawnPos);
-      console.log(`New block spawned at (${spawnPos.x.toFixed(2)}, ${spawnPos.y.toFixed(2)}, ${spawnPos.z.toFixed(2)})`);
+      // Randomly choose between different block types
+      const blockType = Math.random();
+      if (blockType < 0.5) {
+        movingBlockManager.createZAxisBlock(spawnPos);
+        console.log(`New Z-axis block spawned at (${spawnPos.x.toFixed(2)}, ${spawnPos.y.toFixed(2)}, ${spawnPos.z.toFixed(2)})`);
+      } else {
+        movingBlockManager.createSineWaveBlock({
+          spawnPosition: spawnPos,
+          amplitude: 2 + Math.random() * 3, // Random amplitude between 2 and 5
+          frequency: 0.3 + Math.random() * 0.7 // Random frequency between 0.3 and 1
+        });
+        console.log(`New sine wave block spawned at (${spawnPos.x.toFixed(2)}, ${spawnPos.y.toFixed(2)}, ${spawnPos.z.toFixed(2)})`);
+      }
     }
   }, BLOCK_SPAWN_INTERVAL);
 

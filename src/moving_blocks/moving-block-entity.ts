@@ -1,6 +1,6 @@
 import { Entity, EntityOptions, Vector3Like, ColliderShape, CollisionGroup, World, RigidBodyType, BlockType } from 'hytopia';
 import { ScoreManager } from '../managers/score-manager';
-import { BlockMovementBehavior, DefaultBlockMovement } from './block-movement';
+import { BlockMovementBehavior, DefaultBlockMovement, SineWaveMovement } from './block-movement';
 import { DESTRUCTION_PARTICLE_CONFIG } from '../config/particle-config';
 import { BlockParticleEffects } from '../effects/block-particle-effects';
 
@@ -312,6 +312,66 @@ export class MovingBlockManager {
     
     block.spawn(this.world, spawnPosition || MOVING_BLOCK_CONFIG.SPAWN_POSITION);
     this.blocks.push(block);
+    return block;
+  }
+
+  public createSineWaveBlock(options: {
+    spawnPosition?: Vector3Like;
+    amplitude?: number;
+    frequency?: number;
+    baseAxis?: 'x' | 'y' | 'z';
+    waveAxis?: 'x' | 'y' | 'z';
+    moveSpeed?: number;
+    blockTextureUri?: string;
+  } = {}): MovingBlockEntity {
+    // Clean up any despawned blocks first
+    this.blocks = this.blocks.filter(block => block.isSpawned);
+
+    const block = new MovingBlockEntity({
+      moveSpeed: options.moveSpeed ?? MOVING_BLOCK_CONFIG.DEFAULT_SPEED * 0.8,
+      blockTextureUri: options.blockTextureUri ?? 'blocks/diamond-ore.png', // Changed to more visible texture
+      blockHalfExtents: { x: 1, y: 1, z: 1 }, // Made the block more cubic and visible
+      movementBehavior: new SineWaveMovement({
+        amplitude: options.amplitude ?? 4,
+        frequency: options.frequency ?? 0.5,
+        baseAxis: options.baseAxis ?? 'z',
+        waveAxis: options.waveAxis ?? 'x'
+      }),
+      // Wider movement bounds for sine wave pattern
+      movementBounds: {
+        min: { 
+          x: -5,  // Allow more horizontal space for wave pattern
+          y: 1,
+          z: MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.min.z
+        },
+        max: {
+          x: 5,   // Allow more horizontal space for wave pattern
+          y: 1,
+          z: MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.max.z
+        }
+      },
+      onBlockBroken: () => {
+        if (this.scoreManager && (block as any).playerId) {
+          const playerId = (block as any).playerId;
+          // Give more points for hitting this more challenging target
+          const score = MOVING_BLOCK_CONFIG.BREAK_SCORE * 1.5;
+          
+          this.scoreManager.addScore(playerId, score);
+          console.log(`Sine wave block broken by player ${playerId}! Awarded ${score} points`);
+          
+          this.scoreManager.broadcastScores(this.world);
+          this.removeBlock(block);
+        }
+      }
+    });
+    
+    // Ensure we have a valid spawn position
+    const spawnPosition = options.spawnPosition || { ...MOVING_BLOCK_CONFIG.SPAWN_POSITION, z: -5 };
+    console.log('Spawning sine wave block at:', spawnPosition);
+    
+    block.spawn(this.world, spawnPosition);
+    this.blocks.push(block);
+    
     return block;
   }
 

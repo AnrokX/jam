@@ -45,9 +45,9 @@ export class RoundManager {
         // Base configuration that scales with round number
         return {
             duration: 60000,  // Fixed 60 seconds for each round
-            minBlockCount: 4 + Math.floor(round * 0.5),  // Start with more blocks
-            maxBlockCount: 8 + Math.floor(round * 0.7),  // Higher maximum
-            blockSpawnInterval: Math.max(2500 - (round * 200), 1000),  // Faster spawns: 2.5s initially
+            minBlockCount: 12 + Math.floor(round * 1.5),  // Tripled: Start with 12, faster increase
+            maxBlockCount: 24 + Math.floor(round * 2.1),  // Tripled: Max 24 at start, faster increase
+            blockSpawnInterval: Math.max(2000 - (round * 200), 800),  // Faster spawns to handle more blocks
             speedMultiplier: 1 + (round * 0.1),  // Keep the same speed progression
             blockTypes: {
                 // Start with 100% static blocks, gradually introduce others after round 1

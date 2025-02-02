@@ -113,11 +113,14 @@ export class ProjectileEntity extends Entity {
     }
 
     spawn(world: World, position: Vector3Like): void {
+        // Get the player's look direction (assuming it's passed in the options)
+        const lookDir = this.rotation || { x: 0, y: 0, z: 1 };
+        
         // Adjust spawn position to be lower and slightly forward
         const adjustedPosition = { 
-            x: position.x,
-            y: position.y + ProjectileEntity.PHYSICS.SPAWN_HEIGHT_OFFSET, // Lower spawn point
-            z: position.z
+            x: position.x + (lookDir.x * ProjectileEntity.PHYSICS.SPAWN_FORWARD_OFFSET),
+            y: position.y + ProjectileEntity.PHYSICS.SPAWN_HEIGHT_OFFSET,
+            z: position.z + (lookDir.z * ProjectileEntity.PHYSICS.SPAWN_FORWARD_OFFSET)
         };
         
         // Only adjust if world has raycast capability

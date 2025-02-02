@@ -28,7 +28,7 @@ export class RoundManager {
     private roundStartTime: number = 0;
     private lastUpdateTime: number = 0;
     private waitingForPlayers: boolean = false;
-    private readonly REQUIRED_PLAYERS = 2;
+    private readonly REQUIRED_PLAYERS = 1;
     private checkPlayersInterval: NodeJS.Timeout | null = null;
 
     constructor(

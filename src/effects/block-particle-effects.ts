@@ -109,13 +109,14 @@ export class BlockParticleEffects {
   }
 
   private returnParticleToPool(particle: Entity): void {
-    if (this.particlePool.length < DESTRUCTION_PARTICLE_CONFIG.POOLING.POOL_SIZE) {
-      this.particlePool.push(particle);
-    } else {
-      particle.despawn();
+    if (particle.isSpawned) {
+      particle.despawn(); // Make sure to despawn first
     }
     this.activeParticles.delete(particle);
     this.particleSpawnTimes.delete(particle);
+    if (this.particlePool.length < DESTRUCTION_PARTICLE_CONFIG.POOLING.POOL_SIZE) {
+      this.particlePool.push(particle);
+    }
   }
 
   private getParticleCount(playerPosition: Vector3Like, explosionPosition: Vector3Like): number {
@@ -192,9 +193,9 @@ export class BlockParticleEffects {
         });
       }
 
-      // Use a single timeout per batch of particles
+      // Force cleanup after lifetime
       setTimeout(() => {
-        if (particle.isSpawned) {
+        if (this.activeParticles.has(particle)) {
           this.returnParticleToPool(particle);
         }
       }, DESTRUCTION_PARTICLE_CONFIG.LIFETIME);

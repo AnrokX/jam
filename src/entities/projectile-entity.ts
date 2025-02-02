@@ -23,7 +23,7 @@ export class ProjectileEntity extends Entity {
         GRAVITY: 15.24,           // TF2's 800 HU/s² converted to m/s²
         DEFAULT_SPEED: 20.00,     // TF2's 1216 HU/s converted to m/s
         DEFAULT_LIFETIME: 2300,    // 2.3 seconds fuse timer
-        DEFAULT_DAMAGE: 100,       // Typical TF2 grenade damage
+        DEFAULT_DAMAGE: 10,       // Typical TF2 grenade damage
         UPWARD_ARC: 1.0,          // Reduced to match TF2's arc
         COLLIDER_RADIUS: 0.2,     // Smaller radius for grenades
         MASS: 0.5,                // Increased mass for better physics

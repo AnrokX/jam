@@ -43,23 +43,23 @@ export interface ParticleConfig {
 }
 
 export const DESTRUCTION_PARTICLE_CONFIG: ParticleConfig = {
-  COUNT: 50,                // Number of particles
+  COUNT: 40,                // Number of particles
   SCALE: 0.1,             // Size of each particle
-  LIFETIME: 1090,           // How long particles exist (ms)
+  LIFETIME: 1000,           // How long particles exist (ms) - increased and rounded for consistency
   SPREAD_RADIUS: 0.3,      // Initial spread distance
-  SPEED: 0.15,            // Base movement speed
+  SPEED: 0.1,            // Reduced base movement speed for more stability
   PHYSICS: {
-    MASS: 0.1,
-    FRICTION: 0.2,
-    BOUNCINESS: 0.5,
-    SLEEP_THRESHOLD: 0.01,
-    ANGULAR_SLEEP_THRESHOLD: 0.01
+    MASS: 0.5,            // Increased mass for more stability
+    FRICTION: 0.3,        // Increased friction to prevent excessive sliding
+    BOUNCINESS: 0.3,      // Reduced bounciness for more predictable behavior
+    SLEEP_THRESHOLD: 0.02, // Increased sleep threshold
+    ANGULAR_SLEEP_THRESHOLD: 0.02
   },
   FORCES: {
-    UPWARD_MIN: 0.3,      // Minimum upward force
-    UPWARD_MAX: 0.7,      // Maximum upward force
-    SPIN_STRENGTH: 0.2,   // How much particles spin
-    EXPLOSION_MULTIPLIER: 2.0  // Multiplier for outward force
+    UPWARD_MIN: 0.1,      // Reduced minimum upward force
+    UPWARD_MAX: 0.3,      // Reduced maximum upward force
+    SPIN_STRENGTH: 0.15,   // Reduced spin for more stability
+    EXPLOSION_MULTIPLIER: 0.5  // Reduced explosion force
   },
   SPAWN: {
     RADIUS: 0.2,          // Random spawn radius

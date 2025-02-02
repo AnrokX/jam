@@ -66,8 +66,8 @@ export const DESTRUCTION_PARTICLE_CONFIG: ParticleConfig = {
     HEIGHT_VARIATION: 0.2  // Random height variation
   },
   POOLING: {
-    POOL_SIZE: 1500,
-    MIN_POOL_SIZE: 400
+    POOL_SIZE: 300,
+    MIN_POOL_SIZE: 100
   },
   INSTANCING: {
     BATCH_SIZE: 50,    // Number of particles to batch render

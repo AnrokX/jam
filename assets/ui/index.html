@@ -272,7 +272,6 @@
     <div class="player-count" style="display: none">Players: 0/2</div>
     <div class="round-number">Round 1</div>
     <div class="round-timer">Time: 60s</div>
-    <div class="score-target">Target: 50 points</div>
   </div>
   <div class="scores-wrapper">
     <div id="scores-container">
@@ -387,7 +386,7 @@ function updateProjectileCount(count) {
 function showWaitingForPlayers(data) {
   const waitingMessage = document.querySelector('.waiting-message');
   const playerCount = document.querySelector('.player-count');
-  const gameElements = document.querySelectorAll('.round-number, .round-timer, .score-target');
+  const gameElements = document.querySelectorAll('.round-number, .round-timer');
   
   // Show waiting elements
   waitingMessage.style.display = 'block';
@@ -401,7 +400,7 @@ function showWaitingForPlayers(data) {
 function updateRoundInfo(roundData) {
   const waitingMessage = document.querySelector('.waiting-message');
   const playerCount = document.querySelector('.player-count');
-  const gameElements = document.querySelectorAll('.round-number, .round-timer, .score-target');
+  const gameElements = document.querySelectorAll('.round-number, .round-timer');
   
   // Hide waiting elements
   waitingMessage.style.display = 'none';
@@ -410,10 +409,9 @@ function updateRoundInfo(roundData) {
   // Show game elements
   gameElements.forEach(el => el.style.display = 'block');
   
-  // Update round info as before
+  // Update round info
   const roundNumber = document.querySelector('.round-number');
   const roundTimer = document.querySelector('.round-timer');
-  const scoreTarget = document.querySelector('.score-target');
   
   roundNumber.textContent = `Round ${roundData.round}`;
   
@@ -431,8 +429,6 @@ function updateRoundInfo(roundData) {
   } else if (timeRemaining <= 30) {
     roundTimer.classList.add('warning');
   }
-  
-  scoreTarget.textContent = `Target: ${roundData.scoreToAdvance} points`;
 }
 
 function handleRoundEnd(data) {
@@ -440,8 +436,8 @@ function handleRoundEnd(data) {
   
   // Add temporary status message
   const statusMessage = document.createElement('div');
-  statusMessage.style.color = data.passed ? '#4CAF50' : '#ff6b6b';
-  statusMessage.textContent = data.passed ? 'Round Complete!' : 'Game Over!';
+  statusMessage.style.color = '#4CAF50';
+  statusMessage.textContent = 'Round Complete!';
   statusMessage.style.fontSize = '24px';
   statusMessage.style.fontWeight = 'bold';
   statusMessage.style.animation = 'pulse 0.5s ease-out infinite';

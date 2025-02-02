@@ -149,7 +149,7 @@ startServer(world => {
     world.chatManager.sendPlayerMessage(player, 'Hold shift to sprint.');
     world.chatManager.sendPlayerMessage(player, 'Right click to raycast.');
     world.chatManager.sendPlayerMessage(player, 'Left click to throw projectiles.');
-    world.chatManager.sendPlayerMessage(player, `Round ${roundManager.getCurrentRound()} - Break blocks to score points!`, 'FFFF00');
+    world.chatManager.sendPlayerMessage(player, `Round ${roundManager.getCurrentRound()} - Hit as many blocks as you can before time runs out!`, 'FFFF00');
     world.chatManager.sendPlayerMessage(player, 'Press \\ to enter or exit debug view.');
   };
 

@@ -8,7 +8,6 @@ export interface RoundConfig {
     maxBlockCount: number;  // Maximum number of blocks in play
     blockSpawnInterval: number;  // How often to spawn new blocks (ms)
     speedMultiplier: number;  // Speed multiplier for blocks
-    scoreToAdvance: number;  // Score needed to advance to next round
     blockTypes: {  // Probability weights for different block types
         normal: number;
         sineWave: number;
@@ -50,7 +49,6 @@ export class RoundManager {
             maxBlockCount: 3 + Math.floor(round * 0.5),  // Reduced: Max 3 at start, slower increase
             blockSpawnInterval: Math.max(4000 - (round * 200), 1500),  // Slower spawns: 4s initially, minimum 1.5s
             speedMultiplier: 1 + (round * 0.1),  // Keep the same speed progression
-            scoreToAdvance: 30 + (round * 20),  // Adjusted score requirements
             blockTypes: {
                 // Adjust probabilities to favor simpler blocks in early rounds
                 normal: Math.max(0.7 - (round * 0.1), 0.2),     // More normal blocks early
@@ -252,30 +250,13 @@ export class RoundManager {
             return;
         }
 
-        // Check if players met the score requirement
-        const config = this.getRoundConfig(this.currentRound);
-        let roundPassed = false;
+        // Broadcast round end results and automatically progress to next round
+        this.broadcastRoundEnd();
 
-        // Check if any player reached the required score
-        for (const player of this.world.entityManager.getAllPlayerEntities()) {
-            const playerScore = this.scoreManager.getScore(player.player.id);
-            if (playerScore >= config.scoreToAdvance) {
-                roundPassed = true;
-                break;
-            }
-        }
-
-        // Broadcast round end results
-        this.broadcastRoundEnd(roundPassed);
-
-        // Start next round after a delay if passed
-        if (roundPassed) {
-            setTimeout(() => {
-                this.startRound();
-            }, 5000);  // 5 second delay between rounds
-        } else {
-            this.resetGame();
-        }
+        // Start next round after a delay
+        setTimeout(() => {
+            this.startRound();
+        }, 5000);  // 5 second delay between rounds
     }
 
     public handlePlayerLeave(): void {
@@ -314,7 +295,6 @@ export class RoundManager {
             data: {
                 round: this.currentRound,
                 duration: config.duration,
-                scoreToAdvance: config.scoreToAdvance,
                 timeRemaining: config.duration
             }
         };
@@ -324,13 +304,12 @@ export class RoundManager {
         }
     }
 
-    private broadcastRoundEnd(passed: boolean): void {
+    private broadcastRoundEnd(): void {
         const message = {
             type: 'roundEnd',
             data: {
                 round: this.currentRound,
-                passed,
-                nextRoundIn: passed ? 5000 : 0
+                nextRoundIn: 5000
             }
         };
 

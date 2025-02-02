@@ -1,5 +1,6 @@
 import { Entity, EntityOptions, Vector3Like, ColliderShape, CollisionGroup, BlockType, World } from 'hytopia';
 import { RaycastHandler } from '../raycast/raycast-handler';
+import { BlockParticleEffects } from '../effects/block-particle-effects';
 
 export interface ProjectileOptions extends EntityOptions {
     speed?: number;
@@ -383,5 +384,17 @@ export class ProjectileEntity extends Entity {
 
         // Additional explosion logic can be added here
         // Such as damage, particle effects, or knockback
+    }
+
+    private onImpact(): void {
+        const particleSystem = BlockParticleEffects.getInstance();
+        
+        if (this.position && this.blockTextureUri) {
+            particleSystem.createDestructionEffect(
+                this.world,
+                this.position,
+                this.blockTextureUri
+            );
+        }
     }
 } 

@@ -2,6 +2,7 @@ import { World, Player } from 'hytopia';
 import { ProjectileEntity } from '../entities/projectile-entity';
 import { RaycastHandler } from '../raycast/raycast-handler';
 import { Vector3Like } from 'hytopia';
+import { BlockParticleEffects } from '../effects/block-particle-effects';
 
 export interface PlayerProjectileState {
   previewProjectile: ProjectileEntity | null;
@@ -129,5 +130,13 @@ export class PlayerProjectileManager {
     if (state) {
       state.projectilesRemaining = amount;
     }
+  }
+
+  private handleProjectileImpact(position: Vector3Like, blockTextureUri: string): void {
+    // Get the singleton instance
+    const particleSystem = BlockParticleEffects.getInstance();
+    
+    // Create the effect
+    particleSystem.createDestructionEffect(this.world, position, blockTextureUri);
   }
 } 

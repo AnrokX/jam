@@ -125,6 +125,53 @@
     align-items: flex-start;
     gap: 10px;
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    min-width: 200px;
+  }
+
+  .leaderboard {
+    width: 100%;
+    margin-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    padding-top: 10px;
+  }
+
+  .leaderboard-title {
+    font-size: 16px;
+    color: #FFD700;
+    margin-bottom: 8px;
+    text-align: center;
+    width: 100%;
+  }
+
+  .leaderboard-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    width: 100%;
+  }
+
+  .leaderboard-entry.winner {
+    color: #FFD700;
+    font-weight: bold;
+  }
+
+  .player-name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .player-rank {
+    width: 20px;
+    text-align: center;
+    font-size: 14px;
+    opacity: 0.8;
+  }
+
+  .player-wins {
+    font-weight: bold;
+    color: #4CAF50;
   }
 
   .round-info {
@@ -278,6 +325,12 @@
       <!-- Scores will be added here dynamically -->
     </div>
   </div>
+  <div class="leaderboard">
+    <div class="leaderboard-title">Leaderboard</div>
+    <div id="leaderboard-container">
+      <!-- Leaderboard entries will be added here dynamically -->
+    </div>
+  </div>
 </div>
 
 <div class="projectile-counter">
@@ -343,6 +396,8 @@ hytopia.onData(data => {
     showWaitingForPlayers(data.data);
   } else if (data.type === 'countdown') {
     showCountdown(data.count);
+  } else if (data.type === 'updateLeaderboard') {
+    updateLeaderboard(data.leaderboard);
   }
 });
 
@@ -534,5 +589,25 @@ function showCountdown(count) {
       overlay.classList.remove('visible');
     }, 1000);
   }
+}
+
+function updateLeaderboard(leaderboardData) {
+  const container = document.getElementById('leaderboard-container');
+  container.innerHTML = '';
+  
+  leaderboardData.forEach((entry, index) => {
+    const entryDiv = document.createElement('div');
+    entryDiv.className = `leaderboard-entry ${entry.isWinning ? 'winner' : ''}`;
+    
+    entryDiv.innerHTML = `
+      <div class="player-name">
+        <span class="player-rank">#${index + 1}</span>
+        <span>P${entry.playerNumber}</span>
+      </div>
+      <span class="player-wins">${entry.wins} wins</span>
+    `;
+    
+    container.appendChild(entryDiv);
+  });
 }
 </script>

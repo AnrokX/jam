@@ -6,73 +6,127 @@ export interface ScoreOptions {
   score: number;
 }
 
+interface PlayerStats {
+  totalScore: number;
+  roundScore: number;
+  wins: number;
+  playerNumber: number;
+}
+
 export class ScoreManager {
-  // Map to hold scores for each player by their ID
-  private playerScores = new Map<string, number>();
-  // Map to hold round scores separately
-  private roundScores = new Map<string, number>();
+  // Map to hold scores and stats for each player by their ID
+  private playerStats = new Map<string, PlayerStats>();
+  private playerCount = 0;
 
   // Initialize a score entry for a player
   public initializePlayer(playerId: string): void {
-    if (!this.playerScores.has(playerId)) {
-      this.playerScores.set(playerId, 0);
-      this.roundScores.set(playerId, 0);
+    if (!this.playerStats.has(playerId)) {
+      this.playerCount++;
+      this.playerStats.set(playerId, {
+        totalScore: 0,
+        roundScore: 0,
+        wins: 0,
+        playerNumber: this.playerCount
+      });
     }
   }
 
   // Remove a player's score when they leave the game
   public removePlayer(playerId: string): void {
-    this.playerScores.delete(playerId);
-    this.roundScores.delete(playerId);
-  }
-
-  // Start a new round - reset round scores but keep total scores
-  public startNewRound(): void {
-    for (const playerId of this.roundScores.keys()) {
-      this.roundScores.set(playerId, 0);
+    if (this.playerStats.has(playerId)) {
+      this.playerCount--;
+      this.playerStats.delete(playerId);
     }
   }
 
-  // Increment (or decrement) player's score. This allows adding negative points (e.g. penalties).
+  // Start a new round - reset round scores but keep total scores and wins
+  public startNewRound(): void {
+    for (const [playerId, stats] of this.playerStats.entries()) {
+      stats.roundScore = 0;
+      this.playerStats.set(playerId, stats);
+    }
+  }
+
+  // Add a win for the player with the highest score in the round
+  public handleRoundEnd(): string | null {
+    let highestScore = -1;
+    let winnerId: string | null = null;
+
+    // Find the player with the highest round score
+    for (const [playerId, stats] of this.playerStats.entries()) {
+      if (stats.roundScore > highestScore) {
+        highestScore = stats.roundScore;
+        winnerId = playerId;
+      }
+    }
+
+    // Add a win for the winner
+    if (winnerId) {
+      const stats = this.playerStats.get(winnerId)!;
+      stats.wins++;
+      this.playerStats.set(winnerId, stats);
+    }
+
+    return winnerId;
+  }
+
+  // Increment (or decrement) player's score
   public addScore(playerId: string, points: number): void {
-    if (!this.playerScores.has(playerId)) {
+    if (!this.playerStats.has(playerId)) {
       this.initializePlayer(playerId);
     }
     
-    // Update both total and round scores
-    const currentTotalScore = this.playerScores.get(playerId) ?? 0;
-    const currentRoundScore = this.roundScores.get(playerId) ?? 0;
+    const stats = this.playerStats.get(playerId)!;
+    stats.totalScore += points;
+    stats.roundScore += points;
+    this.playerStats.set(playerId, stats);
     
-    this.playerScores.set(playerId, currentTotalScore + points);
-    this.roundScores.set(playerId, currentRoundScore + points);
-    
-    console.log(`Player ${playerId} scores updated - Total: ${this.playerScores.get(playerId)}, Round: ${this.roundScores.get(playerId)}`);
+    console.log(`Player ${playerId} scores updated - Total: ${stats.totalScore}, Round: ${stats.roundScore}, Wins: ${stats.wins}`);
   }
 
   // Get the current total score for a player
   public getScore(playerId: string): number {
-    return this.playerScores.get(playerId) ?? 0;
+    return this.playerStats.get(playerId)?.totalScore ?? 0;
   }
 
   // Get the current round score for a player
   public getRoundScore(playerId: string): number {
-    return this.roundScores.get(playerId) ?? 0;
+    return this.playerStats.get(playerId)?.roundScore ?? 0;
   }
 
-  // Reset all scores (both total and round) to zero
+  // Get wins for a player
+  public getWins(playerId: string): number {
+    return this.playerStats.get(playerId)?.wins ?? 0;
+  }
+
+  // Reset score for a player
   public resetScore(playerId: string): void {
-    this.playerScores.set(playerId, 0);
-    this.roundScores.set(playerId, 0);
+    const stats = this.playerStats.get(playerId);
+    if (stats) {
+      stats.totalScore = 0;
+      stats.roundScore = 0;
+      this.playerStats.set(playerId, stats);
+    }
   }
 
   // Reset all players' scores
   public resetAllScores(): void {
-    for (const playerId of this.playerScores.keys()) {
+    for (const playerId of this.playerStats.keys()) {
       this.resetScore(playerId);
     }
   }
 
-  // Add this method to broadcast score updates
+  // Reset all stats including wins
+  public resetAllStats(): void {
+    for (const [playerId, stats] of this.playerStats.entries()) {
+      stats.totalScore = 0;
+      stats.roundScore = 0;
+      stats.wins = 0;
+      this.playerStats.set(playerId, stats);
+    }
+  }
+
+  // Add this method to broadcast scores and leaderboard
   public broadcastScores(world: World) {
     const scores = Array.from(world.entityManager.getAllPlayerEntities()).map(playerEntity => ({
       playerId: playerEntity.player.id,
@@ -80,11 +134,31 @@ export class ScoreManager {
       roundScore: this.getRoundScore(playerEntity.player.id)
     }));
 
+    // Create leaderboard data
+    const leaderboard = Array.from(this.playerStats.entries())
+      .map(([playerId, stats]) => ({
+        playerNumber: stats.playerNumber,
+        wins: stats.wins,
+        isWinning: this.isWinning(playerId)
+      }))
+      .sort((a, b) => b.wins - a.wins);
+
     world.entityManager.getAllPlayerEntities().forEach(playerEntity => {
       playerEntity.player.ui.sendData({
         type: 'updateScores',
         scores
       });
+      
+      playerEntity.player.ui.sendData({
+        type: 'updateLeaderboard',
+        leaderboard
+      });
     });
+  }
+
+  private isWinning(playerId: string): boolean {
+    const playerWins = this.getWins(playerId);
+    return Array.from(this.playerStats.values())
+      .every(stats => stats.wins <= playerWins);
   }
 } 

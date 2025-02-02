@@ -258,8 +258,14 @@ export class RoundManager {
             return;
         }
 
-        // Broadcast round end results and automatically progress to next round
-        this.broadcastRoundEnd();
+        // Determine the winner of the round
+        const winnerId = this.scoreManager.handleRoundEnd();
+        
+        // Broadcast updated scores and leaderboard
+        this.scoreManager.broadcastScores(this.world);
+
+        // Broadcast round end results with winner info
+        this.broadcastRoundEnd(winnerId);
 
         // Start next round after a delay
         setTimeout(() => {
@@ -284,10 +290,8 @@ export class RoundManager {
 
     private resetGame(): void {
         this.currentRound = 0;
-        // Reset all player scores
-        for (const player of this.world.entityManager.getAllPlayerEntities()) {
-            this.scoreManager.resetScore(player.player.id);
-        }
+        // Reset all player stats including wins
+        this.scoreManager.resetAllStats();
         this.scoreManager.broadcastScores(this.world);
         
         // Start from round 1 after a delay
@@ -322,12 +326,13 @@ export class RoundManager {
         }
     }
 
-    private broadcastRoundEnd(): void {
+    private broadcastRoundEnd(winnerId: string | null): void {
         const message = {
             type: 'roundEnd',
             data: {
                 round: this.currentRound,
-                nextRoundIn: 5000
+                nextRoundIn: 5000,
+                winnerId: winnerId
             }
         };
 

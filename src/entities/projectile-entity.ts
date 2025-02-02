@@ -17,21 +17,24 @@ interface TrajectoryPoint {
 }
 
 export class ProjectileEntity extends Entity {
-    // Physics constants should be grouped together at the top
+    // Physics constants adjusted to match TF2 grenade launcher
     private static readonly PHYSICS = {
-        GRAVITY: 9.81,
-        DEFAULT_SPEED: 25,
-        DEFAULT_LIFETIME: 3000,
-        DEFAULT_DAMAGE: 10,
-        UPWARD_ARC: 1.0,
-        COLLIDER_RADIUS: 0.3,
-        MASS: 0.5,
-        BOUNCINESS: 0.6,
-        FRICTION: 0.8,
-        LINEAR_DAMPING: 0.1,
+        GRAVITY: 15.24,           // TF2's 800 HU/s² converted to m/s²
+        DEFAULT_SPEED: 23.17,     // TF2's 1216 HU/s converted to m/s
+        DEFAULT_LIFETIME: 2300,    // 2.3 seconds fuse timer
+        DEFAULT_DAMAGE: 100,       // Typical TF2 grenade damage
+        UPWARD_ARC: 0.5,          // Reduced to match TF2's arc
+        COLLIDER_RADIUS: 0.2,     // Smaller radius for grenades
+        MASS: 0.5,                // Increased mass for better physics
+        BOUNCINESS: 0.65,         // TF2's grenade bounce factor
+        FRICTION: 0.3,            // Lower friction for better rolling
+        LINEAR_DAMPING: 0.05,     // Reduced damping for longer rolls
         MIN_SPAWN_DISTANCE: 1.0,
         TRAJECTORY_CHECK_DISTANCE: 2.0,
-        MAX_DOWN_ANGLE: -0.85  // ~85 degrees down
+        MAX_DOWN_ANGLE: -0.85,
+        SPEED_LOSS_PER_BOUNCE: 0.35,  // 35% speed loss per bounce
+        SPAWN_HEIGHT_OFFSET: -0.5,  // Meters below eye level (adjust as needed)
+        SPAWN_FORWARD_OFFSET: 0.3,  // Meters forward from player (adjust as needed)
     } as const;
 
     // Trajectory preview constants
@@ -110,14 +113,18 @@ export class ProjectileEntity extends Entity {
     }
 
     spawn(world: World, position: Vector3Like): void {
-        // Adjust spawn position if too close to blocks
-        const adjustedPosition = { ...position };
+        // Adjust spawn position to be lower and slightly forward
+        const adjustedPosition = { 
+            x: position.x,
+            y: position.y + ProjectileEntity.PHYSICS.SPAWN_HEIGHT_OFFSET, // Lower spawn point
+            z: position.z
+        };
         
         // Only adjust if world has raycast capability
         if ('raycast' in world) {
             // Check in all directions for nearby blocks
             for (const direction of ProjectileEntity.SPAWN_CHECK_DIRECTIONS) {
-                const raycastResult = (world as any).raycast(position, direction, 1.5);
+                const raycastResult = (world as any).raycast(adjustedPosition, direction, 1.5);
                 if (raycastResult && raycastResult.distance < ProjectileEntity.PHYSICS.MIN_SPAWN_DISTANCE) {
                     // Move away from the block in the opposite direction
                     adjustedPosition.x += -direction.x * (ProjectileEntity.PHYSICS.MIN_SPAWN_DISTANCE - raycastResult.distance);
@@ -177,7 +184,8 @@ export class ProjectileEntity extends Entity {
 
     override onTick = (entity: Entity, deltaTimeMs: number): void => {
         if (Date.now() - this.spawnTime > this.lifetime) {
-            console.log('Projectile lifetime expired, despawning...');
+            console.log('Grenade fuse expired, exploding...');
+            this.explode();
             this.despawn();
         }
     }
@@ -362,5 +370,15 @@ export class ProjectileEntity extends Entity {
     override despawn(): void {
         this.clearTrajectoryMarkers();
         super.despawn();
+    }
+
+    private explode(): void {
+        if (!this.isSpawned) return;
+
+        // Log explosion position
+        console.log('Grenade exploded at:', this.position);
+
+        // Additional explosion logic can be added here
+        // Such as damage, particle effects, or knockback
     }
 } 

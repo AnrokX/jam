@@ -111,24 +111,24 @@
 
   .scoreboard {
     position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
+    top: 100px;
+    left: 40px;
     background: rgba(0, 0, 0, 0.4);
-    padding: 10px 20px;
-    border-radius: 8px;
+    padding: 15px 25px;
+    border-radius: 16px;
     color: #ffffff;
     font-family: 'Arial', sans-serif;
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.2);
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     gap: 10px;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
   }
 
   .round-info {
-    text-align: center;
+    text-align: left;
     padding: 5px 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.2);
     width: 100%;
@@ -137,7 +137,7 @@
   .waiting-message {
     font-size: 24px;
     color: #FFD700;
-    text-align: center;
+    text-align: left;
     animation: pulse 1s infinite;
     margin: 10px 0;
   }
@@ -145,7 +145,7 @@
   .player-count {
     font-size: 18px;
     color: #ffffff;
-    text-align: center;
+    text-align: left;
   }
 
   .round-number {

@@ -64,12 +64,21 @@ startServer(world => {
       count: projectileManager.getProjectilesRemaining(player.id)
     });
     
-    // Generate random spawn position
-    const spawnPos = {
-      x: Math.random() * 20 - 10,  // Random x between -10 and 10
-      y: 10,                       // Fixed height
-      z: Math.random() * 20 - 10   // Random z between -10 and 10
-    };
+    // Generate spawn position based on player count
+    const playerCount = world.entityManager.getAllPlayerEntities().length;
+    const spawnPos = playerCount === 0 ? 
+      // First player spawns on the left platform
+      {
+        x: -20,
+        y: 10,
+        z: 0
+      } :
+      // Second player spawns on the right platform
+      {
+        x: 20,
+        y: 10,
+        z: 0
+      };
 
     const playerEntity = new PlayerEntity({
       player,
@@ -84,12 +93,12 @@ startServer(world => {
     console.log(`Player spawned at (${spawnPos.x.toFixed(2)}, ${spawnPos.y}, ${spawnPos.z.toFixed(2)})`);
 
     // Configure first-person camera after spawning
-    playerEntity.player.camera.setMode(PlayerCameraMode.THIRD_PERSON);
+    playerEntity.player.camera.setMode(PlayerCameraMode.FIRST_PERSON);
     
     // Set camera to eye level and slightly forward
     playerEntity.player.camera.setOffset({
       x: 0,
-      y: 1.6,  // Eye level height
+      y: 1,  // Eye level height
       z: 0.1   // Slightly forward to avoid any model clipping
     });
   

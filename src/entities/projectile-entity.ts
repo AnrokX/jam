@@ -33,8 +33,8 @@ export class ProjectileEntity extends Entity {
         TRAJECTORY_CHECK_DISTANCE: 2.0,
         MAX_DOWN_ANGLE: -0.85,
         SPEED_LOSS_PER_BOUNCE: 0.35,  // 35% speed loss per bounce
-        SPAWN_HEIGHT_OFFSET: -0.5,  // Meters below eye level (adjust as needed)
-        SPAWN_FORWARD_OFFSET: 0.3,  // Meters forward from player (adjust as needed)
+        SPAWN_HEIGHT_OFFSET: -1.0,  // Meters below eye level (adjust as needed)
+        SPAWN_FORWARD_OFFSET: -0.5,  // Meters forward from player (adjust as needed)
     } as const;
 
     // Trajectory preview constants

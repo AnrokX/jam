@@ -45,13 +45,10 @@ export class PlayerProjectileManager {
   private createProjectile(playerId: string, position: Vector3Like, direction: Vector3Like): ProjectileEntity {
     const projectile = new ProjectileEntity({
       modelScale: 1,
-      speed: 25,
       raycastHandler: this.raycastHandler,
-      enablePreview: this.enablePreview
+      enablePreview: this.enablePreview,
+      playerId
     });
-
-    // Add the player ID to the projectile
-    (projectile as any).playerId = playerId;
 
     // Calculate spawn position
     const spawnOffset = {

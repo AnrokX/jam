@@ -17,14 +17,38 @@ interface TrajectoryPoint {
 }
 
 export class ProjectileEntity extends Entity {
+    // Physics constants should be grouped together at the top
+    private static readonly PHYSICS = {
+        GRAVITY: 9.81,
+        DEFAULT_SPEED: 25,
+        DEFAULT_LIFETIME: 3000,
+        DEFAULT_DAMAGE: 10,
+        UPWARD_ARC: 1.0,
+        COLLIDER_RADIUS: 0.3,
+        MASS: 0.5,
+        BOUNCINESS: 0.6,
+        FRICTION: 0.8,
+        LINEAR_DAMPING: 0.1,
+        MIN_SPAWN_DISTANCE: 1.0,
+        TRAJECTORY_CHECK_DISTANCE: 2.0,
+        MAX_DOWN_ANGLE: -0.85  // ~85 degrees down
+    } as const;
+
+    // Trajectory preview constants
+    private static readonly PREVIEW = {
+        TRAJECTORY_STEPS: 10,
+        TIME_STEP: 0.1,
+        MARKER_URI: 'models/projectiles/energy-orb-projectile.gltf',
+        MARKER_SCALE: 0.3,
+        MARKER_OPACITY: 0.7
+    } as const;
+
     private speed: number;
     private lifetime: number;
     private damage: number;
     private spawnTime: number;
     private raycastHandler?: RaycastHandler;
     private enablePreview: boolean;
-    private static readonly MIN_SPAWN_DISTANCE = 1.0; // Minimum distance from blocks to spawn
-    private static readonly TRAJECTORY_CHECK_DISTANCE = 2.0; // Distance to check ahead
     private static readonly SPAWN_CHECK_DIRECTIONS = [
         { x: 0, y: -1, z: 0 },  // Down
         { x: 0, y: 1, z: 0 },   // Up
@@ -33,10 +57,6 @@ export class ProjectileEntity extends Entity {
         { x: 0, y: 0, z: 1 },   // Forward
         { x: 0, y: 0, z: -1 },  // Back
     ];
-    private static readonly GRAVITY = 9.81;
-    private static readonly TRAJECTORY_STEPS = 10;
-    private static readonly TIME_STEP = 0.1; // 100ms per step
-    private static readonly TRAJECTORY_MARKER_URI = 'models/projectiles/energy-orb-projectile.gltf';
     private trajectoryMarkers: Entity[] = [];
     public readonly playerId?: string;
 
@@ -44,13 +64,13 @@ export class ProjectileEntity extends Entity {
         super({
             ...options,
             name: options.name || 'Projectile',
-            modelUri: options.modelUri || 'models/projectiles/energy-orb-projectile.gltf',
+            modelUri: options.modelUri || ProjectileEntity.PREVIEW.MARKER_URI,
             modelScale: options.modelScale || 0.5
         });
 
-        this.speed = options.speed ?? 5;
-        this.lifetime = options.lifetime ?? 3000;
-        this.damage = options.damage ?? 10;
+        this.speed = options.speed ?? ProjectileEntity.PHYSICS.DEFAULT_SPEED;
+        this.lifetime = options.lifetime ?? ProjectileEntity.PHYSICS.DEFAULT_LIFETIME;
+        this.damage = options.damage ?? ProjectileEntity.PHYSICS.DEFAULT_DAMAGE;
         this.spawnTime = Date.now();
         this.raycastHandler = options.raycastHandler;
         this.enablePreview = options.enablePreview ?? true;
@@ -74,14 +94,14 @@ export class ProjectileEntity extends Entity {
         const raycastResult = this.raycastHandler.raycast(
             this.position,
             normalizedDir,
-            ProjectileEntity.TRAJECTORY_CHECK_DISTANCE,
+            ProjectileEntity.PHYSICS.TRAJECTORY_CHECK_DISTANCE,
             {
                 filterExcludeRigidBody: this.rawRigidBody
             }
         );
 
         // If we hit something very close, the trajectory is not valid
-        if (raycastResult && raycastResult.hitDistance < ProjectileEntity.MIN_SPAWN_DISTANCE) {
+        if (raycastResult && raycastResult.hitDistance < ProjectileEntity.PHYSICS.MIN_SPAWN_DISTANCE) {
             console.log('Trajectory blocked at distance:', raycastResult.hitDistance);
             return false;
         }
@@ -98,11 +118,11 @@ export class ProjectileEntity extends Entity {
             // Check in all directions for nearby blocks
             for (const direction of ProjectileEntity.SPAWN_CHECK_DIRECTIONS) {
                 const raycastResult = (world as any).raycast(position, direction, 1.5);
-                if (raycastResult && raycastResult.distance < ProjectileEntity.MIN_SPAWN_DISTANCE) {
+                if (raycastResult && raycastResult.distance < ProjectileEntity.PHYSICS.MIN_SPAWN_DISTANCE) {
                     // Move away from the block in the opposite direction
-                    adjustedPosition.x += -direction.x * (ProjectileEntity.MIN_SPAWN_DISTANCE - raycastResult.distance);
-                    adjustedPosition.y += -direction.y * (ProjectileEntity.MIN_SPAWN_DISTANCE - raycastResult.distance);
-                    adjustedPosition.z += -direction.z * (ProjectileEntity.MIN_SPAWN_DISTANCE - raycastResult.distance);
+                    adjustedPosition.x += -direction.x * (ProjectileEntity.PHYSICS.MIN_SPAWN_DISTANCE - raycastResult.distance);
+                    adjustedPosition.y += -direction.y * (ProjectileEntity.PHYSICS.MIN_SPAWN_DISTANCE - raycastResult.distance);
+                    adjustedPosition.z += -direction.z * (ProjectileEntity.PHYSICS.MIN_SPAWN_DISTANCE - raycastResult.distance);
                 }
             }
         }
@@ -116,15 +136,15 @@ export class ProjectileEntity extends Entity {
         // Configure collider for solid physics interaction
         this.createAndAddChildCollider({
             shape: ColliderShape.BALL,
-            radius: 0.3,
+            radius: ProjectileEntity.PHYSICS.COLLIDER_RADIUS,
             isSensor: false,
-            mass: 0.5,
+            mass: ProjectileEntity.PHYSICS.MASS,
             collisionGroups: {
                 belongsTo: [CollisionGroup.ENTITY],
                 collidesWith: [CollisionGroup.BLOCK, CollisionGroup.ENTITY]
             },
-            bounciness: 0.6,
-            friction: 0.8,
+            bounciness: ProjectileEntity.PHYSICS.BOUNCINESS,
+            friction: ProjectileEntity.PHYSICS.FRICTION,
             onCollision: (other: Entity | BlockType, started: boolean) => {
                 if (!started) return;
                 
@@ -151,7 +171,7 @@ export class ProjectileEntity extends Entity {
         if (this.rawRigidBody) {
             this.rawRigidBody.enableCcd(true);
             this.rawRigidBody.lockRotations(true);
-            this.rawRigidBody.setLinearDamping(0.1);
+            this.rawRigidBody.setLinearDamping(ProjectileEntity.PHYSICS.LINEAR_DAMPING);
         }
     }
 
@@ -176,7 +196,7 @@ export class ProjectileEntity extends Entity {
         };
 
         // Prevent throwing if looking too far down
-        if (normalizedDir.y < -0.85) {
+        if (normalizedDir.y < ProjectileEntity.PHYSICS.MAX_DOWN_ANGLE) {
             console.log('Cannot throw while looking too far down');
             this.despawn();
             return;
@@ -189,10 +209,9 @@ export class ProjectileEntity extends Entity {
             return;
         }
 
-        // Add a slight upward arc and apply speed
         const impulse = {
             x: normalizedDir.x * this.speed,
-            y: normalizedDir.y * this.speed + 1.0,
+            y: normalizedDir.y * this.speed + ProjectileEntity.PHYSICS.UPWARD_ARC,
             z: normalizedDir.z * this.speed
         };
         
@@ -228,12 +247,12 @@ export class ProjectileEntity extends Entity {
         };
 
         // Predict trajectory points
-        for (let i = 0; i < ProjectileEntity.TRAJECTORY_STEPS; i++) {
+        for (let i = 0; i < ProjectileEntity.PREVIEW.TRAJECTORY_STEPS; i++) {
             // Calculate next position based on current velocity
             const nextPos = {
-                x: currentPos.x + velocity.x * ProjectileEntity.TIME_STEP,
-                y: currentPos.y + velocity.y * ProjectileEntity.TIME_STEP,
-                z: currentPos.z + velocity.z * ProjectileEntity.TIME_STEP
+                x: currentPos.x + velocity.x * ProjectileEntity.PREVIEW.TIME_STEP,
+                y: currentPos.y + velocity.y * ProjectileEntity.PREVIEW.TIME_STEP,
+                z: currentPos.z + velocity.z * ProjectileEntity.PREVIEW.TIME_STEP
             };
 
             // Calculate direction to next point
@@ -284,7 +303,7 @@ export class ProjectileEntity extends Entity {
             // Update position and velocity for next iteration
             currentPos = nextPos;
             // Apply gravity to Y velocity
-            velocity.y -= ProjectileEntity.GRAVITY * ProjectileEntity.TIME_STEP;
+            velocity.y -= ProjectileEntity.PHYSICS.GRAVITY * ProjectileEntity.PREVIEW.TIME_STEP;
         }
 
         return points;
@@ -320,9 +339,9 @@ export class ProjectileEntity extends Entity {
             if (this.trajectoryMarkers.length === 0) {
                 const marker = new Entity({
                     name: 'ImpactMarker',
-                    modelUri: 'models/projectiles/energy-orb-projectile.gltf',
-                    modelScale: 0.3,
-                    opacity: 0.7
+                    modelUri: ProjectileEntity.PREVIEW.MARKER_URI,
+                    modelScale: ProjectileEntity.PREVIEW.MARKER_SCALE,
+                    opacity: ProjectileEntity.PREVIEW.MARKER_OPACITY
                 });
                 this.trajectoryMarkers.push(marker);
                 marker.spawn(this.world, collisionPoint.position);

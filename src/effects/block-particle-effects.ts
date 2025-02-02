@@ -39,12 +39,20 @@ export class BlockParticleEffects {
             mass: DESTRUCTION_PARTICLE_CONFIG.PHYSICS.MASS,
             friction: DESTRUCTION_PARTICLE_CONFIG.PHYSICS.FRICTION,
             bounciness: DESTRUCTION_PARTICLE_CONFIG.PHYSICS.BOUNCINESS
-          }],
-          // Add sleep thresholds for better physics performance
-          linearSleepThreshold: DESTRUCTION_PARTICLE_CONFIG.PHYSICS.SLEEP_THRESHOLD,
-          angularSleepThreshold: DESTRUCTION_PARTICLE_CONFIG.PHYSICS.ANGULAR_SLEEP_THRESHOLD
+          }]
         }
       });
+
+      // If the engine supports setting sleep thresholds through the raw rigid body
+      if (particle.rawRigidBody) {
+        try {
+          // Attempt to set sleep thresholds if the underlying physics engine supports it
+          particle.rawRigidBody.setSleepThreshold?.(DESTRUCTION_PARTICLE_CONFIG.PHYSICS.SLEEP_THRESHOLD);
+          particle.rawRigidBody.setAngularSleepThreshold?.(DESTRUCTION_PARTICLE_CONFIG.PHYSICS.ANGULAR_SLEEP_THRESHOLD);
+        } catch (e) {
+          // Silently fail if these methods aren't available
+        }
+      }
     }
 
     return particle;

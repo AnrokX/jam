@@ -10,8 +10,8 @@ export interface ParticleConfig {
     MASS: number;
     FRICTION: number;
     BOUNCINESS: number;
-    SLEEP_THRESHOLD: number;
-    ANGULAR_SLEEP_THRESHOLD: number;
+    SLEEP_THRESHOLD?: number;
+    ANGULAR_SLEEP_THRESHOLD?: number;
   };
   FORCES: {
     UPWARD_MIN: number;

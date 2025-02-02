@@ -53,7 +53,7 @@ export const DESTRUCTION_PARTICLE_CONFIG: ParticleConfig = {
     HEIGHT_VARIATION: 0.2  // Random height variation
   },
   POOLING: {
-    POOL_SIZE: 100,
-    MIN_POOL_SIZE: 25
+    POOL_SIZE: 1500,
+    MIN_POOL_SIZE: 400
   }
 }; 

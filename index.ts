@@ -14,16 +14,22 @@ import { MovingBlockManager, MOVING_BLOCK_CONFIG } from './src/moving_blocks/mov
 import { ScoreManager } from './src/managers/score-manager';
 import { RoundManager } from './src/managers/round-manager';
 import { BlockParticleEffects } from './src/effects/block-particle-effects';
+import { TestBlockSpawner } from './src/utils/test-spawner';
+
+// Configuration flags
+const IS_TEST_MODE = true;  // Set this to true to enable test mode, false for normal game
+const DEBUG_ENABLED = false;  // Development debug flag
 
 startServer(world => {
   console.log('Starting server and initializing debug settings...');
+  console.log(`Test mode: ${IS_TEST_MODE ? 'enabled' : 'disabled'}`);
   
   // Enable debug rendering for development
-  world.simulation.enableDebugRendering(false);
+  world.simulation.enableDebugRendering(DEBUG_ENABLED);
   
   // Initialize raycast handler with debug enabled
   const raycastHandler = new RaycastHandler(world);
-  raycastHandler.enableDebugRaycasting(false);
+  raycastHandler.enableDebugRaycasting(DEBUG_ENABLED);
   console.log('RaycastHandler initialized with debug enabled');
 
   // Development flag for trajectory preview - set to false to disable
@@ -38,8 +44,64 @@ startServer(world => {
   // Initialize the moving block manager
   const movingBlockManager = new MovingBlockManager(world, scoreManager);
   
-  // Initialize the round manager
-  const roundManager = new RoundManager(world, movingBlockManager, scoreManager);
+  // Initialize test spawner if in test mode
+  const testSpawner = IS_TEST_MODE ? new TestBlockSpawner(world, movingBlockManager) : null;
+  
+  // Initialize the round manager (only used in normal mode)
+  const roundManager = !IS_TEST_MODE ? new RoundManager(world, movingBlockManager, scoreManager) : null;
+
+  // Register test mode commands if in test mode
+  if (IS_TEST_MODE && testSpawner) {
+    // Register commands without the '/' prefix
+    world.chatManager.registerCommand('spawn1', (player) => {
+      console.log('Executing spawn1 command');
+      testSpawner.spawnStaticTarget();
+      world.chatManager.sendPlayerMessage(player, 'Spawned a static target', 'FFFF00');
+    });
+
+    world.chatManager.registerCommand('spawn2', (player) => {
+      console.log('Executing spawn2 command');
+      testSpawner.spawnSineWaveBlock();
+      world.chatManager.sendPlayerMessage(player, 'Spawned a sine wave block', 'FFFF00');
+    });
+
+    world.chatManager.registerCommand('spawn3', (player) => {
+      console.log('Executing spawn3 command');
+      testSpawner.spawnVerticalWaveBlock();
+      world.chatManager.sendPlayerMessage(player, 'Spawned a vertical wave block', 'FFFF00');
+    });
+
+    world.chatManager.registerCommand('spawn4', (player) => {
+      console.log('Executing spawn4 command');
+      testSpawner.spawnRegularBlock();
+      world.chatManager.sendPlayerMessage(player, 'Spawned a regular block', 'FFFF00');
+    });
+
+    world.chatManager.registerCommand('spawnall', (player) => {
+      console.log('Executing spawnall command');
+      testSpawner.spawnTestBlocks();
+      world.chatManager.sendPlayerMessage(player, 'Spawned all block types', 'FFFF00');
+    });
+
+    world.chatManager.registerCommand('clearblocks', (player) => {
+      console.log('Executing clearblocks command');
+      world.entityManager.getAllEntities()
+        .filter(entity => entity.name.toLowerCase().includes('block'))
+        .forEach(entity => entity.despawn());
+      world.chatManager.sendPlayerMessage(player, 'Cleared all blocks', 'FFFF00');
+    });
+
+    world.chatManager.registerCommand('testhelp', (player) => {
+      console.log('Executing testhelp command');
+      world.chatManager.sendPlayerMessage(player, 'Test Mode Commands:', 'FFFF00');
+      world.chatManager.sendPlayerMessage(player, 'spawn1 - Spawn static target', 'FFFF00');
+      world.chatManager.sendPlayerMessage(player, 'spawn2 - Spawn sine wave block', 'FFFF00');
+      world.chatManager.sendPlayerMessage(player, 'spawn3 - Spawn vertical wave block', 'FFFF00');
+      world.chatManager.sendPlayerMessage(player, 'spawn4 - Spawn regular block', 'FFFF00');
+      world.chatManager.sendPlayerMessage(player, 'spawnall - Spawn all block types', 'FFFF00');
+      world.chatManager.sendPlayerMessage(player, 'clearblocks - Remove all blocks', 'FFFF00');
+    });
+  }
 
   world.loadMap(worldMap);
 
@@ -151,19 +213,34 @@ startServer(world => {
       });
     };
 
-    // Start the round if it's not already active (first player starts the game)
-    if (!roundManager.isActive()) {
+    // Start the round or spawn test blocks based on mode
+    if (IS_TEST_MODE && testSpawner) {
+      testSpawner.spawnTestBlocks();
+      console.log('Test blocks spawned');
+    } else if (roundManager && !roundManager.isActive()) {
       roundManager.startRound();
     }
 
+    // Send appropriate welcome messages
     world.chatManager.sendPlayerMessage(player, 'Welcome to the game!', '00FF00');
     world.chatManager.sendPlayerMessage(player, 'Use WASD to move around.');
     world.chatManager.sendPlayerMessage(player, 'Press space to jump.');
     world.chatManager.sendPlayerMessage(player, 'Hold shift to sprint.');
     world.chatManager.sendPlayerMessage(player, 'Right click to raycast.');
     world.chatManager.sendPlayerMessage(player, 'Left click to throw projectiles.');
-    world.chatManager.sendPlayerMessage(player, `Round ${roundManager.getCurrentRound()} - Hit as many blocks as you can before time runs out!`, 'FFFF00');
+    
+    if (IS_TEST_MODE) {
+      world.chatManager.sendPlayerMessage(player, 'TEST MODE: One of each block type has been spawned', 'FFFF00');
+    } else {
+      world.chatManager.sendPlayerMessage(player, `Round ${roundManager!.getCurrentRound()} - Hit as many blocks as you can before time runs out!`, 'FFFF00');
+    }
+    
     world.chatManager.sendPlayerMessage(player, 'Press \\ to enter or exit debug view.');
+
+    // Send help message for test mode
+    if (IS_TEST_MODE) {
+      world.chatManager.sendPlayerMessage(player, 'Type /testhelp to see available test commands', 'FFFF00');
+    }
   };
 
   /**
@@ -176,8 +253,10 @@ startServer(world => {
     scoreManager.removePlayer(player.id);
     projectileManager.removePlayer(player.id);
     
-    // Handle round system when player leaves
-    roundManager.handlePlayerLeave();
+    // Handle round system when player leaves (only in normal mode)
+    if (!IS_TEST_MODE && roundManager) {
+      roundManager.handlePlayerLeave();
+    }
     
     world.entityManager.getPlayerEntitiesByPlayer(player).forEach(entity => entity.despawn());
   };

@@ -387,6 +387,41 @@
       50% { transform: scale(1.2); opacity: 1; }
       100% { transform: scale(1); opacity: 1; }
     }
+
+    .crosshair {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 16px;
+      height: 16px;
+      pointer-events: none;
+      z-index: 1000;
+    }
+
+    /* Vertical line */
+    .crosshair::before {
+      content: '';
+      position: absolute;
+      background-color: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(0, 0, 0, 0.5);
+      width: 2px;
+      height: 12px;
+      left: 7px;  /* (16px - 2px) / 2 */
+      top: 2px;   /* (16px - 12px) / 2 */
+    }
+
+    /* Horizontal line */
+    .crosshair::after {
+      content: '';
+      position: absolute;
+      background-color: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(0, 0, 0, 0.5);
+      width: 12px;
+      height: 2px;
+      left: 2px;   /* (16px - 12px) / 2 */
+      top: 7px;    /* (16px - 2px) / 2 */
+    }
   </style>
 </head>
 <body>
@@ -420,6 +455,8 @@
   <div class="projectile-icon"></div>
   <div class="projectile-count">5</div>
 </div>
+
+<div class="crosshair"></div>
 
 <script>
 let projectileCount = 5;

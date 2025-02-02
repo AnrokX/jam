@@ -104,7 +104,7 @@ startServer(world => {
     });
 
     // Set a comfortable FOV for first-person gameplay (70 degrees is a common value)
-    playerEntity.player.camera.setFov(120);
+    playerEntity.player.camera.setFov(70);
   
     // Wire up raycast handler and projectile system to the SDK's input system
     playerEntity.controller!.onTickWithPlayerInput = (entity, input, cameraOrientation, deltaTimeMs) => {

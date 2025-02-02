@@ -13,7 +13,7 @@ export interface PlayerProjectileState {
 
 export class PlayerProjectileManager {
   private static readonly INITIAL_AMMO_COUNT = 1000;
-  private static readonly SHOT_COOLDOWN = 200;
+  private static readonly SHOT_COOLDOWN = 0;
   private playerStates = new Map<string, PlayerProjectileState>();
   private readonly world: World;
   private readonly raycastHandler: RaycastHandler;

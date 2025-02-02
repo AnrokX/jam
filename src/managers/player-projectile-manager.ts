@@ -8,10 +8,12 @@ export interface PlayerProjectileState {
   previewProjectile: ProjectileEntity | null;
   lastInputState: { mr: boolean };
   projectilesRemaining: number;
+  lastShotTime: number;
 }
 
 export class PlayerProjectileManager {
   private static readonly INITIAL_AMMO_COUNT = 1000;
+  private static readonly SHOT_COOLDOWN = 200;
   private playerStates = new Map<string, PlayerProjectileState>();
   private readonly world: World;
   private readonly raycastHandler: RaycastHandler;
@@ -27,7 +29,8 @@ export class PlayerProjectileManager {
     this.playerStates.set(playerId, {
       previewProjectile: null,
       lastInputState: { mr: false },
-      projectilesRemaining: PlayerProjectileManager.INITIAL_AMMO_COUNT
+      projectilesRemaining: PlayerProjectileManager.INITIAL_AMMO_COUNT,
+      lastShotTime: 0
     });
   }
 
@@ -98,6 +101,17 @@ export class PlayerProjectileManager {
 
     // Right mouse button just pressed
     if (mrJustPressed) {
+      const currentTime = Date.now();
+      const timeSinceLastShot = currentTime - state.lastShotTime;
+
+      if (timeSinceLastShot < PlayerProjectileManager.SHOT_COOLDOWN) {
+        // Still on cooldown
+        if (player) {
+          player.ui.sendData({ type: 'onCooldown' });
+        }
+        return;
+      }
+
       if (state.projectilesRemaining <= 0) {
         // Send UI event when trying to shoot with no ammo
         if (player) {
@@ -123,8 +137,9 @@ export class PlayerProjectileManager {
       state.previewProjectile.clearTrajectoryMarkers();
       state.previewProjectile = null;
       
-      // Decrease projectile count
+      // Decrease projectile count and update last shot time
       state.projectilesRemaining--;
+      state.lastShotTime = Date.now();
     }
 
     // Update last input state

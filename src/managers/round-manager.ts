@@ -45,9 +45,9 @@ export class RoundManager {
         // Base configuration that scales with round number
         return {
             duration: 60000,  // Fixed 60 seconds for each round
-            minBlockCount: 12 + Math.floor(round * 1.5),  // Tripled: Start with 12, faster increase
-            maxBlockCount: 24 + Math.floor(round * 2.1),  // Tripled: Max 24 at start, faster increase
-            blockSpawnInterval: Math.max(2000 - (round * 200), 800),  // Faster spawns to handle more blocks
+            minBlockCount: 30 + Math.floor(round * 2),  // Much higher minimum
+            maxBlockCount: 50 + Math.floor(round * 3),  // Much higher maximum
+            blockSpawnInterval: 500,  // Spawn every 0.5 seconds consistently
             speedMultiplier: 1 + (round * 0.1),  // Keep the same speed progression
             blockTypes: {
                 // Start with 100% static blocks, gradually introduce others after round 1
@@ -153,16 +153,18 @@ export class RoundManager {
         const spawnBlock = () => {
             if (!this.isRoundActive) return;
 
-            const currentBlocks = this.blockManager.getBlockCount();
-            if (currentBlocks < config.maxBlockCount) {
-                // Add spacing between spawns
-                const existingBlocks = this.world.entityManager.getAllEntities()
-                    .filter(entity => entity.name.toLowerCase().includes('block'));
-                
-                // Try to find a spawn position away from other blocks
-                let attempts = 0;
-                let spawnPosition: Vector3Like;
-                const minSpacing = 3; // Minimum units between blocks
+            // Try to spawn multiple blocks at once
+            for(let i = 0; i < 1; i++) {
+                const currentBlocks = this.blockManager.getBlockCount();
+                if (currentBlocks < config.maxBlockCount) {
+                    // Add spacing between spawns
+                    const existingBlocks = this.world.entityManager.getAllEntities()
+                        .filter(entity => entity.name.toLowerCase().includes('block'));
+                    
+                    // Try to find a spawn position away from other blocks
+                    let attempts = 0;
+                    let spawnPosition: Vector3Like;
+                    const minSpacing = 2; // Reduced spacing to allow more blocks
 
                 do {
                     spawnPosition = {
@@ -171,62 +173,62 @@ export class RoundManager {
                         z: Math.random() * 24 - 12  // Random z between -12 and 12 (wider spread)
                     };
 
-                    // Check distance from all existing blocks
-                    const isTooClose = existingBlocks.some(block => {
-                        const dx = block.position.x - spawnPosition.x;
-                        const dz = block.position.z - spawnPosition.z;
-                        return Math.sqrt(dx * dx + dz * dz) < minSpacing;
-                    });
+                        // Check distance from all existing blocks
+                        const isTooClose = existingBlocks.some(block => {
+                            const dx = block.position.x - spawnPosition.x;
+                            const dz = block.position.z - spawnPosition.z;
+                            return Math.sqrt(dx * dx + dz * dz) < minSpacing;
+                        });
 
-                    if (!isTooClose) break;
-                    attempts++;
-                } while (attempts < 5); // Try up to 5 times to find a good position
+                        if (!isTooClose) break;
+                        attempts++;
+                    } while (attempts < 3); // Fewer attempts to speed up spawning
 
-                // Choose block type based on probabilities
-                const rand = Math.random();
-                const total = Object.values(config.blockTypes).reduce((a, b) => a + b, 0);
-                let sum = 0;
-                let chosenType: keyof typeof config.blockTypes | null = null;
+                    // Choose block type based on probabilities
+                    const rand = Math.random();
+                    const total = Object.values(config.blockTypes).reduce((a, b) => a + b, 0);
+                    let sum = 0;
+                    let chosenType: keyof typeof config.blockTypes | null = null;
 
-                for (const [type, weight] of Object.entries(config.blockTypes)) {
-                    sum += weight / total;
-                    if (rand <= sum && !chosenType) {
-                        chosenType = type as keyof typeof config.blockTypes;
+                    for (const [type, weight] of Object.entries(config.blockTypes)) {
+                        sum += weight / total;
+                        if (rand <= sum && !chosenType) {
+                            chosenType = type as keyof typeof config.blockTypes;
+                        }
                     }
-                }
 
-                // Calculate the base speed for this block
-                const baseSpeed = 8 * config.speedMultiplier;
+                    // Calculate the base speed for this block
+                    const baseSpeed = 8 * config.speedMultiplier;
 
-                // Spawn the chosen block type with appropriate spacing
-                switch(chosenType) {
-                    case 'normal':
-                        this.blockManager.createZAxisBlock(spawnPosition);
-                        break;
-                    case 'sineWave':
-                        this.blockManager.createSineWaveBlock({
-                            spawnPosition,
-                            moveSpeed: baseSpeed,
-                            amplitude: 2 + Math.random() * 2
-                        });
-                        break;
-                    case 'static':
-                        // For static targets, use the current spawn position but with controlled height
-                        this.blockManager.createStaticTarget({
-                            x: spawnPosition.x,
-                            y: 2 + Math.random() * 3, // Keep static targets between y=2 and y=5
-                            z: spawnPosition.z
-                        });
-                        break;
-                    case 'verticalWave':
-                        this.blockManager.createVerticalWaveBlock({
-                            spawnPosition: {
-                                ...spawnPosition,
-                                y: Math.min(MOVING_BLOCK_CONFIG.VERTICAL_WAVE.HEIGHT_OFFSET, 6) // Cap the height slightly higher
-                            },
-                            moveSpeed: baseSpeed * 0.75
-                        });
-                        break;
+                    // Spawn the chosen block type with appropriate spacing
+                    switch(chosenType) {
+                        case 'normal':
+                            this.blockManager.createZAxisBlock(spawnPosition);
+                            break;
+                        case 'sineWave':
+                            this.blockManager.createSineWaveBlock({
+                                spawnPosition,
+                                moveSpeed: baseSpeed,
+                                amplitude: 2 + Math.random() * 2
+                            });
+                            break;
+                        case 'static':
+                            this.blockManager.createStaticTarget({
+                                x: spawnPosition.x,
+                                y: 2 + Math.random() * 4, // Higher range for static targets
+                                z: spawnPosition.z
+                            });
+                            break;
+                        case 'verticalWave':
+                            this.blockManager.createVerticalWaveBlock({
+                                spawnPosition: {
+                                    ...spawnPosition,
+                                    y: Math.min(MOVING_BLOCK_CONFIG.VERTICAL_WAVE.HEIGHT_OFFSET, 7) // Higher cap
+                                },
+                                moveSpeed: baseSpeed * 0.75
+                            });
+                            break;
+                    }
                 }
             }
         };

@@ -27,6 +27,12 @@ export interface ParticleConfig {
     POOL_SIZE: number;
     MIN_POOL_SIZE: number;
   };
+  INSTANCING: {
+    BATCH_SIZE: number;
+    ENABLE_MERGING: boolean;
+    MERGE_DISTANCE: number;
+    GPU_INSTANCING: boolean;
+  };
 }
 
 export const DESTRUCTION_PARTICLE_CONFIG: ParticleConfig = {
@@ -55,5 +61,11 @@ export const DESTRUCTION_PARTICLE_CONFIG: ParticleConfig = {
   POOLING: {
     POOL_SIZE: 1500,
     MIN_POOL_SIZE: 400
+  },
+  INSTANCING: {
+    BATCH_SIZE: 50,    // Number of particles to batch render
+    ENABLE_MERGING: true,  // Merge nearby particle meshes
+    MERGE_DISTANCE: 2.0,   // Distance threshold for merging
+    GPU_INSTANCING: true   // Use GPU instancing when available
   }
 }; 

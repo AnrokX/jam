@@ -5,6 +5,21 @@ export class BlockParticleEffects {
   private activeParticles: Set<Entity> = new Set(); // Use Set for faster lookups/removal
   private particlePool: Entity[] = [];
   private static instance: BlockParticleEffects; // Singleton pattern
+  private spatialGrid: Map<string, Set<Entity>> = new Map();
+  private static readonly FRAME_BUDGET_MS = 16; // 60fps target
+  private pendingEffects: Array<{position: Vector3Like, texture: string}> = [];
+
+  // Use TypedArrays for particle properties
+  private particlePositions = new Float32Array(DESTRUCTION_PARTICLE_CONFIG.POOLING.POOL_SIZE * 3);
+  private particleVelocities = new Float32Array(DESTRUCTION_PARTICLE_CONFIG.POOLING.POOL_SIZE * 3);
+  private particleLifetimes = new Float32Array(DESTRUCTION_PARTICLE_CONFIG.POOLING.POOL_SIZE);
+
+  private performanceMetrics = {
+    lastFrameTime: 0,
+    frameCount: 0,
+    averageFrameTime: 16,
+    particleReductionFactor: 1.0
+  };
 
   // Singleton getter
   public static getInstance(): BlockParticleEffects {
@@ -67,6 +82,35 @@ export class BlockParticleEffects {
     this.activeParticles.delete(particle);
   }
 
+  private getParticleCount(playerPosition: Vector3Like, explosionPosition: Vector3Like): number {
+    const distance = Math.sqrt(
+      Math.pow(playerPosition.x - explosionPosition.x, 2) +
+      Math.pow(playerPosition.y - explosionPosition.y, 2) +
+      Math.pow(playerPosition.z - explosionPosition.z, 2)
+    );
+    
+    // Reduce particles based on distance
+    if (distance > 30) return Math.floor(DESTRUCTION_PARTICLE_CONFIG.COUNT * 0.2);  // 20% at far distance
+    if (distance > 20) return Math.floor(DESTRUCTION_PARTICLE_CONFIG.COUNT * 0.5);  // 50% at medium distance
+    return DESTRUCTION_PARTICLE_CONFIG.COUNT; // 100% when close
+  }
+
+  private getGridKey(position: Vector3Like): string {
+    // 5x5x5 grid cells
+    const gridX = Math.floor(position.x / 5);
+    const gridY = Math.floor(position.y / 5);
+    const gridZ = Math.floor(position.z / 5);
+    return `${gridX},${gridY},${gridZ}`;
+  }
+
+  private updateParticleGrid(particle: Entity): void {
+    const gridKey = this.getGridKey(particle.position);
+    if (!this.spatialGrid.has(gridKey)) {
+      this.spatialGrid.set(gridKey, new Set());
+    }
+    this.spatialGrid.get(gridKey)!.add(particle);
+  }
+
   createDestructionEffect(world: World, position: Vector3Like, blockTextureUri: string): void {
     if (!world) return;
 
@@ -119,6 +163,39 @@ export class BlockParticleEffects {
         }
       }, DESTRUCTION_PARTICLE_CONFIG.LIFETIME);
     }
+  }
+
+  private processEffectQueue(deltaTime: number): void {
+    const startTime = performance.now();
+    while (this.pendingEffects.length > 0) {
+      if (performance.now() - startTime > BlockParticleEffects.FRAME_BUDGET_MS) {
+        // Defer remaining effects to next frame
+        break;
+      }
+      const effect = this.pendingEffects.shift();
+      if (effect) {
+        this.createImmediateEffect(effect.position, effect.texture);
+      }
+    }
+  }
+
+  private updatePerformanceMetrics(currentTime: number): void {
+    const frameTime = currentTime - this.performanceMetrics.lastFrameTime;
+    this.performanceMetrics.frameCount++;
+    
+    // Update rolling average
+    this.performanceMetrics.averageFrameTime = 
+      (this.performanceMetrics.averageFrameTime * 0.95) + (frameTime * 0.05);
+      
+    // Adjust particle count based on performance
+    if (this.performanceMetrics.averageFrameTime > 16.6) { // Below 60fps
+      this.performanceMetrics.particleReductionFactor *= 0.95;
+    } else if (this.performanceMetrics.averageFrameTime < 14) { // Above 70fps
+      this.performanceMetrics.particleReductionFactor = 
+        Math.min(1.0, this.performanceMetrics.particleReductionFactor * 1.05);
+    }
+    
+    this.performanceMetrics.lastFrameTime = currentTime;
   }
 
   // Clean up method for game shutdown or scene changes

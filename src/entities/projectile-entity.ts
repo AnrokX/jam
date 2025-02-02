@@ -20,7 +20,7 @@ export class ProjectileEntity extends Entity {
     // Physics constants adjusted to match TF2 grenade launcher
     private static readonly PHYSICS = {
         GRAVITY: 15.24,           // TF2's 800 HU/s² converted to m/s²
-        DEFAULT_SPEED: 23.17,     // TF2's 1216 HU/s converted to m/s
+        DEFAULT_SPEED: 20.00,     // TF2's 1216 HU/s converted to m/s
         DEFAULT_LIFETIME: 2300,    // 2.3 seconds fuse timer
         DEFAULT_DAMAGE: 100,       // Typical TF2 grenade damage
         UPWARD_ARC: 0.5,          // Reduced to match TF2's arc

@@ -45,16 +45,16 @@ export class RoundManager {
         // Base configuration that scales with round number
         return {
             duration: 60000,  // Fixed 60 seconds for each round
-            minBlockCount: 1 + Math.floor(round * 0.3),  // Reduced: Start with 1, slower increase
-            maxBlockCount: 3 + Math.floor(round * 0.5),  // Reduced: Max 3 at start, slower increase
-            blockSpawnInterval: Math.max(4000 - (round * 200), 1500),  // Slower spawns: 4s initially, minimum 1.5s
+            minBlockCount: 4 + Math.floor(round * 0.5),  // Start with more blocks
+            maxBlockCount: 8 + Math.floor(round * 0.7),  // Higher maximum
+            blockSpawnInterval: Math.max(2500 - (round * 200), 1000),  // Faster spawns: 2.5s initially
             speedMultiplier: 1 + (round * 0.1),  // Keep the same speed progression
             blockTypes: {
-                // Adjust probabilities to favor simpler blocks in early rounds
-                normal: Math.max(0.7 - (round * 0.1), 0.2),     // More normal blocks early
-                sineWave: Math.min(0.1 + (round * 0.05), 0.3),  // Fewer sine waves early
-                static: Math.min(0.1 + (round * 0.03), 0.3),    // Fewer static early
-                verticalWave: Math.min(0.1 + (round * 0.02), 0.2) // Fewer vertical waves early
+                // Start with 100% static blocks, gradually introduce others after round 1
+                normal: Math.max(0, (round - 1) * 0.1),     // No normal blocks in round 1
+                sineWave: Math.max(0, (round - 1) * 0.05),  // No sine waves in round 1
+                static: Math.max(1 - (round * 0.1), 0.4),   // 100% in round 1, minimum 40% later
+                verticalWave: Math.max(0, (round - 1) * 0.05) // No vertical waves in round 1
             }
         };
     }
@@ -166,9 +166,9 @@ export class RoundManager {
 
                 do {
                     spawnPosition = {
-                        x: Math.random() * 10 - 5,  // Random x between -5 and 5
-                        y: 1,  // Base height
-                        z: Math.random() * 20 - 10  // Random z between -10 and 10
+                        x: Math.random() * 16 - 8,  // Random x between -8 and 8 (wider spread)
+                        y: 2 + Math.random() * 3,   // Random y between 2 and 5 (slightly higher)
+                        z: Math.random() * 24 - 12  // Random z between -12 and 12 (wider spread)
                     };
 
                     // Check distance from all existing blocks
@@ -211,13 +211,18 @@ export class RoundManager {
                         });
                         break;
                     case 'static':
-                        this.blockManager.createStaticTarget();
+                        // For static targets, use the current spawn position but with controlled height
+                        this.blockManager.createStaticTarget({
+                            x: spawnPosition.x,
+                            y: 2 + Math.random() * 3, // Keep static targets between y=2 and y=5
+                            z: spawnPosition.z
+                        });
                         break;
                     case 'verticalWave':
                         this.blockManager.createVerticalWaveBlock({
                             spawnPosition: {
                                 ...spawnPosition,
-                                y: MOVING_BLOCK_CONFIG.VERTICAL_WAVE.HEIGHT_OFFSET
+                                y: Math.min(MOVING_BLOCK_CONFIG.VERTICAL_WAVE.HEIGHT_OFFSET, 6) // Cap the height slightly higher
                             },
                             moveSpeed: baseSpeed * 0.75
                         });

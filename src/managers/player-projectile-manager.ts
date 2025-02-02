@@ -140,10 +140,11 @@ export class PlayerProjectileManager {
   }
 
   private handleProjectileImpact(position: Vector3Like, blockTextureUri: string): void {
-    // Get the singleton instance with world
-    const particleSystem = BlockParticleEffects.getInstance(this.world);
-    
-    // Create the effect
-    particleSystem.createDestructionEffect(this.world, position, blockTextureUri);
+    try {
+      const particleSystem = BlockParticleEffects.getInstance(this.world);
+      particleSystem.createDestructionEffect(this.world, position, blockTextureUri);
+    } catch (error) {
+      console.error('Failed to create particle effect:', error);
+    }
   }
 } 

@@ -22,9 +22,7 @@ export const MOVING_BLOCK_CONFIG = {
     HALF_EXTENTS: { x: 0.8, y: 0.8, z: 0.8 }, // Balanced size for visibility and challenge
     HEIGHT_RANGE: { min: 3, max: 8 },  // Higher range for better visibility
     SCORE: 10, // More points for hitting target
-    HEALTH: 1,  // One-shot kill
-    LIFETIME: 3000, // Time in milliseconds before despawning
-    FADE_START: 2000 // Start fading at 2 seconds to warn player
+    HEALTH: 1  // One-shot kill
   },
   VERTICAL_WAVE: {  // New configuration for vertical sine wave blocks
     TEXTURE: 'blocks/emerald-ore.png',
@@ -76,7 +74,7 @@ export class MovingBlockEntity extends Entity {
   private playerId?: string;  // Store the ID of player who last hit the block
   protected movementBehavior: BlockMovementBehavior;
   private particles: Entity[] = [];
-  private particleEffects: BlockParticleEffects;
+  private particleEffects: BlockParticleEffects | null;
 
   constructor(options: MovingBlockOptions) {
     super({
@@ -111,7 +109,7 @@ export class MovingBlockEntity extends Entity {
     this.isBreakable = options.isBreakable ?? true;
     this.onBlockBroken = options.onBlockBroken;
     this.movementBehavior = options.movementBehavior || new DefaultBlockMovement();
-    this.particleEffects = new BlockParticleEffects();
+    this.particleEffects = null;
   }
 
   private normalizeDirection(dir: Vector3Like): Vector3Like {
@@ -127,6 +125,7 @@ export class MovingBlockEntity extends Entity {
   override spawn(world: World, position: Vector3Like): void {
     super.spawn(world, position);
     this.initialPosition = { ...position };
+    this.particleEffects = BlockParticleEffects.getInstance(world);
   }
 
   private isWithinBounds(position: Vector3Like): boolean {
@@ -288,7 +287,7 @@ export class MovingBlockEntity extends Entity {
 
   private createDestructionEffect(): void {
     if (!this.world || !this.blockTextureUri) return;
-    this.particleEffects.createDestructionEffect(this.world, this.position, this.blockTextureUri);
+    this.particleEffects?.createDestructionEffect(this.world, this.position, this.blockTextureUri);
   }
 }
 
@@ -445,24 +444,6 @@ export class MovingBlockManager {
     console.log('Spawning static target at:', finalSpawnPosition);
     block.spawn(this.world, finalSpawnPosition);
     this.blocks.push(block);
-
-    // Set up automatic despawn after lifetime
-    setTimeout(() => {
-      if (block.isSpawned) {
-        console.log('Static target lifetime expired, despawning');
-        block.despawn();
-        this.removeBlock(block);
-      }
-    }, MOVING_BLOCK_CONFIG.STATIC_TARGET.LIFETIME);
-
-    // Optional: Add visual feedback that the block is about to despawn
-    setTimeout(() => {
-      if (block.isSpawned) {
-        // You might want to add a visual effect here to warn the player
-        // For example, making the block flash or change color
-        console.log('Static target about to expire');
-      }
-    }, MOVING_BLOCK_CONFIG.STATIC_TARGET.FADE_START);
 
     return block;
   }

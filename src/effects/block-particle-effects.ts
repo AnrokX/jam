@@ -8,7 +8,9 @@ export class BlockParticleEffects {
   private spatialGrid: Map<string, Set<Entity>> = new Map();
   private static readonly FRAME_BUDGET_MS = 16; // 60fps target
   private pendingEffects: Array<{position: Vector3Like, texture: string}> = [];
-  private readonly world: World; // Add this property
+  private readonly world: World;
+  private cleanupInterval: NodeJS.Timeout | null = null;
+  private particleSpawnTimes = new Map<Entity, number>();
 
   // Use TypedArrays for particle properties
   private particlePositions = new Float32Array(DESTRUCTION_PARTICLE_CONFIG.POOLING.POOL_SIZE * 3);
@@ -25,6 +27,31 @@ export class BlockParticleEffects {
   // Add world parameter to constructor
   private constructor(world: World) {
     this.world = world;
+    // Start the cleanup interval
+    this.cleanupInterval = setInterval(() => this.forceCleanupParticles(), 5000); // Check every 5 seconds
+  }
+
+  private forceCleanupParticles(): void {
+    const now = Date.now();
+    this.activeParticles.forEach(particle => {
+      if (!particle.isSpawned) {
+        this.activeParticles.delete(particle);
+        this.particleSpawnTimes.delete(particle);
+        return;
+      }
+
+      // Force despawn particles that are:
+      // 1. Below a certain height (on the ground)
+      // 2. Haven't moved in a while
+      // 3. Have been alive for too long
+      const spawnTime = this.particleSpawnTimes.get(particle) || now;
+      if (particle.position.y < 0.2 || // On ground
+          (particle.rawRigidBody && particle.rawRigidBody.isAsleep()) || // Not moving
+          (now - spawnTime > 2000)) { // Alive too long (2 seconds)
+        
+        this.returnParticleToPool(particle);
+      }
+    });
   }
 
   // Update getInstance to accept world parameter
@@ -76,16 +103,20 @@ export class BlockParticleEffects {
       }
     }
 
+    // Track spawn time
+    this.particleSpawnTimes.set(particle, Date.now());
     return particle;
   }
 
   private returnParticleToPool(particle: Entity): void {
-    if (this.particlePool.length < DESTRUCTION_PARTICLE_CONFIG.POOLING.POOL_SIZE) {
-      this.particlePool.push(particle);
-    } else {
-      particle.despawn();
+    if (particle.isSpawned) {
+      particle.despawn(); // Make sure to despawn first
     }
     this.activeParticles.delete(particle);
+    this.particleSpawnTimes.delete(particle);
+    if (this.particlePool.length < DESTRUCTION_PARTICLE_CONFIG.POOLING.POOL_SIZE) {
+      this.particlePool.push(particle);
+    }
   }
 
   private getParticleCount(playerPosition: Vector3Like, explosionPosition: Vector3Like): number {
@@ -162,9 +193,9 @@ export class BlockParticleEffects {
         });
       }
 
-      // Use a single timeout per batch of particles
+      // Force cleanup after lifetime
       setTimeout(() => {
-        if (particle.isSpawned) {
+        if (this.activeParticles.has(particle)) {
           this.returnParticleToPool(particle);
         }
       }, DESTRUCTION_PARTICLE_CONFIG.LIFETIME);
@@ -204,8 +235,13 @@ export class BlockParticleEffects {
     this.performanceMetrics.lastFrameTime = currentTime;
   }
 
-  // Clean up method for game shutdown or scene changes
   cleanup(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+    
+    // Force cleanup all particles
     this.activeParticles.forEach(particle => {
       if (particle.isSpawned) {
         particle.despawn();
@@ -214,6 +250,7 @@ export class BlockParticleEffects {
     this.activeParticles.clear();
     this.particlePool = [];
     this.spatialGrid.clear();
+    this.particleSpawnTimes.clear();
     
     // Clear typed arrays
     this.particlePositions = new Float32Array(DESTRUCTION_PARTICLE_CONFIG.POOLING.POOL_SIZE * 3);

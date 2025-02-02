@@ -1,23 +1,27 @@
 import { Entity, Vector3Like, RigidBodyType, ColliderShape, World } from 'hytopia';
-import { MOVING_BLOCK_CONFIG } from '../moving_blocks/moving-block-entity';
 import { DESTRUCTION_PARTICLE_CONFIG } from '../config/particle-config';
 
 export class BlockParticleEffects {
-  private particles: Entity[] = [];
+  private activeParticles: Set<Entity> = new Set(); // Use Set for faster lookups/removal
+  private particlePool: Entity[] = [];
+  private static instance: BlockParticleEffects; // Singleton pattern
 
- 
+  // Singleton getter
+  public static getInstance(): BlockParticleEffects {
+    if (!BlockParticleEffects.instance) {
+      BlockParticleEffects.instance = new BlockParticleEffects();
+    }
+    return BlockParticleEffects.instance;
+  }
 
-  createDestructionEffect(world: World, position: Vector3Like, blockTextureUri: string): void {
-    if (!world) return;
-
-    // Create particles in a more explosive pattern
-    for (let i = 0; i < DESTRUCTION_PARTICLE_CONFIG.COUNT; i++) {
-      const angle = (i / DESTRUCTION_PARTICLE_CONFIG.COUNT) * Math.PI * 2;
-
-      // Create block pieces using the current block's texture
-      const particle = new Entity({
+  private getParticleFromPool(world: World, blockTextureUri: string): Entity {
+    let particle = this.particlePool.pop();
+    
+    if (!particle) {
+      // Create new particle if pool is empty
+      particle = new Entity({
         name: 'DestroyedBlockPiece',
-        blockTextureUri: blockTextureUri,
+        blockTextureUri,
         blockHalfExtents: {
           x: DESTRUCTION_PARTICLE_CONFIG.SCALE,
           y: DESTRUCTION_PARTICLE_CONFIG.SCALE,
@@ -35,46 +39,88 @@ export class BlockParticleEffects {
             mass: DESTRUCTION_PARTICLE_CONFIG.PHYSICS.MASS,
             friction: DESTRUCTION_PARTICLE_CONFIG.PHYSICS.FRICTION,
             bounciness: DESTRUCTION_PARTICLE_CONFIG.PHYSICS.BOUNCINESS
-          }]
+          }],
+          // Add sleep thresholds for better physics performance
+          linearSleepThreshold: DESTRUCTION_PARTICLE_CONFIG.PHYSICS.SLEEP_THRESHOLD,
+          angularSleepThreshold: DESTRUCTION_PARTICLE_CONFIG.PHYSICS.ANGULAR_SLEEP_THRESHOLD
         }
       });
+    }
 
-      // Spawn around the block's position with configured randomization
-      const particlePosition = {
-        x: position.x + (Math.random() - 0.5) * DESTRUCTION_PARTICLE_CONFIG.SPAWN.RADIUS,
-        y: position.y + (Math.random() - 0.5) * DESTRUCTION_PARTICLE_CONFIG.SPAWN.HEIGHT_VARIATION,
-        z: position.z + (Math.random() - 0.5) * DESTRUCTION_PARTICLE_CONFIG.SPAWN.RADIUS
-      };
+    return particle;
+  }
 
-      particle.spawn(world, particlePosition);
-      this.particles.push(particle);
+  private returnParticleToPool(particle: Entity): void {
+    if (this.particlePool.length < DESTRUCTION_PARTICLE_CONFIG.POOLING.POOL_SIZE) {
+      this.particlePool.push(particle);
+    } else {
+      particle.despawn();
+    }
+    this.activeParticles.delete(particle);
+  }
 
-      // Apply configured forces
+  createDestructionEffect(world: World, position: Vector3Like, blockTextureUri: string): void {
+    if (!world) return;
+
+    // Pre-calculate some values to avoid repeated calculations
+    const angleIncrement = (Math.PI * 2) / DESTRUCTION_PARTICLE_CONFIG.COUNT;
+    const speed = DESTRUCTION_PARTICLE_CONFIG.SPEED * DESTRUCTION_PARTICLE_CONFIG.FORCES.EXPLOSION_MULTIPLIER;
+    const spinForce = DESTRUCTION_PARTICLE_CONFIG.FORCES.SPIN_STRENGTH;
+
+    // Batch creation to reduce overhead
+    for (let i = 0; i < DESTRUCTION_PARTICLE_CONFIG.COUNT; i++) {
+      const particle = this.getParticleFromPool(world, blockTextureUri);
+      const angle = angleIncrement * i;
+
+      // Calculate position with less random calls
+      const offsetX = (Math.random() - 0.5) * DESTRUCTION_PARTICLE_CONFIG.SPAWN.RADIUS;
+      const offsetY = (Math.random() - 0.5) * DESTRUCTION_PARTICLE_CONFIG.SPAWN.HEIGHT_VARIATION;
+      const offsetZ = (Math.random() - 0.5) * DESTRUCTION_PARTICLE_CONFIG.SPAWN.RADIUS;
+
+      particle.spawn(world, {
+        x: position.x + offsetX,
+        y: position.y + offsetY,
+        z: position.z + offsetZ
+      });
+
+      this.activeParticles.add(particle);
+
       if (particle.rawRigidBody) {
-        const speed = DESTRUCTION_PARTICLE_CONFIG.SPEED * DESTRUCTION_PARTICLE_CONFIG.FORCES.EXPLOSION_MULTIPLIER;
+        // Apply forces with fewer calculations
+        const speedVariation = 0.8 + Math.random() * 0.4;
         particle.rawRigidBody.applyImpulse({
-          x: Math.cos(angle) * speed * (0.8 + Math.random() * 0.4),
+          x: Math.cos(angle) * speed * speedVariation,
           y: DESTRUCTION_PARTICLE_CONFIG.FORCES.UPWARD_MIN + 
              Math.random() * (DESTRUCTION_PARTICLE_CONFIG.FORCES.UPWARD_MAX - DESTRUCTION_PARTICLE_CONFIG.FORCES.UPWARD_MIN),
-          z: Math.sin(angle) * speed * (0.8 + Math.random() * 0.4)
+          z: Math.sin(angle) * speed * speedVariation
         });
 
-        // Add configured spin
-        const spinForce = DESTRUCTION_PARTICLE_CONFIG.FORCES.SPIN_STRENGTH;
+        // Simplified spin calculation
+        const spin = (Math.random() - 0.5) * spinForce;
         particle.rawRigidBody.applyTorqueImpulse({
-          x: (Math.random() - 0.5) * spinForce,
-          y: (Math.random() - 0.5) * spinForce,
-          z: (Math.random() - 0.5) * spinForce
+          x: spin,
+          y: spin,
+          z: spin
         });
       }
 
-      // Clean up after configured lifetime
+      // Use a single timeout per batch of particles
       setTimeout(() => {
         if (particle.isSpawned) {
-          particle.despawn();
+          this.returnParticleToPool(particle);
         }
-        this.particles = this.particles.filter(p => p !== particle);
       }, DESTRUCTION_PARTICLE_CONFIG.LIFETIME);
     }
+  }
+
+  // Clean up method for game shutdown or scene changes
+  cleanup(): void {
+    this.activeParticles.forEach(particle => {
+      if (particle.isSpawned) {
+        particle.despawn();
+      }
+    });
+    this.activeParticles.clear();
+    this.particlePool = [];
   }
 } 

@@ -323,6 +323,7 @@ setInterval(createParticle, 200);
 
 // Listen for projectile count updates and shoot attempts from the game
 hytopia.onData(data => {
+  console.log('Received data:', data); // Add logging
   if (data.type === 'updateProjectileCount') {
     updateProjectileCount(data.count);
   } else if (data.type === 'attemptShootNoAmmo') {
@@ -330,12 +331,13 @@ hytopia.onData(data => {
   } else if (data.type === 'updateScores') {
     updateScoreboard(data.scores);
   } else if (data.type === 'roundUpdate') {
+    console.log('Round update received:', data.data); // Add logging
     updateRoundInfo(data.data);
-    startLocalTimer(data.data.timeRemaining);
   } else if (data.type === 'roundEnd') {
     handleRoundEnd(data.data);
     if (timerInterval) {
       clearInterval(timerInterval);
+      timerInterval = null;
     }
   } else if (data.type === 'waitingForPlayers') {
     showWaitingForPlayers(data.data);
@@ -397,6 +399,64 @@ function showWaitingForPlayers(data) {
   gameElements.forEach(el => el.style.display = 'none');
 }
 
+let lastTimeRemaining = 0;
+let timerInterval = null;
+let timerEndTime = 0;
+
+function startLocalTimer(initialTimeMs) {
+  // Clear any existing timer
+  if (timerInterval) {
+    clearInterval(timerInterval);
+  }
+  
+  // Set the end time based on current time plus duration
+  timerEndTime = Date.now() + initialTimeMs;
+  lastTimeRemaining = initialTimeMs;
+  
+  function updateTimer() {
+    const now = Date.now();
+    const remaining = Math.max(0, timerEndTime - now);
+    
+    // Update lastTimeRemaining for potential server sync
+    lastTimeRemaining = remaining;
+    
+    const timeRemaining = Math.ceil(remaining / 1000);
+    const minutes = Math.floor(timeRemaining / 60);
+    const seconds = timeRemaining % 60;
+    const formattedTime = `Time: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+    
+    const roundTimer = document.querySelector('.round-timer');
+    if (roundTimer) {
+      roundTimer.textContent = formattedTime;
+      
+      // Update visual feedback
+      roundTimer.classList.remove('warning', 'danger');
+      if (timeRemaining <= 10) {
+        roundTimer.classList.add('danger');
+      } else if (timeRemaining <= 30) {
+        roundTimer.classList.add('warning');
+      }
+    }
+    
+    // Only clear interval if we've actually reached zero
+    if (remaining <= 0) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+      
+      // Send a message to the game that time is up
+      if (typeof hytopia !== 'undefined') {
+        hytopia.sendData({ type: 'timeUp' });
+      }
+    }
+  }
+  
+  // Initial update
+  updateTimer();
+  
+  // Start interval for updates
+  timerInterval = setInterval(updateTimer, 100); // Update more frequently for smoother countdown
+}
+
 function updateRoundInfo(roundData) {
   const waitingMessage = document.querySelector('.waiting-message');
   const playerCount = document.querySelector('.player-count');
@@ -411,23 +471,12 @@ function updateRoundInfo(roundData) {
   
   // Update round info
   const roundNumber = document.querySelector('.round-number');
-  const roundTimer = document.querySelector('.round-timer');
-  
   roundNumber.textContent = `Round ${roundData.round}`;
   
-  // Update timer with formatting
-  const timeRemaining = Math.ceil(roundData.timeRemaining / 1000);
-  const minutes = Math.floor(timeRemaining / 60);
-  const seconds = timeRemaining % 60;
-  const formattedTime = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  roundTimer.textContent = formattedTime;
-  
-  // Add visual feedback based on time remaining
-  roundTimer.classList.remove('warning', 'danger');
-  if (timeRemaining <= 10) {
-    roundTimer.classList.add('danger');
-  } else if (timeRemaining <= 30) {
-    roundTimer.classList.add('warning');
+  // Start or update timer with the full duration
+  if (roundData.timeRemaining > 0) {
+    console.log('Starting timer with duration:', roundData.timeRemaining);
+    startLocalTimer(roundData.timeRemaining);
   }
 }
 
@@ -462,44 +511,6 @@ function updateScoreboard(scores) {
     `;
     scoresContainer.appendChild(playerDiv);
   });
-}
-
-// Add this function to handle continuous timer updates between server updates
-let lastTimeRemaining = 0;
-let timerInterval = null;
-
-function startLocalTimer(initialTimeMs) {
-  lastTimeRemaining = initialTimeMs;
-  
-  if (timerInterval) {
-    clearInterval(timerInterval);
-  }
-  
-  timerInterval = setInterval(() => {
-    lastTimeRemaining = Math.max(0, lastTimeRemaining - 1000);
-    
-    const timeRemaining = Math.ceil(lastTimeRemaining / 1000);
-    const minutes = Math.floor(timeRemaining / 60);
-    const seconds = timeRemaining % 60;
-    const formattedTime = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-    
-    const roundTimer = document.querySelector('.round-timer');
-    if (roundTimer) {
-      roundTimer.textContent = formattedTime;
-      
-      // Update visual feedback
-      roundTimer.classList.remove('warning', 'danger');
-      if (timeRemaining <= 10) {
-        roundTimer.classList.add('danger');
-      } else if (timeRemaining <= 30) {
-        roundTimer.classList.add('warning');
-      }
-    }
-    
-    if (timeRemaining <= 0 && timerInterval) {
-      clearInterval(timerInterval);
-    }
-  }, 1000);
 }
 
 function showCountdown(count) {

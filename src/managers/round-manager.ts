@@ -44,7 +44,7 @@ export class RoundManager {
     private getRoundConfig(round: number): RoundConfig {
         // Base configuration that scales with round number
         return {
-            duration: 60000 + (round * 10000),  // Each round is 60s + 10s per round
+            duration: 60000,  // Fixed 60 seconds for each round
             minBlockCount: 1 + Math.floor(round * 0.3),  // Reduced: Start with 1, slower increase
             maxBlockCount: 3 + Math.floor(round * 0.5),  // Reduced: Max 3 at start, slower increase
             blockSpawnInterval: Math.max(4000 - (round * 200), 1500),  // Slower spawns: 4s initially, minimum 1.5s
@@ -95,20 +95,26 @@ export class RoundManager {
         this.lastUpdateTime = this.roundStartTime;
 
         const config = this.getRoundConfig(this.currentRound);
+        console.log('Starting round with config:', config);
 
         // Clear any existing blocks before starting new round
         this.world.entityManager.getAllEntities()
             .filter(entity => entity.name.toLowerCase().includes('block'))
             .forEach(entity => entity.despawn());
 
-        // Broadcast round start
+        // Broadcast round start with full duration
         this.broadcastRoundInfo();
 
         // Start block spawning
         this.startBlockSpawning(config);
 
         // Set round timer
+        if (this.roundTimer) {
+            clearTimeout(this.roundTimer);
+        }
+        
         this.roundTimer = setTimeout(() => {
+            console.log('Round timer completed');
             this.endRound();
         }, config.duration);
     }
@@ -230,6 +236,8 @@ export class RoundManager {
     }
 
     public endRound(): void {
+        console.log('Ending round:', this.currentRound);
+        
         if (!this.isRoundActive) return;
 
         this.isRoundActive = false;
@@ -290,12 +298,22 @@ export class RoundManager {
 
     private broadcastRoundInfo(): void {
         const config = this.getRoundConfig(this.currentRound);
+        const currentTime = Date.now();
+        const elapsedTime = currentTime - this.roundStartTime;
+        const remainingTime = Math.max(0, config.duration - elapsedTime);
+        
+        console.log('Broadcasting round info:', {
+            round: this.currentRound,
+            duration: config.duration,
+            remainingTime: remainingTime
+        });
+
         const message = {
             type: 'roundUpdate',
             data: {
                 round: this.currentRound,
                 duration: config.duration,
-                timeRemaining: config.duration
+                timeRemaining: remainingTime
             }
         };
 

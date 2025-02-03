@@ -17,7 +17,7 @@ import { BlockParticleEffects } from './src/effects/block-particle-effects';
 import { TestBlockSpawner } from './src/utils/test-spawner';
 
 // Configuration flags
-const IS_TEST_MODE = false;  // Set this to true to enable test mode, false for normal game
+const IS_TEST_MODE = true;  // Set this to true to enable test mode, false for normal game
 const DEBUG_ENABLED = false;  // Development debug flag
 
 startServer(world => {
@@ -132,13 +132,13 @@ startServer(world => {
     const spawnPos = playerCount === 0 ? 
       // First player spawns at the back of the left platform
       {
-        x: -48,
+        x: -43,
         y: 5,
-        z: 0
+        z: 1
       } :
       // Second player spawns at the back of the right platform
       {
-        x: 49,
+        x: 44,
         y: 5,
         z: 1
       };

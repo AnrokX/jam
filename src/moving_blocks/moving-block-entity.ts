@@ -27,8 +27,8 @@ export const MOVING_BLOCK_CONFIG = {
   VERTICAL_WAVE: {  // New configuration for vertical sine wave blocks
     TEXTURE: 'blocks/emerald-ore.png',
     HALF_EXTENTS: { x: 1, y: 1, z: 1 },
-    DEFAULT_AMPLITUDE: 2,  // Reduced amplitude to prevent floor collision
-    DEFAULT_FREQUENCY: 0.7,  // Slightly faster than horizontal sine wave
+    DEFAULT_AMPLITUDE: 4,  // Reduced amplitude to prevent floor collision
+    DEFAULT_FREQUENCY: 0.5,  // Slightly faster than horizontal sine wave
     HEIGHT_OFFSET: 10,  // Significantly increased base height
     SAFETY_MARGIN: 2,   // Extra space to prevent any collision
     SCORE_MULTIPLIER: 2,  // Double points for hitting this challenging target
@@ -462,6 +462,9 @@ export class MovingBlockManager {
     const heightOffset = MOVING_BLOCK_CONFIG.VERTICAL_WAVE.HEIGHT_OFFSET;
     const safetyMargin = MOVING_BLOCK_CONFIG.VERTICAL_WAVE.SAFETY_MARGIN;
 
+    // Set a fixed Y value for spawning so that the Y movement is not restricted in the bounds.
+    const fixedY = heightOffset + safetyMargin;
+
     const block = new MovingBlockEntity({
       moveSpeed: options.moveSpeed ?? MOVING_BLOCK_CONFIG.DEFAULT_SPEED * MOVING_BLOCK_CONFIG.VERTICAL_WAVE.SPEED_MULTIPLIER,
       blockTextureUri: options.blockTextureUri ?? MOVING_BLOCK_CONFIG.VERTICAL_WAVE.TEXTURE,
@@ -473,16 +476,16 @@ export class MovingBlockManager {
         baseAxis: 'z',  // Move forward along Z axis
         waveAxis: 'y'   // Oscillate on Y axis
       }),
-      // Adjusted movement bounds with safety margin
+      // Modified movement bounds: we fix Y to let the sine function determine vertical movement.
       movementBounds: {
         min: { 
           x: -5,
-          y: heightOffset - amplitude + safetyMargin,  // Added safety margin to minimum height
+          y: fixedY,
           z: MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.min.z
         },
         max: {
           x: 5,
-          y: heightOffset + amplitude + safetyMargin,  // Consistent margin on top
+          y: fixedY,
           z: MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.max.z
         }
       },
@@ -503,7 +506,7 @@ export class MovingBlockManager {
     // Calculate spawn position with appropriate height offset and safety margin
     const spawnPosition = options.spawnPosition || {
       ...MOVING_BLOCK_CONFIG.SPAWN_POSITION,
-      y: heightOffset + safetyMargin,  // Added safety margin to initial spawn height
+      y: fixedY,  // Use the fixed Y value for spawn
       z: -5
     };
     

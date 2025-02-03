@@ -2,14 +2,43 @@ import { World, Vector3Like } from 'hytopia';
 import { MovingBlockManager, MOVING_BLOCK_CONFIG } from '../moving_blocks/moving-block-entity';
 
 export class TestBlockSpawner {
+    private readonly DEBUG_ENABLED = false;
+
     constructor(private world: World, private blockManager: MovingBlockManager) {}
 
-    private getRandomPosition(): Vector3Like {
+    // Getter methods for configuration
+    private get defaultSpawnBounds(): { min: Vector3Like, max: Vector3Like } {
         return {
-            x: Math.random() * 16 - 8,  // Random x between -8 and 8
-            y: 2 + Math.random() * 3,   // Random y between 2 and 5
-            z: Math.random() * 24 - 12  // Random z between -12 and 12
+            min: { x: -8, y: 2, z: -12 },
+            max: { x: 8, y: 5, z: 12 }
         };
+    }
+
+    private get sineWaveSpawnBounds(): { min: Vector3Like, max: Vector3Like } {
+        return {
+            min: { x: -5, y: MOVING_BLOCK_CONFIG.SPAWN_POSITION.y, z: MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.min.z },
+            max: { x: 5, y: MOVING_BLOCK_CONFIG.SPAWN_POSITION.y, z: MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.max.z }
+        };
+    }
+
+    private get popUpSpawnBounds(): { min: Vector3Like, max: Vector3Like } {
+        return {
+            min: { x: -5, y: MOVING_BLOCK_CONFIG.POPUP_TARGET.START_Y, z: -10 },
+            max: { x: 5, y: MOVING_BLOCK_CONFIG.POPUP_TARGET.START_Y, z: 10 }
+        };
+    }
+
+    private get risingSpawnBounds(): { min: Vector3Like, max: Vector3Like } {
+        return {
+            min: { x: -5, y: MOVING_BLOCK_CONFIG.RISING_TARGET.START_Y, z: -10 },
+            max: { x: 5, y: MOVING_BLOCK_CONFIG.RISING_TARGET.START_Y, z: 10 }
+        };
+    }
+
+    // Helper methods for position generation
+    private getRandomPosition(): Vector3Like {
+        const bounds = this.defaultSpawnBounds;
+        return this.getRandomPositionWithinBounds(bounds);
     }
 
     private getRandomPositionWithinBounds(bounds: {min: Vector3Like, max: Vector3Like}): Vector3Like {
@@ -20,49 +49,81 @@ export class TestBlockSpawner {
         };
     }
 
-    /**
-     * Spawns one of each block type for testing purposes
-     * @param speedMultiplier Optional speed multiplier for moving blocks
-     */
+    private getRandomPopUpPosition(): Vector3Like {
+        const bounds = this.popUpSpawnBounds;
+        return {
+            x: Math.random() * (bounds.max.x - bounds.min.x) + bounds.min.x,
+            y: bounds.min.y, // Fixed Y position for pop-up targets
+            z: Math.random() * (bounds.max.z - bounds.min.z) + bounds.min.z
+        };
+    }
+
+    private getRandomRisingPosition(): Vector3Like {
+        const bounds = this.risingSpawnBounds;
+        return {
+            x: Math.random() * (bounds.max.x - bounds.min.x) + bounds.min.x,
+            y: bounds.min.y, // Fixed Y position for rising targets
+            z: Math.random() * (bounds.max.z - bounds.min.z) + bounds.min.z
+        };
+    }
+
+    // Block spawning methods
     public spawnTestBlocks(speedMultiplier: number = 1): void {
+        if (this.DEBUG_ENABLED) {
+            console.log('Spawning test blocks with speed multiplier:', speedMultiplier);
+        }
+
         // Clear existing blocks first
-        this.world.entityManager.getAllEntities()
-            .filter(entity => entity.name.toLowerCase().includes('block'))
-            .forEach(entity => entity.despawn());
+        this.clearAllBlocks();
 
         // Spawn one of each type
         this.spawnStaticTarget();
         this.spawnSineWaveBlock(speedMultiplier);
         this.spawnVerticalWaveBlock(speedMultiplier);
         this.spawnRegularBlock();
-        this.spawnPopUpTarget();
+        this.spawnPopUpTarget(speedMultiplier);
+        this.spawnRisingTarget(speedMultiplier);
+
+        if (this.DEBUG_ENABLED) {
+            console.log('All test blocks spawned successfully');
+        }
     }
 
-    /**
-     * Spawn a static target block
-     */
+    public clearAllBlocks(): void {
+        if (this.DEBUG_ENABLED) {
+            console.log('Clearing all blocks...');
+        }
+
+        const removedCount = this.world.entityManager.getAllEntities()
+            .filter(entity => entity.name.toLowerCase().includes('block'))
+            .map(entity => {
+                entity.despawn();
+                return entity;
+            }).length;
+
+        if (this.DEBUG_ENABLED) {
+            console.log(`Cleared ${removedCount} blocks`);
+        }
+    }
+
     public spawnStaticTarget(): void {
         const pos = this.getRandomPosition();
-        this.blockManager.createStaticTarget({
-            x: pos.x,
-            y: 2 + Math.random() * 4, // Higher range for static targets
-            z: pos.z
-        });
+        pos.y = 2 + Math.random() * 4; // Higher range for static targets
+
+        if (this.DEBUG_ENABLED) {
+            console.log('Spawning static target at:', pos);
+        }
+
+        this.blockManager.createStaticTarget(pos);
     }
 
-    /**
-     * Spawn a sine wave block
-     */
     public spawnSineWaveBlock(speedMultiplier: number = 1): void {
-        // Generate a spawn position within the sine wave block's movement bounds.
-        // The bounds for sine wave blocks are set to have x in [-5, 5],
-        // y fixed at MOVING_BLOCK_CONFIG.SPAWN_POSITION.y (i.e. 1),
-        // and z between MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.min.z and MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.max.z.
-        const pos = this.getRandomPositionWithinBounds({
-            min: { x: -5, y: MOVING_BLOCK_CONFIG.SPAWN_POSITION.y, z: MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.min.z },
-            max: { x: 5, y: MOVING_BLOCK_CONFIG.SPAWN_POSITION.y, z: MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.max.z }
-        });
+        const pos = this.getRandomPositionWithinBounds(this.sineWaveSpawnBounds);
         
+        if (this.DEBUG_ENABLED) {
+            console.log('Spawning sine wave block at:', pos);
+        }
+
         this.blockManager.createSineWaveBlock({
             spawnPosition: pos,
             moveSpeed: MOVING_BLOCK_CONFIG.DEFAULT_SPEED * speedMultiplier,
@@ -70,46 +131,90 @@ export class TestBlockSpawner {
         });
     }
 
-    /**
-     * Spawn a vertical wave block
-     */
     public spawnVerticalWaveBlock(speedMultiplier: number = 1): void {
         const pos = this.getRandomPosition();
+        const spawnPosition = {
+            ...pos,
+            y: Math.min(MOVING_BLOCK_CONFIG.VERTICAL_WAVE.HEIGHT_OFFSET, 7)
+        };
+
+        if (this.DEBUG_ENABLED) {
+            console.log('Spawning vertical wave block at:', spawnPosition);
+        }
+
         this.blockManager.createVerticalWaveBlock({
-            spawnPosition: {
-                ...pos,
-                y: Math.min(MOVING_BLOCK_CONFIG.VERTICAL_WAVE.HEIGHT_OFFSET, 7)
-            },
+            spawnPosition,
             moveSpeed: MOVING_BLOCK_CONFIG.DEFAULT_SPEED * speedMultiplier * MOVING_BLOCK_CONFIG.VERTICAL_WAVE.SPEED_MULTIPLIER
         });
     }
 
-    /**
-     * Spawn a regular Z-axis block
-     */
     public spawnRegularBlock(): void {
-        // Ensure we spawn within the movement bounds defined in the config.
-        const pos = this.getRandomPositionWithinBounds({
-            min: { x: -5, y: MOVING_BLOCK_CONFIG.SPAWN_POSITION.y, z: MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.min.z },
-            max: { x: 5, y: MOVING_BLOCK_CONFIG.SPAWN_POSITION.y, z: MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.max.z }
-        });
+        const pos = this.getRandomPositionWithinBounds(this.sineWaveSpawnBounds);
+
+        if (this.DEBUG_ENABLED) {
+            console.log('Spawning regular block at:', pos);
+        }
+
         this.blockManager.createZAxisBlock(pos);
     }
 
-    /**
-     * Spawn a pop-up target that emerges from below
-     */
-    public spawnPopUpTarget(): void {
-        const pos = {
-            x: Math.random() * 10 - 5, // Random X position between -5 and 5
-            y: MOVING_BLOCK_CONFIG.POPUP_TARGET.START_Y,
-            z: Math.random() * 20 - 10 // Random Z position between -10 and 10
-        };
-        
+    public spawnPopUpTarget(speedMultiplier: number = 1): void {
+        const pos = this.getRandomPopUpPosition();
+
+        if (this.DEBUG_ENABLED) {
+            console.log('Spawning pop-up target at:', pos);
+        }
+
         this.blockManager.createPopUpTarget({
             spawnPosition: pos,
             startY: MOVING_BLOCK_CONFIG.POPUP_TARGET.START_Y,
-            topY: MOVING_BLOCK_CONFIG.POPUP_TARGET.TOP_Y
+            topY: MOVING_BLOCK_CONFIG.POPUP_TARGET.TOP_Y,
+            moveSpeed: MOVING_BLOCK_CONFIG.DEFAULT_SPEED * speedMultiplier * MOVING_BLOCK_CONFIG.POPUP_TARGET.SPEED_MULTIPLIER
         });
+    }
+
+    public spawnRisingTarget(speedMultiplier: number = 1): void {
+        const pos = this.getRandomRisingPosition();
+
+        if (this.DEBUG_ENABLED) {
+            console.log('Spawning rising target at:', pos);
+        }
+
+        this.blockManager.createRisingTarget({
+            spawnPosition: pos,
+            startY: MOVING_BLOCK_CONFIG.RISING_TARGET.START_Y,
+            firstStopY: MOVING_BLOCK_CONFIG.RISING_TARGET.FIRST_STOP_Y,
+            finalY: MOVING_BLOCK_CONFIG.RISING_TARGET.FINAL_Y,
+            moveSpeed: MOVING_BLOCK_CONFIG.DEFAULT_SPEED * speedMultiplier * MOVING_BLOCK_CONFIG.RISING_TARGET.SPEED_MULTIPLIER,
+            pauseDuration: MOVING_BLOCK_CONFIG.RISING_TARGET.PAUSE_DURATION
+        });
+    }
+
+    // Helper methods for block validation
+    public isValidSpawnPosition(position: Vector3Like, type: 'static' | 'sine' | 'vertical' | 'regular' | 'popup' | 'rising'): boolean {
+        switch (type) {
+            case 'static':
+                return position.y >= 2 && position.y <= 6;
+            case 'sine':
+                return this.isWithinBounds(position, this.sineWaveSpawnBounds);
+            case 'vertical':
+                return position.y <= MOVING_BLOCK_CONFIG.VERTICAL_WAVE.HEIGHT_OFFSET;
+            case 'regular':
+                return this.isWithinBounds(position, this.sineWaveSpawnBounds);
+            case 'popup':
+                return this.isWithinBounds(position, this.popUpSpawnBounds);
+            case 'rising':
+                return this.isWithinBounds(position, this.risingSpawnBounds);
+            default:
+                return false;
+        }
+    }
+
+    private isWithinBounds(position: Vector3Like, bounds: { min: Vector3Like, max: Vector3Like }): boolean {
+        return (
+            position.x >= bounds.min.x && position.x <= bounds.max.x &&
+            position.y >= bounds.min.y && position.y <= bounds.max.y &&
+            position.z >= bounds.min.z && position.z <= bounds.max.z
+        );
     }
 } 

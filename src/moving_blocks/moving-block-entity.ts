@@ -1,6 +1,6 @@
 import { Entity, EntityOptions, Vector3Like, ColliderShape, CollisionGroup, World, RigidBodyType, BlockType } from 'hytopia';
 import { ScoreManager } from '../managers/score-manager';
-import { BlockMovementBehavior, DefaultBlockMovement, SineWaveMovement, StaticMovement, PopUpMovement } from './block-movement';
+import { BlockMovementBehavior, DefaultBlockMovement, SineWaveMovement, StaticMovement, PopUpMovement, RisingMovement } from './block-movement';
 import { DESTRUCTION_PARTICLE_CONFIG } from '../config/particle-config';
 import { BlockParticleEffects } from '../effects/block-particle-effects';
 
@@ -43,6 +43,17 @@ export const MOVING_BLOCK_CONFIG = {
     SPEED_MULTIPLIER: 1.5,  // Faster than normal blocks
     SCORE_MULTIPLIER: 2,    // Double points for hitting this challenging target
     HEALTH: 1              // One-shot kill
+  },
+  RISING_TARGET: {
+    TEXTURE: 'blocks/emerald-ore.png',
+    HALF_EXTENTS: { x: 0.8, y: 0.8, z: 0.8 },
+    START_Y: -20,
+    FIRST_STOP_Y: 8,    // Same height as pop-up target
+    FINAL_Y: 30,        // Much higher final position
+    SPEED_MULTIPLIER: 2.0,  // Faster than pop-up target
+    SCORE_MULTIPLIER: 3,    // Triple points for hitting this challenging target
+    HEALTH: 1,             // One-shot kill
+    PAUSE_DURATION: 2000   // 2 seconds at first stop
   },
   PARTICLE_CONFIG: {
     COUNT: 50,               
@@ -438,6 +449,148 @@ export class MovingBlockEntity extends Entity {
       ...customConfig
     };
   }
+
+  // Static getters for pop-up target configuration
+  static get DefaultPopUpTexture(): string {
+    return MOVING_BLOCK_CONFIG.POPUP_TARGET.TEXTURE;
+  }
+
+  static get DefaultPopUpHalfExtents(): Vector3Like {
+    return MOVING_BLOCK_CONFIG.POPUP_TARGET.HALF_EXTENTS;
+  }
+
+  static get DefaultPopUpStartY(): number {
+    return MOVING_BLOCK_CONFIG.POPUP_TARGET.START_Y;
+  }
+
+  static get DefaultPopUpTopY(): number {
+    return MOVING_BLOCK_CONFIG.POPUP_TARGET.TOP_Y;
+  }
+
+  static get DefaultPopUpSpeedMultiplier(): number {
+    return MOVING_BLOCK_CONFIG.POPUP_TARGET.SPEED_MULTIPLIER;
+  }
+
+  static get DefaultPopUpScoreMultiplier(): number {
+    return MOVING_BLOCK_CONFIG.POPUP_TARGET.SCORE_MULTIPLIER;
+  }
+
+  static get DefaultPopUpHealth(): number {
+    return MOVING_BLOCK_CONFIG.POPUP_TARGET.HEALTH;
+  }
+
+  // Helper method to create pop-up target configuration
+  static createPopUpConfiguration(customConfig?: Partial<MovingBlockOptions>): MovingBlockOptions {
+    return {
+      blockTextureUri: this.DefaultPopUpTexture,
+      blockHalfExtents: this.DefaultPopUpHalfExtents,
+      health: this.DefaultPopUpHealth,
+      moveSpeed: this.DefaultBlockSpeed * this.DefaultPopUpSpeedMultiplier,
+      movementBehavior: new PopUpMovement({
+        startY: this.DefaultPopUpStartY,
+        topY: this.DefaultPopUpTopY
+      }),
+      movementBounds: undefined, // Pop-up targets handle their own boundaries
+      oscillate: false, // Pop-up targets don't oscillate
+      ...customConfig
+    };
+  }
+
+  // Helper method to validate pop-up target position
+  static isValidPopUpPosition(position: Vector3Like): boolean {
+    // Pop-up targets only need to validate X and Z coordinates since Y is controlled by the movement
+    return (
+      position.x >= MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.min.x &&
+      position.x <= MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.max.x &&
+      position.z >= MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.min.z &&
+      position.z <= MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.max.z
+    );
+  }
+
+  // Helper method to generate a random pop-up target position
+  static generatePopUpSpawnPosition(): Vector3Like {
+    return {
+      x: Math.random() * 10 - 5, // Random X between -5 and 5
+      y: this.DefaultPopUpStartY,
+      z: Math.random() * 20 - 10 // Random Z between -10 and 10
+    };
+  }
+
+  // Static getters for rising target configuration
+  static get DefaultRisingTexture(): string {
+    return MOVING_BLOCK_CONFIG.RISING_TARGET.TEXTURE;
+  }
+
+  static get DefaultRisingHalfExtents(): Vector3Like {
+    return MOVING_BLOCK_CONFIG.RISING_TARGET.HALF_EXTENTS;
+  }
+
+  static get DefaultRisingStartY(): number {
+    return MOVING_BLOCK_CONFIG.RISING_TARGET.START_Y;
+  }
+
+  static get DefaultRisingFirstStopY(): number {
+    return MOVING_BLOCK_CONFIG.RISING_TARGET.FIRST_STOP_Y;
+  }
+
+  static get DefaultRisingFinalY(): number {
+    return MOVING_BLOCK_CONFIG.RISING_TARGET.FINAL_Y;
+  }
+
+  static get DefaultRisingSpeedMultiplier(): number {
+    return MOVING_BLOCK_CONFIG.RISING_TARGET.SPEED_MULTIPLIER;
+  }
+
+  static get DefaultRisingScoreMultiplier(): number {
+    return MOVING_BLOCK_CONFIG.RISING_TARGET.SCORE_MULTIPLIER;
+  }
+
+  static get DefaultRisingHealth(): number {
+    return MOVING_BLOCK_CONFIG.RISING_TARGET.HEALTH;
+  }
+
+  static get DefaultRisingPauseDuration(): number {
+    return MOVING_BLOCK_CONFIG.RISING_TARGET.PAUSE_DURATION;
+  }
+
+  // Helper method to create rising target configuration
+  static createRisingConfiguration(customConfig?: Partial<MovingBlockOptions>): MovingBlockOptions {
+    return {
+      blockTextureUri: this.DefaultRisingTexture,
+      blockHalfExtents: this.DefaultRisingHalfExtents,
+      health: this.DefaultRisingHealth,
+      moveSpeed: this.DefaultBlockSpeed * this.DefaultRisingSpeedMultiplier,
+      movementBehavior: new RisingMovement({
+        startY: this.DefaultRisingStartY,
+        firstStopY: this.DefaultRisingFirstStopY,
+        finalY: this.DefaultRisingFinalY,
+        pauseDuration: this.DefaultRisingPauseDuration
+      }),
+      movementBounds: undefined,
+      oscillate: false,
+      ...customConfig
+    };
+  }
+
+  // Helper method to validate rising target position
+  static isValidRisingPosition(position: Vector3Like): boolean {
+    // Rising targets only need to validate X and Z coordinates since Y is controlled by the movement
+    return (
+      position.x >= MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.min.x &&
+      position.x <= MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.max.x &&
+      position.z >= MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.min.z &&
+      position.z <= MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.max.z
+    );
+  }
+
+  // Helper method to generate a random rising target position
+  static generateRisingSpawnPosition(): Vector3Like {
+    return {
+      x: Math.random() * 10 - 5, // Random X between -5 and 5
+      y: this.DefaultRisingStartY,
+      z: Math.random() * 20 - 10 // Random Z between -10 and 10
+    };
+  }
 }
 
 export class MovingBlockManager {
@@ -659,22 +812,21 @@ export class MovingBlockManager {
     // Clean up any despawned blocks first
     this.blocks = this.blocks.filter(block => block.isSpawned);
 
-    const block = new MovingBlockEntity({
-      moveSpeed: options.moveSpeed ?? MOVING_BLOCK_CONFIG.DEFAULT_SPEED * MOVING_BLOCK_CONFIG.POPUP_TARGET.SPEED_MULTIPLIER,
-      blockTextureUri: options.blockTextureUri ?? MOVING_BLOCK_CONFIG.POPUP_TARGET.TEXTURE,
-      blockHalfExtents: MOVING_BLOCK_CONFIG.POPUP_TARGET.HALF_EXTENTS,
-      health: MOVING_BLOCK_CONFIG.POPUP_TARGET.HEALTH,
+    const config = MovingBlockEntity.createPopUpConfiguration({
+      moveSpeed: options.moveSpeed,
+      blockTextureUri: options.blockTextureUri,
       movementBehavior: new PopUpMovement({
-        startY: options.startY ?? MOVING_BLOCK_CONFIG.POPUP_TARGET.START_Y,
-        topY: options.topY ?? MOVING_BLOCK_CONFIG.POPUP_TARGET.TOP_Y
-      }),
-      // No movement bounds needed as the PopUpMovement handles its own boundaries
-      movementBounds: undefined,
-      oscillate: false, // No oscillation for pop-up targets
+        startY: options.startY ?? MovingBlockEntity.DefaultPopUpStartY,
+        topY: options.topY ?? MovingBlockEntity.DefaultPopUpTopY
+      })
+    });
+
+    const block = new MovingBlockEntity({
+      ...config,
       onBlockBroken: () => {
         if (this.scoreManager && (block as any).playerId) {
           const playerId = (block as any).playerId;
-          const score = MOVING_BLOCK_CONFIG.BREAK_SCORE * MOVING_BLOCK_CONFIG.POPUP_TARGET.SCORE_MULTIPLIER;
+          const score = MOVING_BLOCK_CONFIG.BREAK_SCORE * MovingBlockEntity.DefaultPopUpScoreMultiplier;
           
           this.scoreManager.addScore(playerId, score);
           console.log(`Pop-up target broken by player ${playerId}! Awarded ${score} points`);
@@ -686,16 +838,69 @@ export class MovingBlockManager {
     });
     
     // Calculate spawn position
-    const spawnPosition = options.spawnPosition || {
-      x: Math.random() * 10 - 5, // Random X position between -5 and 5
-      y: MOVING_BLOCK_CONFIG.POPUP_TARGET.START_Y,
-      z: Math.random() * 20 - 10 // Random Z position between -10 and 10
-    };
+    const spawnPosition = options.spawnPosition || MovingBlockEntity.generatePopUpSpawnPosition();
     
-    console.log('Spawning pop-up target at:', spawnPosition);
-    block.spawn(this.world, spawnPosition);
+    if (!MovingBlockEntity.isValidPopUpPosition(spawnPosition)) {
+      console.warn('Invalid pop-up target position, using generated position');
+      block.spawn(this.world, MovingBlockEntity.generatePopUpSpawnPosition());
+    } else {
+      block.spawn(this.world, spawnPosition);
+    }
+    
     this.blocks.push(block);
+    return block;
+  }
+
+  public createRisingTarget(options: {
+    spawnPosition?: Vector3Like;
+    startY?: number;
+    firstStopY?: number;
+    finalY?: number;
+    moveSpeed?: number;
+    blockTextureUri?: string;
+    pauseDuration?: number;
+  } = {}): MovingBlockEntity {
+    // Clean up any despawned blocks first
+    this.blocks = this.blocks.filter(block => block.isSpawned);
+
+    const config = MovingBlockEntity.createRisingConfiguration({
+      moveSpeed: options.moveSpeed,
+      blockTextureUri: options.blockTextureUri,
+      movementBehavior: new RisingMovement({
+        startY: options.startY ?? MovingBlockEntity.DefaultRisingStartY,
+        firstStopY: options.firstStopY ?? MovingBlockEntity.DefaultRisingFirstStopY,
+        finalY: options.finalY ?? MovingBlockEntity.DefaultRisingFinalY,
+        pauseDuration: options.pauseDuration ?? MovingBlockEntity.DefaultRisingPauseDuration
+      })
+    });
+
+    const block = new MovingBlockEntity({
+      ...config,
+      onBlockBroken: () => {
+        if (this.scoreManager && (block as any).playerId) {
+          const playerId = (block as any).playerId;
+          const score = MOVING_BLOCK_CONFIG.BREAK_SCORE * MovingBlockEntity.DefaultRisingScoreMultiplier;
+          
+          this.scoreManager.addScore(playerId, score);
+          console.log(`Rising target broken by player ${playerId}! Awarded ${score} points`);
+          
+          this.scoreManager.broadcastScores(this.world);
+          this.removeBlock(block);
+        }
+      }
+    });
     
+    // Calculate spawn position
+    const spawnPosition = options.spawnPosition || MovingBlockEntity.generateRisingSpawnPosition();
+    
+    if (!MovingBlockEntity.isValidRisingPosition(spawnPosition)) {
+      console.warn('Invalid rising target position, using generated position');
+      block.spawn(this.world, MovingBlockEntity.generateRisingSpawnPosition());
+    } else {
+      block.spawn(this.world, spawnPosition);
+    }
+    
+    this.blocks.push(block);
     return block;
   }
 

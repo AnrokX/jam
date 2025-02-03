@@ -83,6 +83,12 @@ startServer(world => {
       world.chatManager.sendPlayerMessage(player, 'Spawned a pop-up target', 'FFFF00');
     });
 
+    world.chatManager.registerCommand('spawn6', (player) => {
+      console.log('Executing spawn6 command');
+      testSpawner.spawnRisingTarget();
+      world.chatManager.sendPlayerMessage(player, 'Spawned a rising target (stops at pop-up height, then shoots up)', 'FFFF00');
+    });
+
     world.chatManager.registerCommand('spawnall', (player) => {
       console.log('Executing spawnall command');
       testSpawner.spawnTestBlocks();
@@ -105,6 +111,7 @@ startServer(world => {
       world.chatManager.sendPlayerMessage(player, 'spawn3 - Spawn vertical wave block', 'FFFF00');
       world.chatManager.sendPlayerMessage(player, 'spawn4 - Spawn regular block', 'FFFF00');
       world.chatManager.sendPlayerMessage(player, 'spawn5 - Spawn pop-up target', 'FFFF00');
+      world.chatManager.sendPlayerMessage(player, 'spawn6 - Spawn rising targets (stops at pop-up height, then shoots up)', 'FFFF00');
       world.chatManager.sendPlayerMessage(player, 'spawnall - Spawn all block types', 'FFFF00');
       world.chatManager.sendPlayerMessage(player, 'clearblocks - Remove all blocks', 'FFFF00');
     });

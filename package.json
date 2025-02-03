@@ -12,6 +12,7 @@
     "typescript": "^5.7.3"
   },
   "dependencies": {
+    "block-breaking-game": ".",
     "hytopia": "^0.1.95"
   },
   "jest": {

@@ -186,64 +186,235 @@ export class PopUpMovement implements BlockMovementBehavior {
   constructor(options: {
     startY?: number;
     topY?: number;
+    pauseDuration?: number;
   } = {}) {
     this.startY = options.startY ?? -20;
     this.topY = options.topY ?? 8;
+    this.pauseDuration = options.pauseDuration ?? 3000;
     
     if (this.DEBUG_ENABLED) {
       console.log('Created PopUpMovement with:', {
         startY: this.startY,
-        topY: this.topY
+        topY: this.topY,
+        pauseDuration: this.pauseDuration
       });
     }
+  }
+
+  // Getters for movement state
+  public get currentState(): 'rising' | 'paused' | 'falling' | 'complete' {
+    return this.state;
+  }
+
+  public get isComplete(): boolean {
+    return this.state === 'complete';
+  }
+
+  public get isPaused(): boolean {
+    return this.state === 'paused';
+  }
+
+  public get timeRemainingInPause(): number {
+    if (this.state !== 'paused') return 0;
+    return Math.max(0, this.pauseDuration - (this.elapsedTime - this.pauseStartTime));
+  }
+
+  public get totalElapsedTime(): number {
+    return this.elapsedTime;
+  }
+
+  // Helper methods for state management
+  private transitionToState(newState: 'rising' | 'paused' | 'falling' | 'complete'): void {
+    if (this.DEBUG_ENABLED) {
+      console.log(`State transition: ${this.state} -> ${newState}`);
+    }
+    
+    this.state = newState;
+    if (newState === 'paused') {
+      this.pauseStartTime = this.elapsedTime;
+    }
+  }
+
+  private shouldTransitionFromPaused(): boolean {
+    return this.elapsedTime - this.pauseStartTime >= this.pauseDuration;
+  }
+
+  private calculateNewPosition(currentPosition: Vector3Like, deltaSeconds: number, speed: number): Vector3Like {
+    const newPosition = { ...currentPosition };
+    
+    switch (this.state) {
+      case 'rising':
+        newPosition.y += speed * 2 * deltaSeconds;
+        if (newPosition.y >= this.topY) {
+          newPosition.y = this.topY;
+          this.transitionToState('paused');
+        }
+        break;
+        
+      case 'falling':
+        newPosition.y -= speed * 2 * deltaSeconds;
+        if (newPosition.y <= this.startY) {
+          newPosition.y = this.startY;
+          this.transitionToState('complete');
+        }
+        break;
+    }
+    
+    return newPosition;
   }
 
   update(block: MovingBlockEntity, deltaTimeMs: number): void {
     this.elapsedTime += deltaTimeMs;
     const deltaSeconds = deltaTimeMs / 1000;
     const speed = block.getMoveSpeed();
-    let newPosition = { ...block.position };
-
-    switch (this.state) {
-      case 'rising':
-        // Move up quickly
-        newPosition.y += speed * 2 * deltaSeconds; // Double speed for quick rise
-        if (newPosition.y >= this.topY) {
-          newPosition.y = this.topY; // Clamp to exact top position
-          this.state = 'paused';
-          this.pauseStartTime = this.elapsedTime;
-        }
-        break;
-
-      case 'paused':
-        // Stay at top for pauseDuration
-        if (this.elapsedTime - this.pauseStartTime >= this.pauseDuration) {
-          this.state = 'falling';
-        }
-        break;
-
-      case 'falling':
-        // Fall back down quickly
-        newPosition.y -= speed * 2 * deltaSeconds; // Double speed for quick fall
-        if (newPosition.y <= this.startY) {
-          this.state = 'complete';
-          if (block.isSpawned) {
-            block.despawn();
-          }
-          return;
-        }
-        break;
-
-      case 'complete':
-        // Block should be despawned at this point
-        return;
+    
+    if (this.state === 'complete') {
+      if (block.isSpawned) {
+        block.despawn();
+      }
+      return;
     }
+
+    if (this.state === 'paused' && this.shouldTransitionFromPaused()) {
+      this.transitionToState('falling');
+    }
+
+    const newPosition = this.calculateNewPosition(block.position, deltaSeconds, speed);
 
     if (this.DEBUG_ENABLED) {
       console.log('PopUpMovement Update:', {
         state: this.state,
         elapsedTime: this.elapsedTime.toFixed(2),
-        position: newPosition
+        position: newPosition,
+        timeInPause: this.timeRemainingInPause
+      });
+    }
+
+    block.setPosition(newPosition);
+  }
+}
+
+export class RisingMovement implements BlockMovementBehavior {
+  private elapsedTime: number = 0;
+  private state: 'rising' | 'paused' | 'shooting' | 'complete' = 'rising';
+  private readonly DEBUG_ENABLED = false;
+  private readonly pauseDuration: number = 2000; // 2 seconds pause at first stop
+  private readonly startY: number;
+  private readonly firstStopY: number;
+  private readonly finalY: number;
+  private pauseStartTime: number = 0;
+
+  constructor(options: {
+    startY?: number;
+    firstStopY?: number;
+    finalY?: number;
+    pauseDuration?: number;
+  } = {}) {
+    this.startY = options.startY ?? -20;
+    this.firstStopY = options.firstStopY ?? 8; // Same height as pop-up target
+    this.finalY = options.finalY ?? 30; // Much higher final position
+    this.pauseDuration = options.pauseDuration ?? 2000;
+    
+    if (this.DEBUG_ENABLED) {
+      console.log('Created RisingMovement with:', {
+        startY: this.startY,
+        firstStopY: this.firstStopY,
+        finalY: this.finalY,
+        pauseDuration: this.pauseDuration
+      });
+    }
+  }
+
+  // Getters for movement state
+  public get currentState(): 'rising' | 'paused' | 'shooting' | 'complete' {
+    return this.state;
+  }
+
+  public get isComplete(): boolean {
+    return this.state === 'complete';
+  }
+
+  public get isPaused(): boolean {
+    return this.state === 'paused';
+  }
+
+  public get isShooting(): boolean {
+    return this.state === 'shooting';
+  }
+
+  public get timeRemainingInPause(): number {
+    if (this.state !== 'paused') return 0;
+    return Math.max(0, this.pauseDuration - (this.elapsedTime - this.pauseStartTime));
+  }
+
+  public get totalElapsedTime(): number {
+    return this.elapsedTime;
+  }
+
+  // Helper methods for state management
+  private transitionToState(newState: 'rising' | 'paused' | 'shooting' | 'complete'): void {
+    if (this.DEBUG_ENABLED) {
+      console.log(`State transition: ${this.state} -> ${newState}`);
+    }
+    
+    this.state = newState;
+    if (newState === 'paused') {
+      this.pauseStartTime = this.elapsedTime;
+    }
+  }
+
+  private shouldTransitionFromPaused(): boolean {
+    return this.elapsedTime - this.pauseStartTime >= this.pauseDuration;
+  }
+
+  private calculateNewPosition(currentPosition: Vector3Like, deltaSeconds: number, speed: number): Vector3Like {
+    const newPosition = { ...currentPosition };
+    
+    switch (this.state) {
+      case 'rising':
+        newPosition.y += speed * 2 * deltaSeconds; // Double speed for initial rise
+        if (newPosition.y >= this.firstStopY) {
+          newPosition.y = this.firstStopY;
+          this.transitionToState('paused');
+        }
+        break;
+
+      case 'shooting':
+        newPosition.y += speed * 4 * deltaSeconds; // Quadruple speed for final ascent
+        if (newPosition.y >= this.finalY) {
+          newPosition.y = this.finalY;
+          this.transitionToState('complete');
+        }
+        break;
+    }
+    
+    return newPosition;
+  }
+
+  update(block: MovingBlockEntity, deltaTimeMs: number): void {
+    this.elapsedTime += deltaTimeMs;
+    const deltaSeconds = deltaTimeMs / 1000;
+    const speed = block.getMoveSpeed();
+    
+    if (this.state === 'complete') {
+      if (block.isSpawned) {
+        block.despawn();
+      }
+      return;
+    }
+
+    if (this.state === 'paused' && this.shouldTransitionFromPaused()) {
+      this.transitionToState('shooting');
+    }
+
+    const newPosition = this.calculateNewPosition(block.position, deltaSeconds, speed);
+
+    if (this.DEBUG_ENABLED) {
+      console.log('RisingMovement Update:', {
+        state: this.state,
+        elapsedTime: this.elapsedTime.toFixed(2),
+        position: newPosition,
+        timeInPause: this.timeRemainingInPause
       });
     }
 

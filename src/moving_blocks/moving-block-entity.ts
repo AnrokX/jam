@@ -1,6 +1,6 @@
 import { Entity, EntityOptions, Vector3Like, ColliderShape, CollisionGroup, World, RigidBodyType, BlockType } from 'hytopia';
 import { ScoreManager } from '../managers/score-manager';
-import { BlockMovementBehavior, DefaultBlockMovement, SineWaveMovement, StaticMovement, PopUpMovement, RisingMovement } from './block-movement';
+import { BlockMovementBehavior, DefaultBlockMovement, SineWaveMovement, StaticMovement, PopUpMovement, RisingMovement, ParabolicMovement } from './block-movement';
 import { DESTRUCTION_PARTICLE_CONFIG } from '../config/particle-config';
 import { BlockParticleEffects } from '../effects/block-particle-effects';
 
@@ -54,6 +54,19 @@ export const MOVING_BLOCK_CONFIG = {
     SCORE_MULTIPLIER: 3,    // Triple points for hitting this challenging target
     HEALTH: 1,             // One-shot kill
     PAUSE_DURATION: 2000   // 2 seconds at first stop
+  },
+  PARABOLIC_TARGET: {
+    TEXTURE: 'blocks/amethyst-block.png',
+    HALF_EXTENTS: { x: 0.8, y: 0.8, z: 0.8 },
+    START_Y: -20,
+    MAX_HEIGHT: 15,
+    END_Y: -20,
+    SPEED_MULTIPLIER: 1.0,  // Not used in new physics-based system
+    SCORE_MULTIPLIER: 4,    // Highest points due to difficulty
+    HEALTH: 1,             // One-shot kill
+    DURATION: 5000,        // 5 seconds total
+    MIN_DISTANCE: 10,      // Minimum horizontal distance to travel
+    MAX_DISTANCE: 30       // Maximum horizontal distance to travel
   },
   PARTICLE_CONFIG: {
     COUNT: 50,               
@@ -591,6 +604,43 @@ export class MovingBlockEntity extends Entity {
       z: Math.random() * 20 - 10 // Random Z between -10 and 10
     };
   }
+
+  // Static getters for parabolic target configuration
+  static get DefaultParabolicTexture(): string {
+    return MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.TEXTURE;
+  }
+
+  static get DefaultParabolicHalfExtents(): Vector3Like {
+    return MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.HALF_EXTENTS;
+  }
+
+  static get DefaultParabolicScoreMultiplier(): number {
+    return MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.SCORE_MULTIPLIER;
+  }
+
+  // Helper method to create parabolic target configuration
+  static createParabolicConfiguration(customConfig?: Partial<MovingBlockOptions>): MovingBlockOptions {
+    const randomStartX = Math.random() * 10 - 5; // Random X between -5 and 5
+    const randomEndX = Math.random() * 10 - 5;   // Different random X for end point
+    const distance = MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.MIN_DISTANCE + 
+                    Math.random() * (MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.MAX_DISTANCE - 
+                                   MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.MIN_DISTANCE);
+    const startZ = -15;                          // Start from back of field
+    const endZ = startZ + distance;              // End point based on random distance
+
+    return {
+      blockTextureUri: this.DefaultParabolicTexture,
+      blockHalfExtents: this.DefaultParabolicHalfExtents,
+      health: MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.HEALTH,
+      movementBehavior: new ParabolicMovement({
+        startPoint: { x: randomStartX, y: MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.START_Y, z: startZ },
+        endPoint: { x: randomEndX, y: MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.END_Y, z: endZ },
+        maxHeight: MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.MAX_HEIGHT,
+        duration: MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.DURATION
+      }),
+      ...customConfig
+    };
+  }
 }
 
 export class MovingBlockManager {
@@ -901,6 +951,52 @@ export class MovingBlockManager {
     }
     
     this.blocks.push(block);
+    return block;
+  }
+
+  public createParabolicTarget(options: {
+    startPoint?: Vector3Like;
+    endPoint?: Vector3Like;
+    maxHeight?: number;
+    duration?: number;
+    moveSpeed?: number;
+    blockTextureUri?: string;
+  } = {}): MovingBlockEntity {
+    // Clean up any despawned blocks first
+    this.blocks = this.blocks.filter(block => block.isSpawned);
+
+    const config = MovingBlockEntity.createParabolicConfiguration({
+      moveSpeed: options.moveSpeed,
+      blockTextureUri: options.blockTextureUri,
+      movementBehavior: new ParabolicMovement({
+        startPoint: options.startPoint,
+        endPoint: options.endPoint,
+        maxHeight: options.maxHeight,
+        duration: options.duration
+      })
+    });
+
+    const block = new MovingBlockEntity({
+      ...config,
+      onBlockBroken: () => {
+        if (this.scoreManager && (block as any).playerId) {
+          const playerId = (block as any).playerId;
+          const score = MOVING_BLOCK_CONFIG.BREAK_SCORE * MovingBlockEntity.DefaultParabolicScoreMultiplier;
+          
+          this.scoreManager.addScore(playerId, score);
+          console.log(`Parabolic target broken by player ${playerId}! Awarded ${score} points`);
+          
+          this.scoreManager.broadcastScores(this.world);
+          this.removeBlock(block);
+        }
+      }
+    });
+    
+    // Use the start point from the movement behavior
+    const startPosition = (config.movementBehavior as ParabolicMovement)['startPoint'];
+    block.spawn(this.world, startPosition);
+    this.blocks.push(block);
+    
     return block;
   }
 

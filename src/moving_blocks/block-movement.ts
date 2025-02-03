@@ -420,4 +420,95 @@ export class RisingMovement implements BlockMovementBehavior {
 
     block.setPosition(newPosition);
   }
+}
+
+export class ParabolicMovement implements BlockMovementBehavior {
+  private elapsedTime: number = 0;
+  private readonly DEBUG_ENABLED = false;
+  private readonly startPoint: Vector3Like;
+  private readonly endPoint: Vector3Like;
+  private readonly totalDuration: number;
+  private readonly maxHeight: number;
+  private readonly gravity: number;
+  private readonly initialVelocityY: number;
+  private readonly horizontalSpeed: number;
+
+  constructor(options: {
+    startPoint?: Vector3Like;
+    endPoint?: Vector3Like;
+    maxHeight?: number;
+    duration?: number;
+  } = {}) {
+    this.startPoint = options.startPoint ?? { x: 0, y: -20, z: 0 };
+    this.endPoint = options.endPoint ?? { x: 0, y: -20, z: 20 };
+    this.maxHeight = options.maxHeight ?? 15;
+    this.totalDuration = options.duration ?? 5000; // 5 seconds total
+
+    // Calculate physics parameters
+    this.gravity = 2 * (this.maxHeight - this.startPoint.y) / Math.pow(this.totalDuration / 4000, 2);
+    this.initialVelocityY = Math.sqrt(2 * this.gravity * (this.maxHeight - this.startPoint.y));
+    
+    // Calculate horizontal speed based on total distance and time
+    const horizontalDistance = Math.sqrt(
+      Math.pow(this.endPoint.x - this.startPoint.x, 2) +
+      Math.pow(this.endPoint.z - this.startPoint.z, 2)
+    );
+    this.horizontalSpeed = horizontalDistance / (this.totalDuration / 1000);
+
+    if (this.DEBUG_ENABLED) {
+      console.log('Created ParabolicMovement with:', {
+        startPoint: this.startPoint,
+        endPoint: this.endPoint,
+        maxHeight: this.maxHeight,
+        duration: this.totalDuration,
+        gravity: this.gravity,
+        initialVelocityY: this.initialVelocityY,
+        horizontalSpeed: this.horizontalSpeed
+      });
+    }
+  }
+
+  private calculatePosition(time: number): Vector3Like {
+    // Time in seconds
+    const t = time / 1000;
+    
+    // Calculate progress through the motion (0 to 1)
+    const progress = Math.min(t / (this.totalDuration / 1000), 1);
+    
+    // Calculate vertical position using physics equations
+    const verticalTime = t;
+    const y = this.startPoint.y + 
+              (this.initialVelocityY * verticalTime) - 
+              (0.5 * this.gravity * verticalTime * verticalTime);
+    
+    // Calculate horizontal position with linear interpolation
+    const x = this.startPoint.x + (this.endPoint.x - this.startPoint.x) * progress;
+    const z = this.startPoint.z + (this.endPoint.z - this.startPoint.z) * progress;
+
+    return { x, y, z };
+  }
+
+  update(block: MovingBlockEntity, deltaTimeMs: number): void {
+    this.elapsedTime += deltaTimeMs;
+    
+    // Check if the movement is complete
+    if (this.elapsedTime >= this.totalDuration) {
+      if (block.isSpawned) {
+        block.despawn();
+      }
+      return;
+    }
+
+    const newPosition = this.calculatePosition(this.elapsedTime);
+
+    if (this.DEBUG_ENABLED) {
+      console.log('ParabolicMovement Update:', {
+        elapsedTime: this.elapsedTime.toFixed(2),
+        position: newPosition,
+        progress: (this.elapsedTime / this.totalDuration * 100).toFixed(1) + '%'
+      });
+    }
+
+    block.setPosition(newPosition);
+  }
 } 

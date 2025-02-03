@@ -35,6 +35,13 @@ export class TestBlockSpawner {
         };
     }
 
+    private get parabolicSpawnBounds(): { min: Vector3Like, max: Vector3Like } {
+        return {
+            min: { x: -5, y: MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.START_Y, z: -15 },
+            max: { x: 5, y: MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.START_Y, z: 15 }
+        };
+    }
+
     // Helper methods for position generation
     private getRandomPosition(): Vector3Like {
         const bounds = this.defaultSpawnBounds;
@@ -67,6 +74,15 @@ export class TestBlockSpawner {
         };
     }
 
+    private getRandomParabolicPosition(): Vector3Like {
+        const bounds = this.parabolicSpawnBounds;
+        return {
+            x: Math.random() * (bounds.max.x - bounds.min.x) + bounds.min.x,
+            y: bounds.min.y, // Fixed Y position for parabolic targets
+            z: Math.random() * (bounds.max.z - bounds.min.z) + bounds.min.z
+        };
+    }
+
     // Block spawning methods
     public spawnTestBlocks(speedMultiplier: number = 1): void {
         if (this.DEBUG_ENABLED) {
@@ -83,6 +99,7 @@ export class TestBlockSpawner {
         this.spawnRegularBlock();
         this.spawnPopUpTarget(speedMultiplier);
         this.spawnRisingTarget(speedMultiplier);
+        this.spawnParabolicTarget(speedMultiplier);
 
         if (this.DEBUG_ENABLED) {
             console.log('All test blocks spawned successfully');
@@ -190,8 +207,29 @@ export class TestBlockSpawner {
         });
     }
 
+    public spawnParabolicTarget(speedMultiplier: number = 1): void {
+        const startPos = this.getRandomParabolicPosition();
+        const endPos = this.getRandomParabolicPosition();
+        endPos.z = Math.max(endPos.z, startPos.z + 10); // Ensure it moves forward
+
+        if (this.DEBUG_ENABLED) {
+            console.log('Spawning parabolic target with:', {
+                startPos,
+                endPos,
+                speedMultiplier
+            });
+        }
+
+        this.blockManager.createParabolicTarget({
+            startPoint: startPos,
+            endPoint: endPos,
+            maxHeight: MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.MAX_HEIGHT,
+            duration: MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.DURATION / speedMultiplier // Adjust duration based on speed multiplier
+        });
+    }
+
     // Helper methods for block validation
-    public isValidSpawnPosition(position: Vector3Like, type: 'static' | 'sine' | 'vertical' | 'regular' | 'popup' | 'rising'): boolean {
+    public isValidSpawnPosition(position: Vector3Like, type: 'static' | 'sine' | 'vertical' | 'regular' | 'popup' | 'rising' | 'parabolic'): boolean {
         switch (type) {
             case 'static':
                 return position.y >= 2 && position.y <= 6;
@@ -205,6 +243,8 @@ export class TestBlockSpawner {
                 return this.isWithinBounds(position, this.popUpSpawnBounds);
             case 'rising':
                 return this.isWithinBounds(position, this.risingSpawnBounds);
+            case 'parabolic':
+                return this.isWithinBounds(position, this.parabolicSpawnBounds);
             default:
                 return false;
         }

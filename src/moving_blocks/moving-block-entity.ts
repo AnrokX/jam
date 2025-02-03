@@ -245,6 +245,11 @@ export class MovingBlockEntity extends Entity {
           
           // Broadcast updated scores
           scoreManager.broadcastScores(this.world);
+          
+          // Destroy the block after scoring
+          if (this.isSpawned) {
+            this.despawn();
+          }
         } else {
           console.warn('ScoreManager not found in world entities');
           this.takeDamage(1); // Fallback to simple damage

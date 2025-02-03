@@ -17,7 +17,7 @@ import { BlockParticleEffects } from './src/effects/block-particle-effects';
 import { TestBlockSpawner } from './src/utils/test-spawner';
 
 // Configuration flags
-const IS_TEST_MODE = true;  // Set this to true to enable test mode, false for normal game
+const IS_TEST_MODE = false;  // Set this to true to enable test mode, false for normal game
 const DEBUG_ENABLED = false;  // Development debug flag
 
 startServer(world => {

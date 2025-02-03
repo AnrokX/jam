@@ -289,6 +289,146 @@ export class MovingBlockEntity extends Entity {
     if (!this.world || !this.blockTextureUri) return;
     this.particleEffects?.createDestructionEffect(this.world, this.position, this.blockTextureUri);
   }
+
+  // Static getters for default target configuration
+  static get DefaultTargetTexture(): string {
+    return MOVING_BLOCK_CONFIG.STATIC_TARGET.TEXTURE;
+  }
+
+  static get DefaultTargetHalfExtents(): Vector3Like {
+    return MOVING_BLOCK_CONFIG.STATIC_TARGET.HALF_EXTENTS;
+  }
+
+  static get DefaultTargetHeightRange(): { min: number; max: number } {
+    return MOVING_BLOCK_CONFIG.STATIC_TARGET.HEIGHT_RANGE;
+  }
+
+  static get DefaultTargetScore(): number {
+    return MOVING_BLOCK_CONFIG.STATIC_TARGET.SCORE;
+  }
+
+  static get DefaultTargetHealth(): number {
+    return MOVING_BLOCK_CONFIG.STATIC_TARGET.HEALTH;
+  }
+
+  // Z-Axis Moving Block (Default Block) Getters
+  static get DefaultBlockSpeed(): number {
+    return MOVING_BLOCK_CONFIG.DEFAULT_SPEED;
+  }
+
+  static get DefaultBlockHealth(): number {
+    return MOVING_BLOCK_CONFIG.DEFAULT_HEALTH;
+  }
+
+  static get DefaultBlockTexture(): string {
+    return MOVING_BLOCK_CONFIG.DEFAULT_TEXTURE;
+  }
+
+  static get DefaultBlockHalfExtents(): Vector3Like {
+    return MOVING_BLOCK_CONFIG.DEFAULT_HALF_EXTENTS;
+  }
+
+  static get DefaultBlockScore(): number {
+    return MOVING_BLOCK_CONFIG.BREAK_SCORE;
+  }
+
+  static get DefaultMovementBounds(): { min: Vector3Like; max: Vector3Like } {
+    return MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS;
+  }
+
+  static get DefaultSpawnPosition(): Vector3Like {
+    return MOVING_BLOCK_CONFIG.SPAWN_POSITION;
+  }
+
+  // Helper methods for Z-Axis Moving Block
+  static createDefaultBlockConfiguration(customConfig?: Partial<MovingBlockOptions>): MovingBlockOptions {
+    return {
+      moveSpeed: this.DefaultBlockSpeed,
+      blockTextureUri: this.DefaultBlockTexture,
+      blockHalfExtents: this.DefaultBlockHalfExtents,
+      health: this.DefaultBlockHealth,
+      movementBehavior: new DefaultBlockMovement(),
+      movementBounds: this.DefaultMovementBounds,
+      oscillate: true, // Default behavior is to oscillate
+      ...customConfig
+    };
+  }
+
+  static isValidDefaultBlockPosition(position: Vector3Like): boolean {
+    const bounds = this.DefaultMovementBounds;
+    return (
+      position.x >= bounds.min.x && position.x <= bounds.max.x &&
+      position.y >= bounds.min.y && position.y <= bounds.max.y &&
+      position.z >= bounds.min.z && position.z <= bounds.max.z
+    );
+  }
+
+  static generateDefaultSpawnPosition(customBounds?: { min: Vector3Like; max: Vector3Like }): Vector3Like {
+    const bounds = customBounds || this.DefaultMovementBounds;
+    return {
+      x: bounds.min.x + Math.random() * (bounds.max.x - bounds.min.x),
+      y: bounds.min.y, // Usually fixed height for Z-axis moving blocks
+      z: bounds.min.z + Math.random() * (bounds.max.z - bounds.min.z)
+    };
+  }
+
+  // Helper method to calculate movement step
+  static calculateMovementStep(currentPosition: Vector3Like, direction: Vector3Like, speed: number, deltaSeconds: number): Vector3Like {
+    return {
+      x: currentPosition.x + direction.x * speed * deltaSeconds,
+      y: currentPosition.y + direction.y * speed * deltaSeconds,
+      z: currentPosition.z + direction.z * speed * deltaSeconds
+    };
+  }
+
+  // Helper methods for target positioning
+  static generateRandomTargetPosition(bounds?: { min: Vector3Like; max: Vector3Like }): Vector3Like {
+    const heightRange = this.DefaultTargetHeightRange;
+    const randomHeight = heightRange.min + Math.random() * (heightRange.max - heightRange.min);
+
+    const defaultBounds = MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS;
+    const targetBounds = bounds || defaultBounds;
+
+    return {
+      x: targetBounds.min.x + Math.random() * (targetBounds.max.x - targetBounds.min.x),
+      y: randomHeight,
+      z: targetBounds.min.z + Math.random() * (targetBounds.max.z - targetBounds.min.z)
+    };
+  }
+
+  static isValidTargetPosition(position: Vector3Like, bounds?: { min: Vector3Like; max: Vector3Like }): boolean {
+    const targetBounds = bounds || MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS;
+    const heightRange = this.DefaultTargetHeightRange;
+
+    return (
+      position.x >= targetBounds.min.x && position.x <= targetBounds.max.x &&
+      position.y >= heightRange.min && position.y <= heightRange.max &&
+      position.z >= targetBounds.min.z && position.z <= targetBounds.max.z
+    );
+  }
+
+  // Helper method to create target configuration
+  static createTargetConfiguration(customConfig?: Partial<MovingBlockOptions>): MovingBlockOptions {
+    return {
+      blockTextureUri: this.DefaultTargetTexture,
+      blockHalfExtents: this.DefaultTargetHalfExtents,
+      health: this.DefaultTargetHealth,
+      movementBehavior: new StaticMovement(),
+      movementBounds: {
+        min: { 
+          x: MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.min.x,
+          y: this.DefaultTargetHeightRange.min,
+          z: MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.min.z
+        },
+        max: {
+          x: MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.max.x,
+          y: this.DefaultTargetHeightRange.max,
+          z: MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.max.z
+        }
+      },
+      ...customConfig
+    };
+  }
 }
 
 export class MovingBlockManager {
@@ -309,11 +449,11 @@ export class MovingBlockManager {
     // Clean up any despawned blocks first
     this.blocks = this.blocks.filter(block => block.isSpawned);
 
-    const block = new MovingBlockEntity({
+    const block = new MovingBlockEntity(MovingBlockEntity.createDefaultBlockConfiguration({
       onBlockBroken: () => {
         if (this.scoreManager && (block as any).playerId) {
           const playerId = (block as any).playerId;
-          const score = MOVING_BLOCK_CONFIG.BREAK_SCORE;
+          const score = MovingBlockEntity.DefaultBlockScore;
           
           this.scoreManager.addScore(playerId, score);
           console.log(`Block broken by player ${playerId}! Awarded ${score} points`);
@@ -327,9 +467,17 @@ export class MovingBlockManager {
           console.log('Block broken but no player ID found to award points');
         }
       }
-    });
+    }));
     
-    block.spawn(this.world, spawnPosition || MOVING_BLOCK_CONFIG.SPAWN_POSITION);
+    const finalSpawnPosition = spawnPosition || MovingBlockEntity.generateDefaultSpawnPosition();
+    
+    if (!MovingBlockEntity.isValidDefaultBlockPosition(finalSpawnPosition)) {
+      console.warn('Invalid spawn position provided, using default spawn position');
+      block.spawn(this.world, MovingBlockEntity.DefaultSpawnPosition);
+    } else {
+      block.spawn(this.world, finalSpawnPosition);
+    }
+    
     this.blocks.push(block);
     return block;
   }
@@ -398,39 +546,14 @@ export class MovingBlockManager {
     // Clean up any despawned blocks first
     this.blocks = this.blocks.filter(block => block.isSpawned);
 
-    // Generate random height if not specified
-    const randomHeight = MOVING_BLOCK_CONFIG.STATIC_TARGET.HEIGHT_RANGE.min + 
-      Math.random() * (MOVING_BLOCK_CONFIG.STATIC_TARGET.HEIGHT_RANGE.max - 
-                      MOVING_BLOCK_CONFIG.STATIC_TARGET.HEIGHT_RANGE.min);
+    const finalSpawnPosition = spawnPosition || MovingBlockEntity.generateRandomTargetPosition();
 
-    const finalSpawnPosition = spawnPosition || {
-      x: Math.random() * 10 - 5, // Random x between -5 and 5
-      y: randomHeight,
-      z: Math.random() * 20 - 10 // Random z between -10 and 10
-    };
-
-    const block = new MovingBlockEntity({
-      blockTextureUri: MOVING_BLOCK_CONFIG.STATIC_TARGET.TEXTURE,
-      blockHalfExtents: MOVING_BLOCK_CONFIG.STATIC_TARGET.HALF_EXTENTS,
-      health: MOVING_BLOCK_CONFIG.STATIC_TARGET.HEALTH,
-      movementBehavior: new StaticMovement(),
-      // Wide bounds to allow spawning anywhere in the play area
-      movementBounds: {
-        min: { 
-          x: -5,
-          y: MOVING_BLOCK_CONFIG.STATIC_TARGET.HEIGHT_RANGE.min,
-          z: MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.min.z
-        },
-        max: {
-          x: 5,
-          y: MOVING_BLOCK_CONFIG.STATIC_TARGET.HEIGHT_RANGE.max,
-          z: MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.max.z
-        }
-      },
+    // Create block with default target configuration
+    const block = new MovingBlockEntity(MovingBlockEntity.createTargetConfiguration({
       onBlockBroken: () => {
         if (this.scoreManager && (block as any).playerId) {
           const playerId = (block as any).playerId;
-          const score = MOVING_BLOCK_CONFIG.STATIC_TARGET.SCORE;
+          const score = MovingBlockEntity.DefaultTargetScore;
           
           this.scoreManager.addScore(playerId, score);
           console.log(`Static target broken by player ${playerId}! Awarded ${score} points`);
@@ -439,7 +562,7 @@ export class MovingBlockManager {
           this.removeBlock(block);
         }
       }
-    });
+    }));
     
     console.log('Spawning static target at:', finalSpawnPosition);
     block.spawn(this.world, finalSpawnPosition);

@@ -482,39 +482,6 @@
       perspective: 1000px;
     }
 
-    .block-destroyed-notification .text {
-      color: var(--matrix-green);
-      font-family: var(--display-font);
-      font-size: 24px;
-      text-shadow: 0 0 10px var(--terminal-green),
-                   0 0 20px var(--terminal-green);
-      animation: textAnimation 1.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-      animation-delay: 0.3s;
-      opacity: 0;
-      transform: scale(0.8) translateZ(0);
-      transform-origin: center center;
-      letter-spacing: 2px;
-    }
-
-    @keyframes hitNotification {
-      0% {
-        opacity: 0;
-        transform: scale(0.5) translateZ(-100px);
-      }
-      30% {
-        opacity: 1;
-        transform: scale(1.4) translateZ(100px);
-      }
-      60% {
-        opacity: 1;
-        transform: scale(1.2) translateZ(50px) translateY(-10px);
-      }
-      100% {
-        opacity: 0;
-        transform: scale(1) translateZ(0) translateY(-50px);
-      }
-    }
-
     @keyframes scoreAnimation {
       0% {
         opacity: 0;
@@ -541,29 +508,6 @@
         transform: scale(1) translateZ(0) translateY(-60px);
       }
     }
-
-    @keyframes textAnimation {
-      0% {
-        opacity: 0;
-        transform: scale(0.8) translateZ(-50px);
-      }
-      40% {
-        opacity: 1;
-        transform: scale(1.2) translateZ(50px);
-      }
-      60% {
-        opacity: 1;
-        transform: scale(1.1) translateZ(25px) translateY(-10px);
-      }
-      80% {
-        opacity: 0.9;
-        transform: scale(1) translateZ(0) translateY(-20px);
-      }
-      100% {
-        opacity: 0;
-        transform: scale(0.9) translateZ(0) translateY(-40px);
-      }
-    }
   </style>
 </head>
 <body>
@@ -577,7 +521,6 @@
 <template id="block-destroyed-notification-template">
   <div class="block-destroyed-notification">
     <div class="score">+0</div>
-    <div class="text">Block Destroyed!</div>
   </div>
 </template>
 
@@ -606,7 +549,6 @@
     
     // Get both elements - we need to get these before returning the clone
     const scoreElement = clone.querySelector('.score');
-    const textElement = clone.querySelector('.text');
     
     // Register the state handler
     onState(state => {
@@ -616,10 +558,6 @@
         const score = Math.round(Number(state.score));
         console.log('Setting score to:', score);
         scoreElement.textContent = `+${score}`;
-      }
-      
-      if (textElement && state?.text) {
-        textElement.textContent = state.text;
       }
     });
     

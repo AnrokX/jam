@@ -48,14 +48,26 @@ export class SceneUIManager {
 
   public showBlockDestroyedNotification(worldPosition: Vector3Like, score: number, player: Player): void {
     console.log('Showing block destroyed notification with score:', score); // Debug log
+    console.log('Score type:', typeof score);
+    console.log('Score value before rounding:', score);
+    
+    // Ensure score is rounded and positive
+    const roundedScore = Math.max(0, Math.round(score));
+    console.log('Final rounded score:', roundedScore);
     
     // Create a new SceneUI instance for the block destroyed notification
     const destroyNotification = new SceneUI({
       templateId: 'block-destroyed-notification',
-      state: { score: Math.round(score) },
+      state: { 
+        score: roundedScore,
+        text: 'Block Destroyed!'
+      },
       position: worldPosition,
-      offset: { x: 0, y: 1, z: 0 } // Add a larger offset for the destroyed notification
+      offset: { x: 0, y: 1.5, z: 0 } // Increased offset for better visibility
     });
+
+    // Log the notification state
+    console.log('Notification state:', destroyNotification.state);
 
     // Load the SceneUI into the world
     destroyNotification.load(this.world);

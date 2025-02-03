@@ -468,13 +468,22 @@
       pointer-events: none;
       z-index: 1001;
       animation: blockDestroyedNotification 1.5s ease-out forwards;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 10px 15px;
+      border-radius: 8px;
+      border: 1px solid var(--blood-red);
+      box-shadow: 0 0 15px rgba(255, 0, 0, 0.3);
+      min-width: 200px;
     }
 
     .block-destroyed-notification .score {
       color: var(--blood-red);
       font-family: var(--display-font);
-      font-size: 32px;
+      font-size: 36px;
       text-shadow: 0 0 15px var(--glow-red);
+      font-weight: bold;
+      margin-bottom: 5px;
+      display: block;
     }
 
     .block-destroyed-notification .text {
@@ -483,6 +492,8 @@
       font-size: 20px;
       text-shadow: 0 0 10px var(--terminal-green);
       margin-top: 5px;
+      white-space: nowrap;
+      display: block;
     }
 
     @keyframes hitNotification {
@@ -530,37 +541,52 @@
 
 <template id="block-destroyed-notification-template">
   <div class="block-destroyed-notification">
-    <span class="score"></span>
-    <span class="text">Block Destroyed!</span>
+    <div class="score">+0</div>
+    <div class="text">Block Destroyed!</div>
   </div>
 </template>
 
 <script>
   // Register Scene UI Templates
-  hytopia.registerSceneUITemplate('hit-notification', (id, state) => {
+  hytopia.registerSceneUITemplate('hit-notification', (id, onState) => {
     const template = document.getElementById('hit-notification-template');
     const clone = template.content.cloneNode(true);
     const scoreElement = clone.querySelector('.score');
-    console.log('Hit notification state:', state); // Debug log
-    if (scoreElement && state && typeof state.score === 'number') {
-      scoreElement.textContent = `+${state.score}`;
-    }
+    
+    onState(state => {
+      console.log('Hit notification state update:', state);
+      if (scoreElement && state?.score != null) {
+        scoreElement.textContent = `+${Math.round(Number(state.score))}`;
+      }
+    });
+    
     return clone;
   });
 
-  hytopia.registerSceneUITemplate('block-destroyed-notification', (id, state) => {
-    console.log('Block destroyed template state:', state); // Debug log
+  hytopia.registerSceneUITemplate('block-destroyed-notification', (id, onState) => {
+    console.log('Block destroyed template registration called with id:', id);
+    
     const template = document.getElementById('block-destroyed-notification-template');
     const clone = template.content.cloneNode(true);
-    const scoreElement = clone.querySelector('.score');
     
-    if (scoreElement && state && typeof state.score === 'number') {
-      const score = Math.round(state.score);
-      console.log('Setting score to:', score); // Debug log
-      scoreElement.textContent = `+${score}`;
-    } else {
-      console.log('Invalid score state:', state); // Debug log
-    }
+    // Get both elements - we need to get these before returning the clone
+    const scoreElement = clone.querySelector('.score');
+    const textElement = clone.querySelector('.text');
+    
+    // Register the state handler
+    onState(state => {
+      console.log('Received state update:', state);
+      
+      if (scoreElement && state?.score != null) {
+        const score = Math.round(Number(state.score));
+        console.log('Setting score to:', score);
+        scoreElement.textContent = `+${score}`;
+      }
+      
+      if (textElement && state?.text) {
+        textElement.textContent = state.text;
+      }
+    });
     
     return clone;
   });

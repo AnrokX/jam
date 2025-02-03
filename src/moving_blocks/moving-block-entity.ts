@@ -258,6 +258,9 @@ export class MovingBlockEntity extends Entity {
       
       this.despawn();
       return;
+    } else {
+      // Show hit notification for non-destroying hits
+      sceneUIManager.showHitNotification(this.position, 1, player); // Show +1 for each hit
     }
     
     // Instead of changing opacity, change the block type based on health
@@ -302,6 +305,7 @@ export class MovingBlockEntity extends Entity {
   private calculateScore(): number {
     // Base score calculation based on block type and difficulty
     let score = MOVING_BLOCK_CONFIG.BREAK_SCORE;
+    console.log('Initial base score:', score);
     
     // Multiply score based on movement behavior
     if (this.movementBehavior instanceof SineWaveMovement) {
@@ -324,7 +328,7 @@ export class MovingBlockEntity extends Entity {
     }
     
     const finalScore = Math.round(score);
-    console.log('Final calculated score:', finalScore);
+    console.log('Final calculated score:', finalScore, 'Movement behavior type:', this.movementBehavior.constructor.name);
     return finalScore;
   }
 

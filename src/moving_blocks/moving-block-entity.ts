@@ -243,6 +243,12 @@ export class MovingBlockEntity extends Entity {
           scoreManager.addScore(this.playerId, score);
           console.log(`Dynamic score calculated and added: ${score} points`);
           
+          // Create destruction effect before despawning
+          if (this.blockTextureUri) {
+            const particleEffects = BlockParticleEffects.getInstance(this.world);
+            particleEffects.createDestructionEffect(this.world, this.position, this.blockTextureUri);
+          }
+          
           // Broadcast updated scores
           scoreManager.broadcastScores(this.world);
           

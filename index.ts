@@ -17,7 +17,7 @@ import { BlockParticleEffects } from './src/effects/block-particle-effects';
 import { TestBlockSpawner } from './src/utils/test-spawner';
 
 // Configuration flags
-const IS_TEST_MODE = true;  // Set this to true to enable test mode, false for normal game
+const IS_TEST_MODE = false;  // Set this to true to enable test mode, false for normal game
 const DEBUG_ENABLED = false;  // Development debug flag
 
 startServer(world => {
@@ -157,6 +157,17 @@ startServer(world => {
 
     // Configure first-person camera after spawning
     playerEntity.player.camera.setMode(PlayerCameraMode.FIRST_PERSON);
+    
+    // Hide only the local player's model from their own view
+    // This won't affect how other players see them
+    player.camera.setModelHiddenNodes([
+      'Armature',      // Main skeleton
+      'Mesh',          // Main mesh
+      'Body_mesh',     // Body mesh if separated
+      'Character',     // Common root node name
+      'Skeleton',      // Alternative skeleton name
+      'Root'           // Root node
+    ]);
     
     // Set camera to eye level and slightly forward
     playerEntity.player.camera.setOffset({

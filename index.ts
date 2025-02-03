@@ -44,6 +44,7 @@ startServer(world => {
 
   // Initialize the score manager
   const scoreManager = new ScoreManager();
+  scoreManager.spawn(world, { x: 0, y: 0, z: 0 }); // Make it available as an entity
 
   // Initialize the moving block manager
   const movingBlockManager = new MovingBlockManager(world, scoreManager);

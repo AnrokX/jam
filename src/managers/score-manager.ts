@@ -1,6 +1,8 @@
 // The ScoreManager handles player scoring for block breaks and other game events
 
-import { World } from 'hytopia';
+import { World, Vector3Like, Entity } from 'hytopia';
+import { MovingBlockEntity } from '../moving_blocks/moving-block-entity';
+import { ProjectileEntity } from '../entities/projectile-entity';
 
 export interface ScoreOptions {
   score: number;
@@ -11,12 +13,47 @@ interface PlayerStats {
   roundScore: number;
   wins: number;
   playerNumber: number;
+  consecutiveHits: number;  // Track combo counter
+  multiHitCount: number;    // Track multi-hit counter
+  lastHitTime: number;      // Track timing for combo system
 }
 
-export class ScoreManager {
+export class ScoreManager extends Entity {
+  private static readonly SCORING_CONFIG = {
+    COMBO_TIMEOUT_MS: 5000,         // Time window for maintaining combo (5 seconds)
+    TIME_DECAY_FACTOR: 12.0,        // More punishing time decay
+    BASE_SCORE_MULTIPLIER: 1.5,     // Lower base multiplier for more challenging scoring
+    MIN_SCORE: 1,                   // Minimum score for any hit
+    
+    // Movement multipliers with higher rewards for moving targets
+    BASE_MOVEMENT_MULTIPLIER: 1.0,   // Static targets baseline
+    SINE_WAVE_MULTIPLIER: 2.0,      // Basic movement bonus
+    VERTICAL_WAVE_MULTIPLIER: 2.5,   // Moderate challenge bonus
+    POPUP_MULTIPLIER: 3.0,          // More challenging movement
+    RISING_MULTIPLIER: 3.5,         // Difficult shots
+    PARABOLIC_MULTIPLIER: 4.0,      // Most challenging movement
+    
+    // Combo system with reduced bonuses
+    MAX_COMBO_BONUS: 0.5,           // Maximum 50% bonus from combos
+    MAX_MULTI_HIT_BONUS: 0.5,       // Maximum 50% bonus from multi-hits
+  };
+
   // Map to hold scores and stats for each player by their ID
   private playerStats = new Map<string, PlayerStats>();
   private playerCount = 0;
+
+  constructor() {
+    super({
+      name: 'ScoreManager',
+      blockTextureUri: 'blocks/air.png',  // Use an invisible block texture
+      blockHalfExtents: { x: 0.001, y: 0.001, z: 0.001 }  // Make it tiny
+    });
+  }
+
+  override spawn(world: World, position: Vector3Like): void {
+    // Position it far away where it won't be visible
+    super.spawn(world, { x: 0, y: -1000, z: 0 });
+  }
 
   // Initialize a score entry for a player
   public initializePlayer(playerId: string): void {
@@ -26,7 +63,10 @@ export class ScoreManager {
         totalScore: 0,
         roundScore: 0,
         wins: 0,
-        playerNumber: this.playerCount
+        playerNumber: this.playerCount,
+        consecutiveHits: 0,
+        multiHitCount: 0,
+        lastHitTime: 0
       });
     }
   }
@@ -160,5 +200,149 @@ export class ScoreManager {
     const playerWins = this.getWins(playerId);
     return Array.from(this.playerStats.values())
       .every(stats => stats.wins <= playerWins);
+  }
+
+  // Calculate Euclidean distance between two points
+  private calculateDistance(point1: Vector3Like, point2: Vector3Like): number {
+    const dx = point2.x - point1.x;
+    const dy = point2.y - point1.y;
+    const dz = point2.z - point1.z;
+    return Math.sqrt(dx * dx + dy * dy + dz * dz);
+  }
+
+  // Calculate average of target's half-extents (S)
+  private calculateAverageSize(halfExtents: Vector3Like): number {
+    return (halfExtents.x + halfExtents.y + halfExtents.z) / 3;
+  }
+
+  // Get movement multiplier based on block type
+  private getMovementMultiplier(block: MovingBlockEntity): number {
+    const behaviorType = block.getMovementBehaviorType();
+    console.log(`Determining multiplier for behavior type: ${behaviorType}`);
+    
+    switch (behaviorType) {
+      case 'SineWaveMovement':
+        return ScoreManager.SCORING_CONFIG.SINE_WAVE_MULTIPLIER;
+      case 'VerticalWaveMovement':
+        return ScoreManager.SCORING_CONFIG.VERTICAL_WAVE_MULTIPLIER;
+      case 'PopUpMovement':
+        return ScoreManager.SCORING_CONFIG.POPUP_MULTIPLIER;
+      case 'RisingMovement':
+        return ScoreManager.SCORING_CONFIG.RISING_MULTIPLIER;
+      case 'ParabolicMovement':
+        return ScoreManager.SCORING_CONFIG.PARABOLIC_MULTIPLIER;
+      default:
+        return ScoreManager.SCORING_CONFIG.BASE_MOVEMENT_MULTIPLIER;
+    }
+  }
+
+  // Update combo and multi-hit counters
+  private updateHitCounters(playerId: string): void {
+    const stats = this.playerStats.get(playerId);
+    if (!stats) return;
+
+    const currentTime = Date.now();
+    
+    // Check if within combo window
+    if (currentTime - stats.lastHitTime <= ScoreManager.SCORING_CONFIG.COMBO_TIMEOUT_MS) {
+      stats.consecutiveHits++;
+      stats.multiHitCount++;
+    } else {
+      // Reset counters if combo timeout has passed
+      stats.consecutiveHits = 1;
+      stats.multiHitCount = 1;
+    }
+    
+    stats.lastHitTime = currentTime;
+    this.playerStats.set(playerId, stats);
+    
+    console.log(`Player ${playerId} hit counters updated:`, {
+      consecutiveHits: stats.consecutiveHits,
+      multiHitCount: stats.multiHitCount,
+      comboTimeRemaining: ScoreManager.SCORING_CONFIG.COMBO_TIMEOUT_MS - (currentTime - stats.lastHitTime)
+    });
+  }
+
+  // Calculate the dynamic score for a grenade hit
+  public calculateGrenadeTargetScore(
+    projectile: ProjectileEntity,
+    block: MovingBlockEntity,
+    impactPoint: Vector3Like,
+    playerId: string
+  ): number {
+    const spawnOrigin = projectile.getSpawnOrigin();
+    if (!spawnOrigin) {
+      console.warn('No spawn origin found for projectile, using default score');
+      return ScoreManager.SCORING_CONFIG.MIN_SCORE;
+    }
+
+    // Calculate distance (D)
+    const distance = this.calculateDistance(spawnOrigin, impactPoint);
+    console.log(`Distance from spawn to impact: ${distance.toFixed(2)} units`);
+
+    // Calculate size factor (S)
+    const averageSize = this.calculateAverageSize(block.getBlockDimensions());
+    console.log(`Average target size: ${averageSize.toFixed(2)} units`);
+
+    // Get movement multiplier (M)
+    const movementMultiplier = this.getMovementMultiplier(block);
+    console.log(`Movement multiplier: ${movementMultiplier}`);
+
+    // Calculate time factor (T) with less severe penalty
+    const elapsedTime = (Date.now() - block.getSpawnTime()) / 1000; // Convert to seconds
+    const timeFactor = ScoreManager.SCORING_CONFIG.TIME_DECAY_FACTOR / (elapsedTime + ScoreManager.SCORING_CONFIG.TIME_DECAY_FACTOR);
+    console.log(`Time since target spawn: ${elapsedTime.toFixed(2)} seconds`);
+
+    // Get combo (C) and multi-hit (H) bonuses
+    const stats = this.playerStats.get(playerId);
+    if (!stats) {
+      console.warn('No stats found for player, initializing new stats');
+      this.initializePlayer(playerId);
+    }
+    
+    this.updateHitCounters(playerId);
+    const updatedStats = this.playerStats.get(playerId)!;
+    
+    const comboBonus = Math.min(
+      (updatedStats.consecutiveHits - 1) * 0.2,  // Increased from 0.1
+      ScoreManager.SCORING_CONFIG.MAX_COMBO_BONUS
+    );
+    
+    const multiHitBonus = Math.min(
+      (updatedStats.multiHitCount - 1) * 0.2,    // Increased from 0.1
+      ScoreManager.SCORING_CONFIG.MAX_MULTI_HIT_BONUS
+    );
+
+    console.log('Bonus multipliers:', {
+      comboBonus,
+      multiHitBonus,
+      consecutiveHits: updatedStats.consecutiveHits,
+      multiHitCount: updatedStats.multiHitCount
+    });
+
+    // Calculate final score using the modified formula:
+    // Score = ((D/S) * M * timeFactor * BASE_MULTIPLIER) * (1+C+H)
+    const baseScore = (distance / averageSize) * 
+                     movementMultiplier * 
+                     timeFactor * 
+                     ScoreManager.SCORING_CONFIG.BASE_SCORE_MULTIPLIER;
+                     
+    const finalScore = Math.max(
+      ScoreManager.SCORING_CONFIG.MIN_SCORE,
+      Math.round(baseScore * (1 + comboBonus + multiHitBonus))
+    );
+
+    console.log('Score calculation details:', {
+      baseScore: baseScore.toFixed(2),
+      finalScore,
+      components: {
+        distanceToSize: (distance / averageSize).toFixed(2),
+        movementMultiplier,
+        timeFactor: timeFactor.toFixed(2),
+        totalBonus: (1 + comboBonus + multiHitBonus).toFixed(2)
+      }
+    });
+
+    return finalScore;
   }
 } 

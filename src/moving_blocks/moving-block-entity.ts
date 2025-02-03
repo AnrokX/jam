@@ -4,6 +4,7 @@ import { BlockMovementBehavior, DefaultBlockMovement, SineWaveMovement, StaticMo
 import { DESTRUCTION_PARTICLE_CONFIG } from '../config/particle-config';
 import { BlockParticleEffects } from '../effects/block-particle-effects';
 import { SceneUIManager } from '../scene-ui/scene-ui-manager';
+import { ProjectileEntity } from '../entities/projectile-entity';
 
 
 // Configuration for our Z-axis moving block
@@ -119,6 +120,7 @@ export class MovingBlockEntity extends Entity {
   protected movementBehavior: BlockMovementBehavior;
   private particles: Entity[] = [];
   private particleEffects: BlockParticleEffects | null;
+  private spawnTime: number;  // Add spawn time tracking
 
   constructor(options: MovingBlockOptions) {
     super({
@@ -144,6 +146,7 @@ export class MovingBlockEntity extends Entity {
       }
     });
     
+    // Initialize other properties
     this.moveSpeed = options.moveSpeed ?? MOVING_BLOCK_CONFIG.DEFAULT_SPEED;
     this.direction = this.normalizeDirection(options.direction || { x: 0, y: 0, z: 1 });
     this.movementBounds = options.movementBounds || MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS;
@@ -154,6 +157,7 @@ export class MovingBlockEntity extends Entity {
     this.onBlockBroken = options.onBlockBroken;
     this.movementBehavior = options.movementBehavior || new DefaultBlockMovement();
     this.particleEffects = null;
+    this.spawnTime = Date.now();  // Initialize spawn time
   }
 
   private normalizeDirection(dir: Vector3Like): Vector3Like {
@@ -170,6 +174,14 @@ export class MovingBlockEntity extends Entity {
     super.spawn(world, position);
     this.initialPosition = { ...position };
     this.particleEffects = BlockParticleEffects.getInstance(world);
+    
+    // Log block spawn details
+    console.log(`Block spawned at ${Date.now()}:`, {
+      position: this.position,
+      halfExtents: this.blockHalfExtents,
+      spawnTime: this.spawnTime,
+      type: this.constructor.name
+    });
   }
 
   private isWithinBounds(position: Vector3Like): boolean {
@@ -208,14 +220,39 @@ export class MovingBlockEntity extends Entity {
 
   private handleCollision(other: Entity): void {
     // Check if the colliding entity is a projectile
-    if (other.name.toLowerCase().includes('projectile')) {
+    if (other.name.toLowerCase().includes('projectile') && other instanceof ProjectileEntity) {
       console.log('Projectile hit detected!');
       
       // Store the player ID from the projectile if available
-      this.playerId = (other as any).playerId;
+      this.playerId = other.playerId;
       console.log(`Projectile from player: ${this.playerId || 'Unknown'}`);
       
-      this.takeDamage(1);
+      // Calculate score using the new dynamic scoring system
+      if (this.world && this.playerId) {
+        const scoreManager = this.world.entityManager.getAllEntities()
+          .find(entity => entity instanceof ScoreManager) as ScoreManager | undefined;
+          
+        if (scoreManager) {
+          const score = scoreManager.calculateGrenadeTargetScore(
+            other,
+            this,
+            this.position,
+            this.playerId
+          );
+          
+          scoreManager.addScore(this.playerId, score);
+          console.log(`Dynamic score calculated and added: ${score} points`);
+          
+          // Broadcast updated scores
+          scoreManager.broadcastScores(this.world);
+        } else {
+          console.warn('ScoreManager not found in world entities');
+          this.takeDamage(1); // Fallback to simple damage
+        }
+      } else {
+        console.warn('World or player ID not available for scoring');
+        this.takeDamage(1); // Fallback to simple damage
+      }
       
       // Despawn the projectile that hit us
       if (other.isSpawned) {
@@ -285,7 +322,6 @@ export class MovingBlockEntity extends Entity {
       oscillate: this.oscillate,
       health: this.health,
       isBreakable: this.isBreakable,
-      blockHalfExtents: this.blockHalfExtents,
       onBlockBroken: this.onBlockBroken,  // Transfer the callback
       movementBehavior: this.movementBehavior // Transfer the movement behavior
     });
@@ -716,6 +752,20 @@ export class MovingBlockEntity extends Entity {
       }),
       ...customConfig
     };
+  }
+
+  // Add getters for scoring calculations
+  public getSpawnTime(): number {
+    return this.spawnTime;
+  }
+
+  // Use the base class's blockHalfExtents property
+  public getBlockDimensions(): Vector3Like {
+    return this.blockHalfExtents || MOVING_BLOCK_CONFIG.DEFAULT_HALF_EXTENTS;
+  }
+
+  public getMovementBehaviorType(): string {
+    return this.movementBehavior.constructor.name;
   }
 }
 

@@ -64,6 +64,7 @@ export class ProjectileEntity extends Entity {
     private trajectoryMarkers: Entity[] = [];
     public readonly playerId?: string;
     public onCollision?: (position: Vector3Like, blockTextureUri: string) => void;
+    private spawnOrigin?: Vector3Like;
 
     constructor(options: ProjectileOptions) {
         super({
@@ -115,6 +116,10 @@ export class ProjectileEntity extends Entity {
     }
 
     spawn(world: World, position: Vector3Like): void {
+        // Store spawn origin before any position adjustments
+        this.spawnOrigin = { ...position };
+        console.log(`Projectile spawn origin recorded: (${this.spawnOrigin.x.toFixed(2)}, ${this.spawnOrigin.y.toFixed(2)}, ${this.spawnOrigin.z.toFixed(2)})`);
+
         // Get the player's look direction (assuming it's passed in the options)
         const lookDir = this.rotation || { x: 0, y: 0, z: 1 };
         
@@ -411,5 +416,10 @@ export class ProjectileEntity extends Entity {
         this.onImpact(); // Call onImpact when collision occurs
         
         // ... rest of collision handling
+    }
+
+    // Add getter for spawn origin
+    public getSpawnOrigin(): Vector3Like | undefined {
+        return this.spawnOrigin ? { ...this.spawnOrigin } : undefined;
     }
 } 

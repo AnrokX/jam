@@ -15,14 +15,18 @@ import { ScoreManager } from './src/managers/score-manager';
 import { RoundManager } from './src/managers/round-manager';
 import { BlockParticleEffects } from './src/effects/block-particle-effects';
 import { TestBlockSpawner } from './src/utils/test-spawner';
+import { SceneUIManager } from './src/scene-ui/scene-ui-manager';
 
 // Configuration flags
-const IS_TEST_MODE = true;  // Set this to true to enable test mode, false for normal game
+const IS_TEST_MODE = false;  // Set this to true to enable test mode, false for normal game
 const DEBUG_ENABLED = false;  // Development debug flag
 
 startServer(world => {
   console.log('Starting server and initializing debug settings...');
   console.log(`Test mode: ${IS_TEST_MODE ? 'enabled' : 'disabled'}`);
+  
+  // Initialize SceneUIManager
+  const sceneUIManager = SceneUIManager.getInstance(world);
   
   // Enable debug rendering for development
   world.simulation.enableDebugRendering(DEBUG_ENABLED);
@@ -299,6 +303,7 @@ startServer(world => {
     volume: 0.1,
   }).play(world);
 
-  // Cleanup particle effects when the scene changes or the game shuts down
+  // Cleanup particle effects and UI when the scene changes or the game shuts down
   BlockParticleEffects.getInstance(world).cleanup();
+  sceneUIManager.cleanup();
 });

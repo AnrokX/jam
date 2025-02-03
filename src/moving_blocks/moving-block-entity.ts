@@ -1,8 +1,9 @@
-import { Entity, EntityOptions, Vector3Like, ColliderShape, CollisionGroup, World, RigidBodyType, BlockType } from 'hytopia';
+import { Entity, EntityOptions, Vector3Like, ColliderShape, CollisionGroup, World, RigidBodyType, BlockType, PlayerEntity } from 'hytopia';
 import { ScoreManager } from '../managers/score-manager';
 import { BlockMovementBehavior, DefaultBlockMovement, SineWaveMovement, StaticMovement, PopUpMovement, RisingMovement, ParabolicMovement } from './block-movement';
 import { DESTRUCTION_PARTICLE_CONFIG } from '../config/particle-config';
 import { BlockParticleEffects } from '../effects/block-particle-effects';
+import { SceneUIManager } from '../scene-ui/scene-ui-manager';
 
 
 // Configuration for our Z-axis moving block
@@ -229,8 +230,24 @@ export class MovingBlockEntity extends Entity {
     this.health -= amount;
     console.log(`Block took damage! Health: ${this.health}`);
     
+    // Get the player who hit the block
+    const player = this.world?.entityManager.getAllPlayerEntities()
+      .find((p: PlayerEntity) => p.player.id === this.playerId)?.player;
+    
+    if (!player || !this.world) return;
+    
+    // Get the SceneUIManager instance
+    const sceneUIManager = SceneUIManager.getInstance(this.world);
+    
     if (this.health <= 0) {
       console.log('Block destroyed!');
+      
+      // Calculate score before showing notification
+      const score = this.calculateScore();
+      console.log('Block destroyed score:', score); // Debug log
+      
+      // Show block destroyed notification with appropriate score
+      sceneUIManager.showBlockDestroyedNotification(this.position, score, player);
       
       // Create destruction effect before despawning
       this.createDestructionEffect();
@@ -266,7 +283,8 @@ export class MovingBlockEntity extends Entity {
       health: this.health,
       isBreakable: this.isBreakable,
       blockHalfExtents: this.blockHalfExtents,
-      onBlockBroken: this.onBlockBroken  // Transfer the callback
+      onBlockBroken: this.onBlockBroken,  // Transfer the callback
+      movementBehavior: this.movementBehavior // Transfer the movement behavior
     });
 
     // Transfer the player ID to the new block
@@ -279,6 +297,35 @@ export class MovingBlockEntity extends Entity {
 
     // Despawn the old block
     this.despawn();
+  }
+
+  private calculateScore(): number {
+    // Base score calculation based on block type and difficulty
+    let score = MOVING_BLOCK_CONFIG.BREAK_SCORE;
+    
+    // Multiply score based on movement behavior
+    if (this.movementBehavior instanceof SineWaveMovement) {
+      score *= 1.5; // Sine wave blocks are harder to hit
+      console.log('SineWave block score:', score);
+    } else if (this.movementBehavior instanceof PopUpMovement) {
+      score *= MOVING_BLOCK_CONFIG.POPUP_TARGET.SCORE_MULTIPLIER;
+      console.log('PopUp block score:', score);
+    } else if (this.movementBehavior instanceof RisingMovement) {
+      score *= MOVING_BLOCK_CONFIG.RISING_TARGET.SCORE_MULTIPLIER;
+      console.log('Rising block score:', score);
+    } else if (this.movementBehavior instanceof ParabolicMovement) {
+      score *= MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.SCORE_MULTIPLIER;
+      console.log('Parabolic block score:', score);
+    } else if (this.movementBehavior instanceof StaticMovement) {
+      score = MOVING_BLOCK_CONFIG.STATIC_TARGET.SCORE; // Static targets have their own base score
+      console.log('Static block score:', score);
+    } else {
+      console.log('Default block score:', score);
+    }
+    
+    const finalScore = Math.round(score);
+    console.log('Final calculated score:', finalScore);
+    return finalScore;
   }
 
   // --- Added getter and helper methods for movement behavior use ---

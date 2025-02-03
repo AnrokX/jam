@@ -422,9 +422,150 @@
       left: 2px;   /* (16px - 12px) / 2 */
       top: 7px;    /* (16px - 2px) / 2 */
     }
+
+    /* Scene UI Container and Notifications */
+    .scene-ui-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1000;
+    }
+
+    .hit-notification {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--matrix-green);
+      font-family: var(--display-font);
+      font-size: 24px;
+      text-shadow: 0 0 10px var(--terminal-green);
+      animation: hitNotification 1s ease-out forwards;
+      pointer-events: none;
+      z-index: 1001;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 5px 10px;
+      border-radius: 4px;
+    }
+
+    .hit-notification .score {
+      color: var(--matrix-green);
+      font-family: var(--display-font);
+      font-size: 24px;
+      text-shadow: 0 0 10px var(--terminal-green);
+    }
+
+    .block-destroyed-notification {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      pointer-events: none;
+      z-index: 1001;
+      animation: blockDestroyedNotification 1.5s ease-out forwards;
+    }
+
+    .block-destroyed-notification .score {
+      color: var(--blood-red);
+      font-family: var(--display-font);
+      font-size: 32px;
+      text-shadow: 0 0 15px var(--glow-red);
+    }
+
+    .block-destroyed-notification .text {
+      color: var(--matrix-green);
+      font-family: var(--display-font);
+      font-size: 20px;
+      text-shadow: 0 0 10px var(--terminal-green);
+      margin-top: 5px;
+    }
+
+    @keyframes hitNotification {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.5);
+      }
+      20% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.2);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -100%) scale(1);
+      }
+    }
+
+    @keyframes blockDestroyedNotification {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.5);
+      }
+      20% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.2);
+      }
+      80% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -100%) scale(1);
+      }
+    }
   </style>
 </head>
 <body>
+<!-- Scene UI Templates -->
+<template id="hit-notification-template">
+  <div class="hit-notification">
+    <span class="score">+0</span>
+  </div>
+</template>
+
+<template id="block-destroyed-notification-template">
+  <div class="block-destroyed-notification">
+    <span class="score"></span>
+    <span class="text">Block Destroyed!</span>
+  </div>
+</template>
+
+<script>
+  // Register Scene UI Templates
+  hytopia.registerSceneUITemplate('hit-notification', (id, state) => {
+    const template = document.getElementById('hit-notification-template');
+    const clone = template.content.cloneNode(true);
+    const scoreElement = clone.querySelector('.score');
+    console.log('Hit notification state:', state); // Debug log
+    if (scoreElement && state && typeof state.score === 'number') {
+      scoreElement.textContent = `+${state.score}`;
+    }
+    return clone;
+  });
+
+  hytopia.registerSceneUITemplate('block-destroyed-notification', (id, state) => {
+    console.log('Block destroyed template state:', state); // Debug log
+    const template = document.getElementById('block-destroyed-notification-template');
+    const clone = template.content.cloneNode(true);
+    const scoreElement = clone.querySelector('.score');
+    
+    if (scoreElement && state && typeof state.score === 'number') {
+      const score = Math.round(state.score);
+      console.log('Setting score to:', score); // Debug log
+      scoreElement.textContent = `+${score}`;
+    } else {
+      console.log('Invalid score state:', state); // Debug log
+    }
+    
+    return clone;
+  });
+</script>
+
 <div class="countdown-overlay">
   <div class="countdown-display"></div>
 </div>

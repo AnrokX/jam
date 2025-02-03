@@ -1,6 +1,6 @@
 import { Entity, EntityOptions, Vector3Like, ColliderShape, CollisionGroup, World, RigidBodyType, BlockType } from 'hytopia';
 import { ScoreManager } from '../managers/score-manager';
-import { BlockMovementBehavior, DefaultBlockMovement, SineWaveMovement, StaticMovement } from './block-movement';
+import { BlockMovementBehavior, DefaultBlockMovement, SineWaveMovement, StaticMovement, PopUpMovement } from './block-movement';
 import { DESTRUCTION_PARTICLE_CONFIG } from '../config/particle-config';
 import { BlockParticleEffects } from '../effects/block-particle-effects';
 
@@ -34,6 +34,15 @@ export const MOVING_BLOCK_CONFIG = {
     SCORE_MULTIPLIER: 2,  // Double points for hitting this challenging target
     SPEED_MULTIPLIER: 0.7,  // Slightly slower forward movement for better visibility
     HEALTH: 1  // One-shot kill, like static targets
+  },
+  POPUP_TARGET: {
+    TEXTURE: 'blocks/diamond-ore.png',
+    HALF_EXTENTS: { x: 0.8, y: 0.8, z: 0.8 },
+    START_Y: -20,
+    TOP_Y: 8,
+    SPEED_MULTIPLIER: 1.5,  // Faster than normal blocks
+    SCORE_MULTIPLIER: 2,    // Double points for hitting this challenging target
+    HEALTH: 1              // One-shot kill
   },
   PARTICLE_CONFIG: {
     COUNT: 50,               
@@ -634,6 +643,56 @@ export class MovingBlockManager {
     };
     
     console.log('Spawning vertical wave block at:', spawnPosition);
+    block.spawn(this.world, spawnPosition);
+    this.blocks.push(block);
+    
+    return block;
+  }
+
+  public createPopUpTarget(options: {
+    spawnPosition?: Vector3Like;
+    startY?: number;
+    topY?: number;
+    moveSpeed?: number;
+    blockTextureUri?: string;
+  } = {}): MovingBlockEntity {
+    // Clean up any despawned blocks first
+    this.blocks = this.blocks.filter(block => block.isSpawned);
+
+    const block = new MovingBlockEntity({
+      moveSpeed: options.moveSpeed ?? MOVING_BLOCK_CONFIG.DEFAULT_SPEED * MOVING_BLOCK_CONFIG.POPUP_TARGET.SPEED_MULTIPLIER,
+      blockTextureUri: options.blockTextureUri ?? MOVING_BLOCK_CONFIG.POPUP_TARGET.TEXTURE,
+      blockHalfExtents: MOVING_BLOCK_CONFIG.POPUP_TARGET.HALF_EXTENTS,
+      health: MOVING_BLOCK_CONFIG.POPUP_TARGET.HEALTH,
+      movementBehavior: new PopUpMovement({
+        startY: options.startY ?? MOVING_BLOCK_CONFIG.POPUP_TARGET.START_Y,
+        topY: options.topY ?? MOVING_BLOCK_CONFIG.POPUP_TARGET.TOP_Y
+      }),
+      // No movement bounds needed as the PopUpMovement handles its own boundaries
+      movementBounds: undefined,
+      oscillate: false, // No oscillation for pop-up targets
+      onBlockBroken: () => {
+        if (this.scoreManager && (block as any).playerId) {
+          const playerId = (block as any).playerId;
+          const score = MOVING_BLOCK_CONFIG.BREAK_SCORE * MOVING_BLOCK_CONFIG.POPUP_TARGET.SCORE_MULTIPLIER;
+          
+          this.scoreManager.addScore(playerId, score);
+          console.log(`Pop-up target broken by player ${playerId}! Awarded ${score} points`);
+          
+          this.scoreManager.broadcastScores(this.world);
+          this.removeBlock(block);
+        }
+      }
+    });
+    
+    // Calculate spawn position
+    const spawnPosition = options.spawnPosition || {
+      x: Math.random() * 10 - 5, // Random X position between -5 and 5
+      y: MOVING_BLOCK_CONFIG.POPUP_TARGET.START_Y,
+      z: Math.random() * 20 - 10 // Random Z position between -10 and 10
+    };
+    
+    console.log('Spawning pop-up target at:', spawnPosition);
     block.spawn(this.world, spawnPosition);
     this.blocks.push(block);
     

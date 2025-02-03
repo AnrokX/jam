@@ -172,4 +172,81 @@ export class StaticMovement implements BlockMovementBehavior {
       }
     }
   }
+}
+
+export class PopUpMovement implements BlockMovementBehavior {
+  private elapsedTime: number = 0;
+  private state: 'rising' | 'paused' | 'falling' | 'complete' = 'rising';
+  private readonly DEBUG_ENABLED = false;
+  private readonly pauseDuration: number = 3000; // 3 seconds pause at top
+  private readonly startY: number;
+  private readonly topY: number;
+  private pauseStartTime: number = 0;
+
+  constructor(options: {
+    startY?: number;
+    topY?: number;
+  } = {}) {
+    this.startY = options.startY ?? -20;
+    this.topY = options.topY ?? 8;
+    
+    if (this.DEBUG_ENABLED) {
+      console.log('Created PopUpMovement with:', {
+        startY: this.startY,
+        topY: this.topY
+      });
+    }
+  }
+
+  update(block: MovingBlockEntity, deltaTimeMs: number): void {
+    this.elapsedTime += deltaTimeMs;
+    const deltaSeconds = deltaTimeMs / 1000;
+    const speed = block.getMoveSpeed();
+    let newPosition = { ...block.position };
+
+    switch (this.state) {
+      case 'rising':
+        // Move up quickly
+        newPosition.y += speed * 2 * deltaSeconds; // Double speed for quick rise
+        if (newPosition.y >= this.topY) {
+          newPosition.y = this.topY; // Clamp to exact top position
+          this.state = 'paused';
+          this.pauseStartTime = this.elapsedTime;
+        }
+        break;
+
+      case 'paused':
+        // Stay at top for pauseDuration
+        if (this.elapsedTime - this.pauseStartTime >= this.pauseDuration) {
+          this.state = 'falling';
+        }
+        break;
+
+      case 'falling':
+        // Fall back down quickly
+        newPosition.y -= speed * 2 * deltaSeconds; // Double speed for quick fall
+        if (newPosition.y <= this.startY) {
+          this.state = 'complete';
+          if (block.isSpawned) {
+            block.despawn();
+          }
+          return;
+        }
+        break;
+
+      case 'complete':
+        // Block should be despawned at this point
+        return;
+    }
+
+    if (this.DEBUG_ENABLED) {
+      console.log('PopUpMovement Update:', {
+        state: this.state,
+        elapsedTime: this.elapsedTime.toFixed(2),
+        position: newPosition
+      });
+    }
+
+    block.setPosition(newPosition);
+  }
 } 

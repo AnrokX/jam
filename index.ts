@@ -17,7 +17,7 @@ import { BlockParticleEffects } from './src/effects/block-particle-effects';
 import { TestBlockSpawner } from './src/utils/test-spawner';
 
 // Configuration flags
-const IS_TEST_MODE = false;  // Set this to true to enable test mode, false for normal game
+const IS_TEST_MODE = true;  // Set this to true to enable test mode, false for normal game
 const DEBUG_ENABLED = false;  // Development debug flag
 
 startServer(world => {
@@ -77,6 +77,12 @@ startServer(world => {
       world.chatManager.sendPlayerMessage(player, 'Spawned a regular block', 'FFFF00');
     });
 
+    world.chatManager.registerCommand('spawn5', (player) => {
+      console.log('Executing spawn5 command');
+      testSpawner.spawnPopUpTarget();
+      world.chatManager.sendPlayerMessage(player, 'Spawned a pop-up target', 'FFFF00');
+    });
+
     world.chatManager.registerCommand('spawnall', (player) => {
       console.log('Executing spawnall command');
       testSpawner.spawnTestBlocks();
@@ -98,6 +104,7 @@ startServer(world => {
       world.chatManager.sendPlayerMessage(player, 'spawn2 - Spawn sine wave block', 'FFFF00');
       world.chatManager.sendPlayerMessage(player, 'spawn3 - Spawn vertical wave block', 'FFFF00');
       world.chatManager.sendPlayerMessage(player, 'spawn4 - Spawn regular block', 'FFFF00');
+      world.chatManager.sendPlayerMessage(player, 'spawn5 - Spawn pop-up target', 'FFFF00');
       world.chatManager.sendPlayerMessage(player, 'spawnall - Spawn all block types', 'FFFF00');
       world.chatManager.sendPlayerMessage(player, 'clearblocks - Remove all blocks', 'FFFF00');
     });

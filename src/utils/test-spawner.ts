@@ -35,6 +35,7 @@ export class TestBlockSpawner {
         this.spawnSineWaveBlock(speedMultiplier);
         this.spawnVerticalWaveBlock(speedMultiplier);
         this.spawnRegularBlock();
+        this.spawnPopUpTarget();
     }
 
     /**
@@ -93,5 +94,22 @@ export class TestBlockSpawner {
             max: { x: 5, y: MOVING_BLOCK_CONFIG.SPAWN_POSITION.y, z: MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.max.z }
         });
         this.blockManager.createZAxisBlock(pos);
+    }
+
+    /**
+     * Spawn a pop-up target that emerges from below
+     */
+    public spawnPopUpTarget(): void {
+        const pos = {
+            x: Math.random() * 10 - 5, // Random X position between -5 and 5
+            y: MOVING_BLOCK_CONFIG.POPUP_TARGET.START_Y,
+            z: Math.random() * 20 - 10 // Random Z position between -10 and 10
+        };
+        
+        this.blockManager.createPopUpTarget({
+            spawnPosition: pos,
+            startY: MOVING_BLOCK_CONFIG.POPUP_TARGET.START_Y,
+            topY: MOVING_BLOCK_CONFIG.POPUP_TARGET.TOP_Y
+        });
     }
 } 

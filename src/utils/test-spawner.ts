@@ -12,6 +12,14 @@ export class TestBlockSpawner {
         };
     }
 
+    private getRandomPositionWithinBounds(bounds: {min: Vector3Like, max: Vector3Like}): Vector3Like {
+        return {
+            x: Math.random() * (bounds.max.x - bounds.min.x) + bounds.min.x,
+            y: Math.random() * (bounds.max.y - bounds.min.y) + bounds.min.y,
+            z: Math.random() * (bounds.max.z - bounds.min.z) + bounds.min.z,
+        };
+    }
+
     /**
      * Spawns one of each block type for testing purposes
      * @param speedMultiplier Optional speed multiplier for moving blocks
@@ -45,8 +53,17 @@ export class TestBlockSpawner {
      * Spawn a sine wave block
      */
     public spawnSineWaveBlock(speedMultiplier: number = 1): void {
+        // Generate a spawn position within the sine wave block's movement bounds.
+        // The bounds for sine wave blocks are set to have x in [-5, 5],
+        // y fixed at MOVING_BLOCK_CONFIG.SPAWN_POSITION.y (i.e. 1),
+        // and z between MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.min.z and MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.max.z.
+        const pos = this.getRandomPositionWithinBounds({
+            min: { x: -5, y: MOVING_BLOCK_CONFIG.SPAWN_POSITION.y, z: MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.min.z },
+            max: { x: 5, y: MOVING_BLOCK_CONFIG.SPAWN_POSITION.y, z: MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.max.z }
+        });
+        
         this.blockManager.createSineWaveBlock({
-            spawnPosition: this.getRandomPosition(),
+            spawnPosition: pos,
             moveSpeed: MOVING_BLOCK_CONFIG.DEFAULT_SPEED * speedMultiplier,
             amplitude: 2 + Math.random() * 2
         });
@@ -70,6 +87,11 @@ export class TestBlockSpawner {
      * Spawn a regular Z-axis block
      */
     public spawnRegularBlock(): void {
-        this.blockManager.createZAxisBlock(this.getRandomPosition());
+        // Ensure we spawn within the movement bounds defined in the config.
+        const pos = this.getRandomPositionWithinBounds({
+            min: { x: -5, y: MOVING_BLOCK_CONFIG.SPAWN_POSITION.y, z: MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.min.z },
+            max: { x: 5, y: MOVING_BLOCK_CONFIG.SPAWN_POSITION.y, z: MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.max.z }
+        });
+        this.blockManager.createZAxisBlock(pos);
     }
 } 

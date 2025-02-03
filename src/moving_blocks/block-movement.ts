@@ -50,7 +50,7 @@ export class SineWaveMovement implements BlockMovementBehavior {
   private readonly frequency: number;
   private readonly baseAxis: 'x' | 'y' | 'z';
   private readonly waveAxis: 'x' | 'y' | 'z';
-  private readonly initialY: number;
+  private initialY: number = 0; // Will be set on first update
   private readonly DEBUG_ENABLED = false;
 
   constructor(options: {
@@ -63,8 +63,7 @@ export class SineWaveMovement implements BlockMovementBehavior {
     this.frequency = options.frequency ?? 1;
     this.baseAxis = options.baseAxis ?? 'z';
     this.waveAxis = options.waveAxis ?? 'x';
-    this.initialY = 0; // Will be set on first update
-    
+    // initialY is set on first update
     if (this.DEBUG_ENABLED) {
       console.log('Created SineWaveMovement with:', {
         amplitude: this.amplitude,
@@ -75,30 +74,37 @@ export class SineWaveMovement implements BlockMovementBehavior {
     }
   }
 
-  update(block: MovingBlockEntity, deltaTimeMs: number): void {
-    // Store initial Y position on first update
-    if (this.elapsedTime === 0) {
-      (this as any).initialY = block.position.y;
-    }
+  /**
+   * Optionally clamps the position to be safely within the bounds.
+   * If an axis is fixed (min === max) then it returns that fixed value.
+   */
+  private clampPosition(pos: Vector3Like, bounds: { min: Vector3Like; max: Vector3Like }): Vector3Like {
+    const epsilon = 0.001;
+    return {
+      x: bounds.min.x === bounds.max.x ? bounds.min.x : Math.max(bounds.min.x + epsilon, Math.min(pos.x, bounds.max.x - epsilon)),
+      y: bounds.min.y === bounds.max.y ? bounds.min.y : Math.max(bounds.min.y + epsilon, Math.min(pos.y, bounds.max.y - epsilon)),
+      z: bounds.min.z === bounds.max.z ? bounds.min.z : Math.max(bounds.min.z + epsilon, Math.min(pos.z, bounds.max.z - epsilon))
+    };
+  }
 
+  update(block: MovingBlockEntity, deltaTimeMs: number): void {
+    // Set initialY on first update.
+    if (this.elapsedTime === 0) {
+      this.initialY = block.position.y;
+    }
     this.elapsedTime += deltaTimeMs / 1000;
-    
-    // Calculate base movement along the primary axis (usually Z)
+
     const baseSpeed = block.getMoveSpeed() * (deltaTimeMs / 1000);
     const baseMovement = block.getDirection()[this.baseAxis] * baseSpeed;
-    
-    // Calculate sine wave offset
     const waveOffset = this.amplitude * Math.sin(2 * Math.PI * this.frequency * this.elapsedTime);
-    
-    const newPosition = { ...block.position };
+
+    let newPosition = { ...block.position };
     newPosition[this.baseAxis] += baseMovement;
 
-    // Handle wave movement differently based on axis
+    // Apply wave offset on the proper axis
     if (this.waveAxis === 'y') {
-      // For Y-axis, oscillate around the initial spawn height
-      newPosition.y = (this as any).initialY + waveOffset;
+      newPosition.y = this.initialY + waveOffset;
     } else {
-      // For X or Z axis waves, just apply the offset directly
       newPosition[this.waveAxis] = waveOffset;
     }
 
@@ -107,7 +113,7 @@ export class SineWaveMovement implements BlockMovementBehavior {
         elapsedTime: this.elapsedTime.toFixed(2),
         baseMovement: baseMovement.toFixed(2),
         waveOffset: waveOffset.toFixed(2),
-        initialY: (this as any).initialY,
+        initialY: this.initialY,
         newPos: {
           x: newPosition.x.toFixed(2),
           y: newPosition.y.toFixed(2),
@@ -118,11 +124,27 @@ export class SineWaveMovement implements BlockMovementBehavior {
 
     if (!block.isWithinMovementBounds(newPosition)) {
       if (block.shouldOscillate()) {
+        // Reverse the movement direction.
         block.reverseMovementDirection();
-        // Adjust elapsed time to maintain smooth wave pattern when reversing
+
+        // Adjust elapsed time to try to maintain a smooth wave pattern.
         this.elapsedTime = Math.PI / (2 * Math.PI * this.frequency) - this.elapsedTime;
         if (this.DEBUG_ENABLED) {
           console.log('Reversing direction, new elapsed time:', this.elapsedTime);
+        }
+        // Recalculate after reversal.
+        const reversedBaseSpeed = block.getMoveSpeed() * (deltaTimeMs / 1000);
+        const reversedBaseMovement = block.getDirection()[this.baseAxis] * reversedBaseSpeed;
+        newPosition = { ...block.position };
+        newPosition[this.baseAxis] += reversedBaseMovement;
+        if (this.waveAxis === 'y') {
+          newPosition.y = this.initialY + waveOffset;
+        } else {
+          newPosition[this.waveAxis] = waveOffset;
+        }
+        // Clamp the newPosition into valid bounds.
+        if (block['movementBounds']) {
+          newPosition = this.clampPosition(newPosition, (block as any)['movementBounds']);
         }
       } else {
         block.resetToInitialPosition();
@@ -133,7 +155,7 @@ export class SineWaveMovement implements BlockMovementBehavior {
         return;
       }
     }
-    
+
     block.setPosition(newPosition);
   }
 }

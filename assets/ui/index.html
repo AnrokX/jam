@@ -440,23 +440,21 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--matrix-green);
-      font-family: var(--display-font);
-      font-size: 24px;
-      text-shadow: 0 0 10px var(--terminal-green);
-      animation: hitNotification 1s ease-out forwards;
       pointer-events: none;
       z-index: 1001;
-      background: rgba(0, 0, 0, 0.5);
-      padding: 5px 10px;
-      border-radius: 4px;
     }
 
     .hit-notification .score {
       color: var(--matrix-green);
       font-family: var(--display-font);
-      font-size: 24px;
-      text-shadow: 0 0 10px var(--terminal-green);
+      font-size: 28px;
+      text-shadow: 0 0 10px var(--terminal-green),
+                   0 0 20px var(--terminal-green),
+                   0 0 30px var(--terminal-green);
+      animation: hitNotification 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      opacity: 0;
+      transform: scale(0.5) translateZ(0);
+      transform-origin: center center;
     }
 
     .block-destroyed-notification {
@@ -467,66 +465,103 @@
       align-items: center;
       pointer-events: none;
       z-index: 1001;
-      animation: blockDestroyedNotification 1.5s ease-out forwards;
-      background: rgba(0, 0, 0, 0.7);
-      padding: 10px 15px;
-      border-radius: 8px;
-      border: 1px solid var(--blood-red);
-      box-shadow: 0 0 15px rgba(255, 0, 0, 0.3);
-      min-width: 200px;
     }
 
     .block-destroyed-notification .score {
       color: var(--blood-red);
       font-family: var(--display-font);
-      font-size: 36px;
-      text-shadow: 0 0 15px var(--glow-red);
+      font-size: 48px;
       font-weight: bold;
-      margin-bottom: 5px;
-      display: block;
+      text-shadow: 0 0 10px var(--glow-red),
+                   0 0 20px var(--glow-red),
+                   0 0 30px var(--glow-red);
+      animation: scoreAnimation 1.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      opacity: 0;
+      transform: scale(0.5) translateZ(0);
+      transform-origin: center center;
+      perspective: 1000px;
     }
 
     .block-destroyed-notification .text {
       color: var(--matrix-green);
       font-family: var(--display-font);
-      font-size: 20px;
-      text-shadow: 0 0 10px var(--terminal-green);
-      margin-top: 5px;
-      white-space: nowrap;
-      display: block;
+      font-size: 24px;
+      text-shadow: 0 0 10px var(--terminal-green),
+                   0 0 20px var(--terminal-green);
+      animation: textAnimation 1.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      animation-delay: 0.3s;
+      opacity: 0;
+      transform: scale(0.8) translateZ(0);
+      transform-origin: center center;
+      letter-spacing: 2px;
     }
 
     @keyframes hitNotification {
       0% {
         opacity: 0;
-        transform: translate(-50%, -50%) scale(0.5);
+        transform: scale(0.5) translateZ(-100px);
       }
-      20% {
+      30% {
         opacity: 1;
-        transform: translate(-50%, -50%) scale(1.2);
+        transform: scale(1.4) translateZ(100px);
+      }
+      60% {
+        opacity: 1;
+        transform: scale(1.2) translateZ(50px) translateY(-10px);
       }
       100% {
         opacity: 0;
-        transform: translate(-50%, -100%) scale(1);
+        transform: scale(1) translateZ(0) translateY(-50px);
       }
     }
 
-    @keyframes blockDestroyedNotification {
+    @keyframes scoreAnimation {
       0% {
         opacity: 0;
-        transform: translate(-50%, -50%) scale(0.5);
+        transform: scale(0.5) translateZ(-200px);
       }
-      20% {
+      25% {
         opacity: 1;
-        transform: translate(-50%, -50%) scale(1.2);
+        transform: scale(2) translateZ(150px);
+      }
+      40% {
+        opacity: 1;
+        transform: scale(1.8) translateZ(100px);
+      }
+      60% {
+        opacity: 1;
+        transform: scale(1.5) translateZ(50px) translateY(-10px);
       }
       80% {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.8;
+        transform: scale(1.2) translateZ(25px) translateY(-30px);
       }
       100% {
         opacity: 0;
-        transform: translate(-50%, -100%) scale(1);
+        transform: scale(1) translateZ(0) translateY(-60px);
+      }
+    }
+
+    @keyframes textAnimation {
+      0% {
+        opacity: 0;
+        transform: scale(0.8) translateZ(-50px);
+      }
+      40% {
+        opacity: 1;
+        transform: scale(1.2) translateZ(50px);
+      }
+      60% {
+        opacity: 1;
+        transform: scale(1.1) translateZ(25px) translateY(-10px);
+      }
+      80% {
+        opacity: 0.9;
+        transform: scale(1) translateZ(0) translateY(-20px);
+      }
+      100% {
+        opacity: 0;
+        transform: scale(0.9) translateZ(0) translateY(-40px);
       }
     }
   </style>
@@ -900,3 +935,4 @@ function updateLeaderboard(leaderboardData) {
 
 </body>
 </html>
+

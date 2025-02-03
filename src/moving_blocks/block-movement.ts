@@ -10,7 +10,7 @@ export class DefaultBlockMovement implements BlockMovementBehavior {
 
   update(block: MovingBlockEntity, deltaTimeMs: number): void {
     const deltaSeconds = deltaTimeMs / 1000;
-    const newPosition = {
+    let newPosition = {
       x: block.position.x + block.getDirection().x * block.getMoveSpeed() * deltaSeconds,
       y: block.position.y + block.getDirection().y * block.getMoveSpeed() * deltaSeconds,
       z: block.position.z + block.getDirection().z * block.getMoveSpeed() * deltaSeconds,
@@ -26,6 +26,11 @@ export class DefaultBlockMovement implements BlockMovementBehavior {
         if (this.DEBUG_ENABLED) {
           console.debug('[BlockMovement] Direction reversed due to boundary');
         }
+        newPosition = {
+          x: block.position.x + block.getDirection().x * block.getMoveSpeed() * deltaSeconds,
+          y: block.position.y + block.getDirection().y * block.getMoveSpeed() * deltaSeconds,
+          z: block.position.z + block.getDirection().z * block.getMoveSpeed() * deltaSeconds,
+        };
       } else {
         block.resetToInitialPosition();
         if (this.DEBUG_ENABLED) {

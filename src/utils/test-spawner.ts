@@ -94,7 +94,7 @@ export class TestBlockSpawner {
     // Block spawning methods
     public spawnTestBlocks(speedMultiplier: number = 1): void {
         if (this.DEBUG_ENABLED) {
-            console.log('Spawning test blocks with speed multiplier:', speedMultiplier);
+            // Remove debug log
         }
 
         // Clear existing blocks first
@@ -110,13 +110,13 @@ export class TestBlockSpawner {
         this.spawnParabolicTarget(speedMultiplier);
 
         if (this.DEBUG_ENABLED) {
-            console.log('All test blocks spawned successfully');
+            // Remove debug log
         }
     }
 
     public clearAllBlocks(): void {
         if (this.DEBUG_ENABLED) {
-            console.log('Clearing all blocks...');
+            // Remove debug log
         }
 
         const removedCount = this.world.entityManager.getAllEntities()
@@ -127,7 +127,7 @@ export class TestBlockSpawner {
             }).length;
 
         if (this.DEBUG_ENABLED) {
-            console.log(`Cleared ${removedCount} blocks`);
+            // Remove debug log
         }
     }
 
@@ -136,7 +136,7 @@ export class TestBlockSpawner {
         pos.y = 2 + Math.random() * 4; // Higher range for static targets
 
         if (this.DEBUG_ENABLED) {
-            console.log('Spawning static target at:', pos);
+            // Remove debug log
         }
 
         this.blockManager.createStaticTarget(pos);
@@ -146,7 +146,7 @@ export class TestBlockSpawner {
         const pos = this.getRandomPositionWithinBounds(this.sineWaveSpawnBounds);
         
         if (this.DEBUG_ENABLED) {
-            console.log('Spawning sine wave block at:', pos);
+            // Remove debug log
         }
 
         this.blockManager.createSineWaveBlock({
@@ -164,7 +164,7 @@ export class TestBlockSpawner {
         };
 
         if (this.DEBUG_ENABLED) {
-            console.log('Spawning vertical wave block at:', spawnPosition);
+            // Remove debug log
         }
 
         this.blockManager.createVerticalWaveBlock({
@@ -177,7 +177,7 @@ export class TestBlockSpawner {
         const pos = this.getRandomPositionWithinBounds(this.sineWaveSpawnBounds);
 
         if (this.DEBUG_ENABLED) {
-            console.log('Spawning regular block at:', pos);
+            // Remove debug log
         }
 
         this.blockManager.createZAxisBlock(pos);
@@ -187,7 +187,7 @@ export class TestBlockSpawner {
         const pos = this.getRandomPopUpPosition();
 
         if (this.DEBUG_ENABLED) {
-            console.log('Spawning pop-up target at:', pos);
+            // Remove debug log
         }
 
         this.blockManager.createPopUpTarget({
@@ -202,7 +202,7 @@ export class TestBlockSpawner {
         const pos = this.getRandomRisingPosition();
 
         if (this.DEBUG_ENABLED) {
-            console.log('Spawning rising target at:', pos);
+            // Remove debug log
         }
 
         this.blockManager.createRisingTarget({
@@ -230,15 +230,7 @@ export class TestBlockSpawner {
         }
 
         if (this.DEBUG_ENABLED) {
-            console.log('Spawning parabolic target with:', {
-                startPos,
-                endPos,
-                maxHeight: MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.MAX_HEIGHT,
-                duration: MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.DURATION / speedMultiplier,
-                distance: endPos.z - startPos.z,
-                lateralChange: endPos.x - startPos.x,
-                speedMultiplier
-            });
+            // Remove debug log
         }
 
         this.blockManager.createParabolicTarget({

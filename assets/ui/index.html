@@ -532,7 +532,6 @@
     const scoreElement = clone.querySelector('.score');
     
     onState(state => {
-      console.log('Hit notification state update:', state);
       if (scoreElement && state?.score != null) {
         scoreElement.textContent = `+${Math.round(Number(state.score))}`;
       }
@@ -542,8 +541,6 @@
   });
 
   hytopia.registerSceneUITemplate('block-destroyed-notification', (id, onState) => {
-    console.log('Block destroyed template registration called with id:', id);
-    
     const template = document.getElementById('block-destroyed-notification-template');
     const clone = template.content.cloneNode(true);
     
@@ -552,11 +549,8 @@
     
     // Register the state handler
     onState(state => {
-      console.log('Received state update:', state);
-      
       if (scoreElement && state?.score != null) {
         const score = Math.round(Number(state.score));
-        console.log('Setting score to:', score);
         scoreElement.textContent = `+${score}`;
       }
     });
@@ -635,7 +629,6 @@ setInterval(createParticle, 200);
 
 // Listen for projectile count updates and shoot attempts from the game
 hytopia.onData(data => {
-  console.log('Received data:', data); // Add logging
   if (data.type === 'updateProjectileCount') {
     updateProjectileCount(data.count);
   } else if (data.type === 'attemptShootNoAmmo') {
@@ -643,7 +636,6 @@ hytopia.onData(data => {
   } else if (data.type === 'updateScores') {
     updateScoreboard(data.scores);
   } else if (data.type === 'roundUpdate') {
-    console.log('Round update received:', data.data); // Add logging
     updateRoundInfo(data.data);
   } else if (data.type === 'roundEnd') {
     handleRoundEnd(data.data);
@@ -789,7 +781,6 @@ function updateRoundInfo(roundData) {
   
   // Start or update timer with the full duration
   if (roundData.timeRemaining > 0) {
-    console.log('Starting timer with duration:', roundData.timeRemaining);
     startLocalTimer(roundData.timeRemaining);
   }
 }

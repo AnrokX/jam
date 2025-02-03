@@ -822,7 +822,6 @@ export class MovingBlockManager {
     
     // Ensure we have a valid spawn position
     const spawnPosition = options.spawnPosition || { ...MOVING_BLOCK_CONFIG.SPAWN_POSITION, z: -5 };
-    console.log('Spawning sine wave block at:', spawnPosition);
     
     block.spawn(this.world, spawnPosition);
     this.blocks.push(block);
@@ -852,7 +851,6 @@ export class MovingBlockManager {
       }
     }));
     
-    console.log('Spawning static target at:', finalSpawnPosition);
     block.spawn(this.world, finalSpawnPosition);
     this.blocks.push(block);
 
@@ -921,7 +919,6 @@ export class MovingBlockManager {
       z: -5
     };
     
-    console.log('Spawning vertical wave block at:', spawnPosition);
     block.spawn(this.world, spawnPosition);
     this.blocks.push(block);
     

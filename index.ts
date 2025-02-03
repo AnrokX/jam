@@ -58,55 +58,46 @@ startServer(world => {
   if (IS_TEST_MODE && testSpawner) {
     // Register commands without the '/' prefix
     world.chatManager.registerCommand('spawn1', (player) => {
-      console.log('Executing spawn1 command');
       testSpawner.spawnStaticTarget();
       world.chatManager.sendPlayerMessage(player, 'Spawned a static target', 'FFFF00');
     });
 
     world.chatManager.registerCommand('spawn2', (player) => {
-      console.log('Executing spawn2 command');
       testSpawner.spawnSineWaveBlock();
       world.chatManager.sendPlayerMessage(player, 'Spawned a sine wave block', 'FFFF00');
     });
 
     world.chatManager.registerCommand('spawn3', (player) => {
-      console.log('Executing spawn3 command');
       testSpawner.spawnVerticalWaveBlock();
       world.chatManager.sendPlayerMessage(player, 'Spawned a vertical wave block', 'FFFF00');
     });
 
     world.chatManager.registerCommand('spawn4', (player) => {
-      console.log('Executing spawn4 command');
       testSpawner.spawnRegularBlock();
       world.chatManager.sendPlayerMessage(player, 'Spawned a regular block', 'FFFF00');
     });
 
     world.chatManager.registerCommand('spawn5', (player) => {
-      console.log('Executing spawn5 command');
       testSpawner.spawnPopUpTarget();
       world.chatManager.sendPlayerMessage(player, 'Spawned a pop-up target', 'FFFF00');
     });
 
     world.chatManager.registerCommand('spawn6', (player) => {
-      console.log('Executing spawn6 command');
       testSpawner.spawnRisingTarget();
       world.chatManager.sendPlayerMessage(player, 'Spawned a rising target (stops at pop-up height, then shoots up)', 'FFFF00');
     });
 
     world.chatManager.registerCommand('spawn7', (player) => {
-      console.log('Executing spawn7 command');
       testSpawner.spawnParabolicTarget();
       world.chatManager.sendPlayerMessage(player, 'Spawned a parabolic target (moves in a long, dramatic arc with physics-based motion)', 'FFFF00');
     });
 
     world.chatManager.registerCommand('spawnall', (player) => {
-      console.log('Executing spawnall command');
       testSpawner.spawnTestBlocks();
       world.chatManager.sendPlayerMessage(player, 'Spawned all block types', 'FFFF00');
     });
 
     world.chatManager.registerCommand('clearblocks', (player) => {
-      console.log('Executing clearblocks command');
       world.entityManager.getAllEntities()
         .filter(entity => entity.name.toLowerCase().includes('block'))
         .forEach(entity => entity.despawn());

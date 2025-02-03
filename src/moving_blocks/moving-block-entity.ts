@@ -59,14 +59,24 @@ export const MOVING_BLOCK_CONFIG = {
     TEXTURE: 'blocks/amethyst-block.png',
     HALF_EXTENTS: { x: 0.8, y: 0.8, z: 0.8 },
     START_Y: -20,
-    MAX_HEIGHT: 15,
+    MAX_HEIGHT: 20,        // Increased height for more dramatic arc
     END_Y: -20,
     SPEED_MULTIPLIER: 1.0,  // Not used in new physics-based system
     SCORE_MULTIPLIER: 4,    // Highest points due to difficulty
     HEALTH: 1,             // One-shot kill
     DURATION: 5000,        // 5 seconds total
-    MIN_DISTANCE: 10,      // Minimum horizontal distance to travel
-    MAX_DISTANCE: 30       // Maximum horizontal distance to travel
+    SPAWN_BOUNDS: {
+      FORWARD: {          // Z-axis (depth) boundaries
+        MIN: -25,         // How far back it can start
+        MAX: 25          // How far forward it can go
+      },
+      LATERAL: {          // X-axis (side-to-side) boundaries
+        MIN: -15,         // How far left it can go
+        MAX: 15          // How far right it can go
+      }
+    },
+    MIN_TRAVEL_DISTANCE: 30,  // Minimum distance the block must travel
+    MAX_TRAVEL_DISTANCE: 50   // Maximum distance the block can travel
   },
   PARTICLE_CONFIG: {
     COUNT: 50,               
@@ -620,13 +630,28 @@ export class MovingBlockEntity extends Entity {
 
   // Helper method to create parabolic target configuration
   static createParabolicConfiguration(customConfig?: Partial<MovingBlockOptions>): MovingBlockOptions {
-    const randomStartX = Math.random() * 10 - 5; // Random X between -5 and 5
-    const randomEndX = Math.random() * 10 - 5;   // Different random X for end point
-    const distance = MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.MIN_DISTANCE + 
-                    Math.random() * (MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.MAX_DISTANCE - 
-                                   MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.MIN_DISTANCE);
-    const startZ = -15;                          // Start from back of field
-    const endZ = startZ + distance;              // End point based on random distance
+    // Calculate random start and end X positions using LATERAL bounds
+    const randomStartX = Math.random() * 
+                        (MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.SPAWN_BOUNDS.LATERAL.MAX - 
+                         MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.SPAWN_BOUNDS.LATERAL.MIN) + 
+                         MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.SPAWN_BOUNDS.LATERAL.MIN;
+
+    const randomEndX = Math.random() * 
+                      (MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.SPAWN_BOUNDS.LATERAL.MAX - 
+                       MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.SPAWN_BOUNDS.LATERAL.MIN) + 
+                       MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.SPAWN_BOUNDS.LATERAL.MIN;
+
+    // Calculate random distance within the new min/max range
+    const distance = MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.MIN_TRAVEL_DISTANCE + 
+                    Math.random() * (MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.MAX_TRAVEL_DISTANCE - 
+                                   MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.MIN_TRAVEL_DISTANCE);
+
+    // Use FORWARD bounds for Z coordinates
+    const startZ = MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.SPAWN_BOUNDS.FORWARD.MIN;
+    const endZ = Math.min(
+      startZ + distance,
+      MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.SPAWN_BOUNDS.FORWARD.MAX
+    );
 
     return {
       blockTextureUri: this.DefaultParabolicTexture,

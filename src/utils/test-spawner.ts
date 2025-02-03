@@ -37,8 +37,16 @@ export class TestBlockSpawner {
 
     private get parabolicSpawnBounds(): { min: Vector3Like, max: Vector3Like } {
         return {
-            min: { x: -5, y: MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.START_Y, z: -15 },
-            max: { x: 5, y: MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.START_Y, z: 15 }
+            min: { 
+                x: MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.SPAWN_BOUNDS.LATERAL.MIN,
+                y: MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.START_Y, 
+                z: MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.SPAWN_BOUNDS.FORWARD.MIN
+            },
+            max: { 
+                x: MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.SPAWN_BOUNDS.LATERAL.MAX,
+                y: MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.START_Y, 
+                z: MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.SPAWN_BOUNDS.FORWARD.MAX
+            }
         };
     }
 
@@ -210,12 +218,25 @@ export class TestBlockSpawner {
     public spawnParabolicTarget(speedMultiplier: number = 1): void {
         const startPos = this.getRandomParabolicPosition();
         const endPos = this.getRandomParabolicPosition();
-        endPos.z = Math.max(endPos.z, startPos.z + 10); // Ensure it moves forward
+        
+        // Ensure minimum forward distance and proper direction
+        const forwardDistance = endPos.z - startPos.z;
+        if (forwardDistance < MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.MIN_TRAVEL_DISTANCE) {
+            // Adjust end position to ensure minimum distance while staying in bounds
+            endPos.z = Math.min(
+                startPos.z + MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.MIN_TRAVEL_DISTANCE,
+                MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.SPAWN_BOUNDS.FORWARD.MAX
+            );
+        }
 
         if (this.DEBUG_ENABLED) {
             console.log('Spawning parabolic target with:', {
                 startPos,
                 endPos,
+                maxHeight: MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.MAX_HEIGHT,
+                duration: MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.DURATION / speedMultiplier,
+                distance: endPos.z - startPos.z,
+                lateralChange: endPos.x - startPos.x,
                 speedMultiplier
             });
         }
@@ -224,7 +245,7 @@ export class TestBlockSpawner {
             startPoint: startPos,
             endPoint: endPos,
             maxHeight: MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.MAX_HEIGHT,
-            duration: MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.DURATION / speedMultiplier // Adjust duration based on speed multiplier
+            duration: MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.DURATION / speedMultiplier
         });
     }
 

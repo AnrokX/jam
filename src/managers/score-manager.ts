@@ -20,22 +20,22 @@ interface PlayerStats {
 
 export class ScoreManager extends Entity {
   private static readonly SCORING_CONFIG = {
-    COMBO_TIMEOUT_MS: 3000,         // Reduced combo window to 3 seconds for faster-paced gameplay
-    TIME_DECAY_FACTOR: 15.0,        // More forgiving time decay to account for faster shots
-    BASE_SCORE_MULTIPLIER: 1.5,     // Keep base multiplier the same
-    MIN_SCORE: 1,                   // Minimum score remains the same
+    COMBO_TIMEOUT_MS: 4000,         // Increased combo window for early rounds
+    TIME_DECAY_FACTOR: 20.0,        // More forgiving time decay
+    BASE_SCORE_MULTIPLIER: 1.0,     // Reduced base multiplier to make progression more meaningful
+    MIN_SCORE: 5,                   // Increased minimum score for better feedback
     
-    // Movement multipliers with higher rewards for moving targets
-    BASE_MOVEMENT_MULTIPLIER: 0.8,   // Keep static target baseline
-    SINE_WAVE_MULTIPLIER: 2.5,      // Keep movement bonuses the same
-    VERTICAL_WAVE_MULTIPLIER: 3.0,   // as they're well balanced
-    POPUP_MULTIPLIER: 3.5,          // for the different
-    RISING_MULTIPLIER: 4.0,         // movement types
-    PARABOLIC_MULTIPLIER: 4.5,      // and difficulty levels
+    // Movement multipliers adjusted for progression
+    BASE_MOVEMENT_MULTIPLIER: 1.0,   // Base for static targets
+    SINE_WAVE_MULTIPLIER: 2.0,      // Reduced from 2.5 for better scaling
+    VERTICAL_WAVE_MULTIPLIER: 2.5,   // Reduced from 3.0
+    POPUP_MULTIPLIER: 2.0,          // Reduced from 3.5
+    RISING_MULTIPLIER: 2.5,         // Reduced from 4.0
+    PARABOLIC_MULTIPLIER: 3.0,      // Reduced from 4.5
     
-    // Adjusted combo system for faster gameplay
-    MAX_COMBO_BONUS: 0.6,           // Slightly increased max combo bonus to reward skill
-    MAX_MULTI_HIT_BONUS: 0.4,       // Slightly reduced multi-hit to balance faster shots
+    // Combo system adjusted for early game
+    MAX_COMBO_BONUS: 0.5,           // Slightly reduced max combo
+    MAX_MULTI_HIT_BONUS: 0.3,       // Slightly reduced multi-hit
   };
 
   // Map to hold scores and stats for each player by their ID

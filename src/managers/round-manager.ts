@@ -42,19 +42,52 @@ export class RoundManager {
     }
 
     private getRoundConfig(round: number): RoundConfig {
-        // Base configuration that scales with round number
+        // Tutorial round (Round 1)
+        if (round === 1) {
+            return {
+                duration: 90000,  // 90 seconds for first round to give more time
+                minBlockCount: 8,  // Start with fewer blocks
+                maxBlockCount: 12, // Keep it manageable
+                blockSpawnInterval: 2000, // Slower spawning (2 seconds)
+                speedMultiplier: 0.7,  // Slower speed for learning
+                blockTypes: {
+                    normal: 0,      // No normal blocks in tutorial
+                    sineWave: 0,    // No sine waves in tutorial
+                    static: 0.7,    // 70% static targets to learn aiming
+                    verticalWave: 0  // No vertical waves in tutorial
+                }
+            };
+        }
+        
+        // Early rounds (2-3)
+        if (round <= 3) {
+            return {
+                duration: 75000,  // 75 seconds
+                minBlockCount: 10 + Math.floor(round * 2),
+                maxBlockCount: 15 + Math.floor(round * 3),
+                blockSpawnInterval: 1500,  // 1.5 seconds between spawns
+                speedMultiplier: 0.8 + (round * 0.1),
+                blockTypes: {
+                    normal: Math.min(0.3, (round - 1) * 0.15),     // Gradually introduce normal
+                    sineWave: Math.min(0.2, (round - 2) * 0.1),    // Start sine waves from round 3
+                    static: Math.max(0.4, 1 - (round * 0.15)),     // Decrease static targets gradually
+                    verticalWave: 0                                 // No vertical waves yet
+                }
+            };
+        }
+        
+        // Regular rounds (4+)
         return {
-            duration: 60000,  // Fixed 60 seconds for each round
-            minBlockCount: 30 + Math.floor(round * 2),  // Much higher minimum
-            maxBlockCount: 50 + Math.floor(round * 3),  // Much higher maximum
-            blockSpawnInterval: 625,  // Spawn every 0.625 seconds (25% slower)
-            speedMultiplier: 1 + (round * 0.1),  // Keep the same speed progression
+            duration: 60000,  // Back to 60 seconds
+            minBlockCount: 15 + Math.floor(round * 2),
+            maxBlockCount: 25 + Math.floor(round * 3),
+            blockSpawnInterval: 1000,  // 1 second between spawns
+            speedMultiplier: 1 + ((round - 3) * 0.1),  // Speed starts increasing from round 4
             blockTypes: {
-                // Start with 100% static blocks, gradually introduce others after round 1
-                normal: Math.max(0, (round - 1) * 0.1),     // No normal blocks in round 1
-                sineWave: Math.max(0, (round - 1) * 0.05),  // No sine waves in round 1
-                static: Math.max(1 - (round * 0.1), 0.4),   // 100% in round 1, minimum 40% later
-                verticalWave: Math.max(0, (round - 1) * 0.05) // No vertical waves in round 1
+                normal: Math.min(0.35, 0.3 + (round - 3) * 0.05),      // Cap at 35%
+                sineWave: Math.min(0.3, 0.2 + (round - 3) * 0.05),     // Cap at 30%
+                static: Math.max(0.2, 0.4 - (round - 3) * 0.05),       // Minimum 20%
+                verticalWave: Math.min(0.15, (round - 3) * 0.05)       // Start from round 4, cap at 15%
             }
         };
     }

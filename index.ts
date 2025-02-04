@@ -18,8 +18,9 @@ import { TestBlockSpawner } from './src/utils/test-spawner';
 import { SceneUIManager } from './src/scene-ui/scene-ui-manager';
 
 // Configuration flags
-const IS_TEST_MODE = true;  // Set this to true to enable test mode, false for normal game
+const IS_TEST_MODE = false;  // Set this to true to enable test mode, false for normal game
 const DEBUG_ENABLED = false;  // Development debug flag
+
 
 startServer(world => {
   console.log('Starting server and initializing debug settings...');

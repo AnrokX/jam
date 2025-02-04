@@ -65,48 +65,7 @@ export class TestBlockSpawner {
         };
     }
 
-    // Helper methods for position generation
-    private getRandomPosition(): Vector3Like {
-        const bounds = this.defaultSpawnBounds;
-        return this.getRandomPositionWithinBounds(bounds);
-    }
-
-    private getRandomPositionWithinBounds(bounds: {min: Vector3Like, max: Vector3Like}): Vector3Like {
-        return {
-            x: Math.random() * (bounds.max.x - bounds.min.x) + bounds.min.x,
-            y: Math.random() * (bounds.max.y - bounds.min.y) + bounds.min.y,
-            z: Math.random() * (bounds.max.z - bounds.min.z) + bounds.min.z,
-        };
-    }
-
-    private getRandomPopUpPosition(): Vector3Like {
-        const bounds = this.popUpSpawnBounds;
-        return {
-            x: Math.random() * (bounds.max.x - bounds.min.x) + bounds.min.x,
-            y: bounds.min.y, // Fixed Y position for pop-up targets
-            z: Math.random() * (bounds.max.z - bounds.min.z) + bounds.min.z
-        };
-    }
-
-    private getRandomRisingPosition(): Vector3Like {
-        const bounds = this.risingSpawnBounds;
-        return {
-            x: Math.random() * (bounds.max.x - bounds.min.x) + bounds.min.x,
-            y: bounds.min.y, // Fixed Y position for rising targets
-            z: Math.random() * (bounds.max.z - bounds.min.z) + bounds.min.z
-        };
-    }
-
-    private getRandomParabolicPosition(): Vector3Like {
-        const bounds = this.parabolicSpawnBounds;
-        return {
-            x: Math.random() * (bounds.max.x - bounds.min.x) + bounds.min.x,
-            y: bounds.min.y, // Fixed Y position for parabolic targets
-            z: Math.random() * (bounds.max.z - bounds.min.z) + bounds.min.z
-        };
-    }
-
-    // Helper methods for safe pendulum spawning
+    // Helper methods for safe position checking
     private isPositionSafeFromPlatforms(position: Vector3Like): boolean {
         const safetyMargin = MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.PLATFORM_SAFETY_MARGIN;
         
@@ -123,14 +82,79 @@ export class TestBlockSpawner {
         // A position is safe if it's either:
         // 1. Far enough from the right platform OR not in its Z range
         // 2. Far enough from the left platform OR not in its Z range
-        const isSafeFromRightPlatform = rightPlatformDistance >= MOVING_BLOCK_CONFIG.PENDULUM_TARGET.MIN_DISTANCE_FROM_PLATFORMS || 
+        const isSafeFromRightPlatform = rightPlatformDistance >= MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.PLATFORM_SAFETY_MARGIN || 
                                       !isInRightPlatformZRange;
-        const isSafeFromLeftPlatform = leftPlatformDistance >= MOVING_BLOCK_CONFIG.PENDULUM_TARGET.MIN_DISTANCE_FROM_PLATFORMS || 
+        const isSafeFromLeftPlatform = leftPlatformDistance >= MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.PLATFORM_SAFETY_MARGIN || 
                                      !isInLeftPlatformZRange;
         
         return isSafeFromRightPlatform && isSafeFromLeftPlatform;
     }
 
+    private getRandomPositionWithinBounds(bounds: {min: Vector3Like, max: Vector3Like}): Vector3Like {
+        return {
+            x: Math.random() * (bounds.max.x - bounds.min.x) + bounds.min.x,
+            y: Math.random() * (bounds.max.y - bounds.min.y) + bounds.min.y,
+            z: Math.random() * (bounds.max.z - bounds.min.z) + bounds.min.z,
+        };
+    }
+
+    private getSafeRandomPosition(bounds: {min: Vector3Like, max: Vector3Like}, maxAttempts: number = 50): Vector3Like {
+        let attempts = 0;
+        let position: Vector3Like;
+
+        do {
+            position = this.getRandomPositionWithinBounds(bounds);
+            attempts++;
+
+            if (attempts >= maxAttempts) {
+                // If we can't find a safe position, return a default position in the middle
+                return {
+                    x: 0,
+                    y: bounds.min.y + (bounds.max.y - bounds.min.y) / 2,
+                    z: 0
+                };
+            }
+        } while (!this.isPositionSafeFromPlatforms(position));
+
+        return position;
+    }
+
+    // Modify the existing position generation methods to use the safe check
+    private getRandomPosition(): Vector3Like {
+        return this.getSafeRandomPosition(this.defaultSpawnBounds);
+    }
+
+    private getRandomPopUpPosition(): Vector3Like {
+        const bounds = this.popUpSpawnBounds;
+        const safePosition = this.getSafeRandomPosition(bounds);
+        return {
+            x: safePosition.x,
+            y: bounds.min.y, // Fixed Y position for pop-up targets
+            z: safePosition.z
+        };
+    }
+
+    private getRandomRisingPosition(): Vector3Like {
+        const bounds = this.risingSpawnBounds;
+        const safePosition = this.getSafeRandomPosition(bounds);
+        return {
+            x: safePosition.x,
+            y: bounds.min.y, // Fixed Y position for rising targets
+            z: safePosition.z
+        };
+    }
+
+    private getRandomParabolicPosition(): Vector3Like {
+        const bounds = this.parabolicSpawnBounds;
+        const safePosition = this.getSafeRandomPosition(bounds);
+        return {
+            x: safePosition.x,
+            y: bounds.min.y, // Fixed Y position for parabolic targets
+            z: safePosition.z
+        };
+    }
+
+    // Helper methods for safe pendulum spawning
     private isPositionSafeFromOtherPendulums(position: Vector3Like): boolean {
         const existingPendulums = this.world.entityManager.getAllEntities()
             .filter(entity => entity.name.toLowerCase().includes('block') && 

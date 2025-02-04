@@ -20,22 +20,22 @@ interface PlayerStats {
 
 export class ScoreManager extends Entity {
   private static readonly SCORING_CONFIG = {
-    COMBO_TIMEOUT_MS: 5000,         // Time window for maintaining combo (5 seconds)
-    TIME_DECAY_FACTOR: 12.0,        // More punishing time decay
-    BASE_SCORE_MULTIPLIER: 1.5,     // Lower base multiplier for more challenging scoring
-    MIN_SCORE: 1,                   // Minimum score for any hit
+    COMBO_TIMEOUT_MS: 3000,         // Reduced combo window to 3 seconds for faster-paced gameplay
+    TIME_DECAY_FACTOR: 15.0,        // More forgiving time decay to account for faster shots
+    BASE_SCORE_MULTIPLIER: 1.5,     // Keep base multiplier the same
+    MIN_SCORE: 1,                   // Minimum score remains the same
     
     // Movement multipliers with higher rewards for moving targets
-    BASE_MOVEMENT_MULTIPLIER: 1.0,   // Static targets baseline
-    SINE_WAVE_MULTIPLIER: 2.0,      // Basic movement bonus
-    VERTICAL_WAVE_MULTIPLIER: 2.5,   // Moderate challenge bonus
-    POPUP_MULTIPLIER: 3.0,          // More challenging movement
-    RISING_MULTIPLIER: 3.5,         // Difficult shots
-    PARABOLIC_MULTIPLIER: 4.0,      // Most challenging movement
+    BASE_MOVEMENT_MULTIPLIER: 0.8,   // Keep static target baseline
+    SINE_WAVE_MULTIPLIER: 2.5,      // Keep movement bonuses the same
+    VERTICAL_WAVE_MULTIPLIER: 3.0,   // as they're well balanced
+    POPUP_MULTIPLIER: 3.5,          // for the different
+    RISING_MULTIPLIER: 4.0,         // movement types
+    PARABOLIC_MULTIPLIER: 4.5,      // and difficulty levels
     
-    // Combo system with reduced bonuses
-    MAX_COMBO_BONUS: 0.5,           // Maximum 50% bonus from combos
-    MAX_MULTI_HIT_BONUS: 0.5,       // Maximum 50% bonus from multi-hits
+    // Adjusted combo system for faster gameplay
+    MAX_COMBO_BONUS: 0.6,           // Slightly increased max combo bonus to reward skill
+    MAX_MULTI_HIT_BONUS: 0.4,       // Slightly reduced multi-hit to balance faster shots
   };
 
   // Map to hold scores and stats for each player by their ID
@@ -212,7 +212,13 @@ export class ScoreManager extends Entity {
 
   // Calculate average of target's half-extents (S)
   private calculateAverageSize(halfExtents: Vector3Like): number {
-    return (halfExtents.x + halfExtents.y + halfExtents.z) / 3;
+    // Get the full dimensions by multiplying by 2 (since these are half-extents)
+    const fullWidth = Math.max(halfExtents.x * 2, 2); // Minimum size of 2 for standard blocks
+    const fullHeight = Math.max(halfExtents.y * 2, 2);
+    const fullDepth = Math.max(halfExtents.z * 2, 2);
+    
+    // Calculate the average dimension, considering the actual block formation
+    return (fullWidth + fullHeight + fullDepth) / 3;
   }
 
   // Get movement multiplier based on block type
@@ -256,10 +262,23 @@ export class ScoreManager extends Entity {
     stats.lastHitTime = currentTime;
     this.playerStats.set(playerId, stats);
     
+    // Update combo bonus calculation
+    const comboBonus = Math.min(
+      (stats.consecutiveHits - 1) * 0.15,  // Reduced per-hit bonus (was 0.2)
+      ScoreManager.SCORING_CONFIG.MAX_COMBO_BONUS
+    );
+    
+    const multiHitBonus = Math.min(
+      (stats.multiHitCount - 1) * 0.1,     // Reduced per-hit bonus (was 0.2)
+      ScoreManager.SCORING_CONFIG.MAX_MULTI_HIT_BONUS
+    );
+    
     console.log(`Player ${playerId} hit counters updated:`, {
       consecutiveHits: stats.consecutiveHits,
       multiHitCount: stats.multiHitCount,
-      comboTimeRemaining: ScoreManager.SCORING_CONFIG.COMBO_TIMEOUT_MS - (currentTime - stats.lastHitTime)
+      comboTimeRemaining: ScoreManager.SCORING_CONFIG.COMBO_TIMEOUT_MS - (currentTime - stats.lastHitTime),
+      currentComboBonus: comboBonus.toFixed(2),
+      currentMultiHitBonus: multiHitBonus.toFixed(2)
     });
   }
 
@@ -278,20 +297,39 @@ export class ScoreManager extends Entity {
 
     // Calculate distance (D)
     const distance = this.calculateDistance(spawnOrigin, impactPoint);
-    console.log(`Distance from spawn to impact: ${distance.toFixed(2)} units`);
+    console.log('🎯 Distance Analysis:', {
+      spawnPoint: spawnOrigin,
+      impactPoint,
+      distance: distance.toFixed(2),
+      explanation: 'Higher distance should increase score'
+    });
 
     // Calculate size factor (S)
     const averageSize = this.calculateAverageSize(block.getBlockDimensions());
-    console.log(`Average target size: ${averageSize.toFixed(2)} units`);
+    console.log('📏 Size Analysis:', {
+      blockDimensions: block.getBlockDimensions(),
+      averageSize: averageSize.toFixed(2),
+      distanceToSizeRatio: (distance / averageSize).toFixed(2),
+      explanation: 'Smaller targets should give higher scores'
+    });
 
     // Get movement multiplier (M)
     const movementMultiplier = this.getMovementMultiplier(block);
-    console.log(`Movement multiplier: ${movementMultiplier}`);
+    console.log('🔄 Movement Analysis:', {
+      behaviorType: block.getMovementBehaviorType(),
+      multiplier: movementMultiplier,
+      explanation: `Using ${movementMultiplier}x multiplier based on movement pattern`
+    });
 
-    // Calculate time factor (T) with less severe penalty
+    // Calculate time factor (T)
     const elapsedTime = (Date.now() - block.getSpawnTime()) / 1000; // Convert to seconds
     const timeFactor = ScoreManager.SCORING_CONFIG.TIME_DECAY_FACTOR / (elapsedTime + ScoreManager.SCORING_CONFIG.TIME_DECAY_FACTOR);
-    console.log(`Time since target spawn: ${elapsedTime.toFixed(2)} seconds`);
+    console.log('⏱️ Time Analysis:', {
+      elapsedSeconds: elapsedTime.toFixed(2),
+      decayFactor: ScoreManager.SCORING_CONFIG.TIME_DECAY_FACTOR,
+      timeFactor: timeFactor.toFixed(4),
+      explanation: 'Time factor decreases score for older targets'
+    });
 
     // Get combo (C) and multi-hit (H) bonuses
     const stats = this.playerStats.get(playerId);
@@ -304,43 +342,56 @@ export class ScoreManager extends Entity {
     const updatedStats = this.playerStats.get(playerId)!;
     
     const comboBonus = Math.min(
-      (updatedStats.consecutiveHits - 1) * 0.2,  // Increased from 0.1
+      (updatedStats.consecutiveHits - 1) * 0.15,
       ScoreManager.SCORING_CONFIG.MAX_COMBO_BONUS
     );
     
     const multiHitBonus = Math.min(
-      (updatedStats.multiHitCount - 1) * 0.2,    // Increased from 0.1
+      (updatedStats.multiHitCount - 1) * 0.1,
       ScoreManager.SCORING_CONFIG.MAX_MULTI_HIT_BONUS
     );
 
-    console.log('Bonus multipliers:', {
-      comboBonus,
-      multiHitBonus,
+    console.log('🔄 Combo Analysis:', {
       consecutiveHits: updatedStats.consecutiveHits,
-      multiHitCount: updatedStats.multiHitCount
+      maxComboBonus: ScoreManager.SCORING_CONFIG.MAX_COMBO_BONUS,
+      actualComboBonus: comboBonus.toFixed(2),
+      explanation: `${updatedStats.consecutiveHits} consecutive hits = ${comboBonus.toFixed(2)}x bonus`
     });
 
-    // Calculate final score using the modified formula:
-    // Score = ((D/S) * M * timeFactor * BASE_MULTIPLIER) * (1+C+H)
-    const baseScore = (distance / averageSize) * 
+    console.log('🎯 Multi-Hit Analysis:', {
+      multiHitCount: updatedStats.multiHitCount,
+      maxMultiHitBonus: ScoreManager.SCORING_CONFIG.MAX_MULTI_HIT_BONUS,
+      actualMultiHitBonus: multiHitBonus.toFixed(2),
+      explanation: `${updatedStats.multiHitCount} hits on target = ${multiHitBonus.toFixed(2)}x bonus`
+    });
+
+    // Calculate base score components
+    const distanceSizeFactor = distance / averageSize;
+    const baseScore = distanceSizeFactor * 
                      movementMultiplier * 
                      timeFactor * 
                      ScoreManager.SCORING_CONFIG.BASE_SCORE_MULTIPLIER;
                      
+    const bonusMultiplier = 1 + comboBonus + multiHitBonus;
     const finalScore = Math.max(
       ScoreManager.SCORING_CONFIG.MIN_SCORE,
-      Math.round(baseScore * (1 + comboBonus + multiHitBonus))
+      Math.round(baseScore * bonusMultiplier)
     );
 
-    console.log('Score calculation details:', {
-      baseScore: baseScore.toFixed(2),
-      finalScore,
+    console.log('💯 Final Score Breakdown:', {
       components: {
-        distanceToSize: (distance / averageSize).toFixed(2),
-        movementMultiplier,
+        distanceSizeFactor: distanceSizeFactor.toFixed(2),
+        movementMultiplier: movementMultiplier.toFixed(2),
         timeFactor: timeFactor.toFixed(2),
-        totalBonus: (1 + comboBonus + multiHitBonus).toFixed(2)
-      }
+        baseMultiplier: ScoreManager.SCORING_CONFIG.BASE_SCORE_MULTIPLIER,
+        bonusMultiplier: bonusMultiplier.toFixed(2)
+      },
+      calculations: {
+        baseScore: baseScore.toFixed(2),
+        afterBonuses: (baseScore * bonusMultiplier).toFixed(2),
+        finalScore: finalScore
+      },
+      formula: 'Score = ((D/S * M * timeFactor * BASE_MULTIPLIER) * (1 + C + H))'
     });
 
     return finalScore;

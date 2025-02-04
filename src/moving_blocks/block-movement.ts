@@ -6,8 +6,6 @@ export interface BlockMovementBehavior {
 }
 
 export class DefaultBlockMovement implements BlockMovementBehavior {
-  private readonly DEBUG_ENABLED = false; // Set to true only during development
-
   update(block: MovingBlockEntity, deltaTimeMs: number): void {
     const deltaSeconds = deltaTimeMs / 1000;
     let newPosition = {
@@ -16,16 +14,9 @@ export class DefaultBlockMovement implements BlockMovementBehavior {
       z: block.position.z + block.getDirection().z * block.getMoveSpeed() * deltaSeconds,
     };
 
-    if (this.DEBUG_ENABLED) {
-      console.debug(`[BlockMovement] New position calculated: ${JSON.stringify(newPosition)}`);
-    }
-
     if (!block.isWithinMovementBounds(newPosition)) {
       if (block.shouldOscillate()) {
         block.reverseMovementDirection();
-        if (this.DEBUG_ENABLED) {
-          console.debug('[BlockMovement] Direction reversed due to boundary');
-        }
         newPosition = {
           x: block.position.x + block.getDirection().x * block.getMoveSpeed() * deltaSeconds,
           y: block.position.y + block.getDirection().y * block.getMoveSpeed() * deltaSeconds,
@@ -33,9 +24,6 @@ export class DefaultBlockMovement implements BlockMovementBehavior {
         };
       } else {
         block.resetToInitialPosition();
-        if (this.DEBUG_ENABLED) {
-          console.debug('[BlockMovement] Position reset to initial');
-        }
         return;
       }
     }
@@ -51,7 +39,6 @@ export class SineWaveMovement implements BlockMovementBehavior {
   private readonly baseAxis: 'x' | 'y' | 'z';
   private readonly waveAxis: 'x' | 'y' | 'z';
   private initialY: number = 0; // Will be set on first update
-  private readonly DEBUG_ENABLED = false;
 
   constructor(options: {
     amplitude?: number;
@@ -63,15 +50,6 @@ export class SineWaveMovement implements BlockMovementBehavior {
     this.frequency = options.frequency ?? 1;
     this.baseAxis = options.baseAxis ?? 'z';
     this.waveAxis = options.waveAxis ?? 'x';
-    // initialY is set on first update
-    if (this.DEBUG_ENABLED) {
-      console.log('Created SineWaveMovement with:', {
-        amplitude: this.amplitude,
-        frequency: this.frequency,
-        baseAxis: this.baseAxis,
-        waveAxis: this.waveAxis
-      });
-    }
   }
 
   /**
@@ -108,20 +86,6 @@ export class SineWaveMovement implements BlockMovementBehavior {
       newPosition[this.waveAxis] = waveOffset;
     }
 
-    if (this.DEBUG_ENABLED) {
-      console.log('SineWave Update:', {
-        elapsedTime: this.elapsedTime.toFixed(2),
-        baseMovement: baseMovement.toFixed(2),
-        waveOffset: waveOffset.toFixed(2),
-        initialY: this.initialY,
-        newPos: {
-          x: newPosition.x.toFixed(2),
-          y: newPosition.y.toFixed(2),
-          z: newPosition.z.toFixed(2)
-        }
-      });
-    }
-
     if (!block.isWithinMovementBounds(newPosition)) {
       if (block.shouldOscillate()) {
         // Reverse the movement direction.
@@ -129,9 +93,7 @@ export class SineWaveMovement implements BlockMovementBehavior {
 
         // Adjust elapsed time to try to maintain a smooth wave pattern.
         this.elapsedTime = Math.PI / (2 * Math.PI * this.frequency) - this.elapsedTime;
-        if (this.DEBUG_ENABLED) {
-          console.log('Reversing direction, new elapsed time:', this.elapsedTime);
-        }
+        
         // Recalculate after reversal.
         const reversedBaseSpeed = block.getMoveSpeed() * (deltaTimeMs / 1000);
         const reversedBaseMovement = block.getDirection()[this.baseAxis] * reversedBaseSpeed;
@@ -149,9 +111,6 @@ export class SineWaveMovement implements BlockMovementBehavior {
       } else {
         block.resetToInitialPosition();
         this.elapsedTime = 0;
-        if (this.DEBUG_ENABLED) {
-          console.log('Reset to initial position');
-        }
         return;
       }
     }
@@ -161,15 +120,10 @@ export class SineWaveMovement implements BlockMovementBehavior {
 }
 
 export class StaticMovement implements BlockMovementBehavior {
-  private readonly DEBUG_ENABLED = false;
-
   update(block: MovingBlockEntity, deltaTimeMs: number): void {
     // Static blocks don't move, but we still need to check if they're within bounds
     if (!block.isWithinMovementBounds(block.position)) {
       block.resetToInitialPosition();
-      if (this.DEBUG_ENABLED) {
-        console.debug('[StaticMovement] Position reset to initial');
-      }
     }
   }
 }
@@ -177,7 +131,6 @@ export class StaticMovement implements BlockMovementBehavior {
 export class PopUpMovement implements BlockMovementBehavior {
   private elapsedTime: number = 0;
   private state: 'rising' | 'paused' | 'falling' | 'complete' = 'rising';
-  private readonly DEBUG_ENABLED = false;
   private readonly pauseDuration: number = 3000; // 3 seconds pause at top
   private readonly startY: number;
   private readonly topY: number;
@@ -191,14 +144,6 @@ export class PopUpMovement implements BlockMovementBehavior {
     this.startY = options.startY ?? -20;
     this.topY = options.topY ?? 8;
     this.pauseDuration = options.pauseDuration ?? 3000;
-    
-    if (this.DEBUG_ENABLED) {
-      console.log('Created PopUpMovement with:', {
-        startY: this.startY,
-        topY: this.topY,
-        pauseDuration: this.pauseDuration
-      });
-    }
   }
 
   // Getters for movement state
@@ -225,10 +170,6 @@ export class PopUpMovement implements BlockMovementBehavior {
 
   // Helper methods for state management
   private transitionToState(newState: 'rising' | 'paused' | 'falling' | 'complete'): void {
-    if (this.DEBUG_ENABLED) {
-      console.log(`State transition: ${this.state} -> ${newState}`);
-    }
-    
     this.state = newState;
     if (newState === 'paused') {
       this.pauseStartTime = this.elapsedTime;
@@ -280,16 +221,6 @@ export class PopUpMovement implements BlockMovementBehavior {
     }
 
     const newPosition = this.calculateNewPosition(block.position, deltaSeconds, speed);
-
-    if (this.DEBUG_ENABLED) {
-      console.log('PopUpMovement Update:', {
-        state: this.state,
-        elapsedTime: this.elapsedTime.toFixed(2),
-        position: newPosition,
-        timeInPause: this.timeRemainingInPause
-      });
-    }
-
     block.setPosition(newPosition);
   }
 }
@@ -297,7 +228,6 @@ export class PopUpMovement implements BlockMovementBehavior {
 export class RisingMovement implements BlockMovementBehavior {
   private elapsedTime: number = 0;
   private state: 'rising' | 'paused' | 'shooting' | 'complete' = 'rising';
-  private readonly DEBUG_ENABLED = false;
   private readonly pauseDuration: number = 2000; // 2 seconds pause at first stop
   private readonly startY: number;
   private readonly firstStopY: number;
@@ -314,15 +244,6 @@ export class RisingMovement implements BlockMovementBehavior {
     this.firstStopY = options.firstStopY ?? 8; // Same height as pop-up target
     this.finalY = options.finalY ?? 30; // Much higher final position
     this.pauseDuration = options.pauseDuration ?? 2000;
-    
-    if (this.DEBUG_ENABLED) {
-      console.log('Created RisingMovement with:', {
-        startY: this.startY,
-        firstStopY: this.firstStopY,
-        finalY: this.finalY,
-        pauseDuration: this.pauseDuration
-      });
-    }
   }
 
   // Getters for movement state
@@ -353,10 +274,6 @@ export class RisingMovement implements BlockMovementBehavior {
 
   // Helper methods for state management
   private transitionToState(newState: 'rising' | 'paused' | 'shooting' | 'complete'): void {
-    if (this.DEBUG_ENABLED) {
-      console.log(`State transition: ${this.state} -> ${newState}`);
-    }
-    
     this.state = newState;
     if (newState === 'paused') {
       this.pauseStartTime = this.elapsedTime;
@@ -408,23 +325,12 @@ export class RisingMovement implements BlockMovementBehavior {
     }
 
     const newPosition = this.calculateNewPosition(block.position, deltaSeconds, speed);
-
-    if (this.DEBUG_ENABLED) {
-      console.log('RisingMovement Update:', {
-        state: this.state,
-        elapsedTime: this.elapsedTime.toFixed(2),
-        position: newPosition,
-        timeInPause: this.timeRemainingInPause
-      });
-    }
-
     block.setPosition(newPosition);
   }
 }
 
 export class ParabolicMovement implements BlockMovementBehavior {
   private elapsedTime: number = 0;
-  private readonly DEBUG_ENABLED = false;
   private readonly startPoint: Vector3Like;
   private readonly endPoint: Vector3Like;
   private readonly totalDuration: number;
@@ -454,18 +360,6 @@ export class ParabolicMovement implements BlockMovementBehavior {
       Math.pow(this.endPoint.z - this.startPoint.z, 2)
     );
     this.horizontalSpeed = horizontalDistance / (this.totalDuration / 1000);
-
-    if (this.DEBUG_ENABLED) {
-      console.log('Created ParabolicMovement with:', {
-        startPoint: this.startPoint,
-        endPoint: this.endPoint,
-        maxHeight: this.maxHeight,
-        duration: this.totalDuration,
-        gravity: this.gravity,
-        initialVelocityY: this.initialVelocityY,
-        horizontalSpeed: this.horizontalSpeed
-      });
-    }
   }
 
   private calculatePosition(time: number): Vector3Like {
@@ -500,15 +394,6 @@ export class ParabolicMovement implements BlockMovementBehavior {
     }
 
     const newPosition = this.calculatePosition(this.elapsedTime);
-
-    if (this.DEBUG_ENABLED) {
-      console.log('ParabolicMovement Update:', {
-        elapsedTime: this.elapsedTime.toFixed(2),
-        position: newPosition,
-        progress: (this.elapsedTime / this.totalDuration * 100).toFixed(1) + '%'
-      });
-    }
-
     block.setPosition(newPosition);
   }
 } 

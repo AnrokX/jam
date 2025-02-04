@@ -108,7 +108,6 @@ export class ProjectileEntity extends Entity {
 
         // If we hit something very close, the trajectory is not valid
         if (raycastResult && raycastResult.hitDistance < ProjectileEntity.PHYSICS.MIN_SPAWN_DISTANCE) {
-            console.log('Trajectory blocked at distance:', raycastResult.hitDistance);
             return false;
         }
 
@@ -118,7 +117,6 @@ export class ProjectileEntity extends Entity {
     spawn(world: World, position: Vector3Like): void {
         // Store spawn origin before any position adjustments
         this.spawnOrigin = { ...position };
-        console.log(`Projectile spawn origin recorded: (${this.spawnOrigin.x.toFixed(2)}, ${this.spawnOrigin.y.toFixed(2)}, ${this.spawnOrigin.z.toFixed(2)})`);
 
         // Get the player's look direction (assuming it's passed in the options)
         const lookDir = this.rotation || { x: 0, y: 0, z: 1 };
@@ -171,7 +169,6 @@ export class ProjectileEntity extends Entity {
                 if (typeof other === 'number') {
                     // Block collision
                     const hitPosition = this.position;
-                    console.log('Block hit at position:', hitPosition);
                     this.despawn();
                 } else if (other instanceof ProjectileEntity) {
                     // Projectile-projectile collision - let physics handle the bouncing
@@ -194,7 +191,6 @@ export class ProjectileEntity extends Entity {
 
     override onTick = (entity: Entity, deltaTimeMs: number): void => {
         if (Date.now() - this.spawnTime > this.lifetime) {
-            console.log('Grenade fuse expired, exploding...');
             this.explode();
             this.despawn();
         }
@@ -215,14 +211,12 @@ export class ProjectileEntity extends Entity {
 
         // Prevent throwing if looking too far down
         if (normalizedDir.y < ProjectileEntity.PHYSICS.MAX_DOWN_ANGLE) {
-            console.log('Cannot throw while looking too far down');
             this.despawn();
             return;
         }
 
         // Validate trajectory before throwing
         if (!this.validateTrajectory(normalizedDir)) {
-            console.log('Invalid trajectory, cannot throw');
             this.despawn();
             return;
         }
@@ -233,7 +227,6 @@ export class ProjectileEntity extends Entity {
             z: normalizedDir.z * this.speed
         };
         
-        console.log(`Throwing projectile with impulse: (${impulse.x.toFixed(2)}, ${impulse.y.toFixed(2)}, ${impulse.z.toFixed(2)})`);
         this.rawRigidBody.applyImpulse(impulse);
     }
 
@@ -384,10 +377,6 @@ export class ProjectileEntity extends Entity {
 
     private explode(): void {
         if (!this.isSpawned) return;
-
-        // Log explosion position
-        console.log('Grenade exploded at:', this.position);
-
         // Additional explosion logic can be added here
         // Such as damage, particle effects, or knockback
     }

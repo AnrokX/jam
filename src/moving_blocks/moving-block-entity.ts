@@ -174,14 +174,6 @@ export class MovingBlockEntity extends Entity {
     super.spawn(world, position);
     this.initialPosition = { ...position };
     this.particleEffects = BlockParticleEffects.getInstance(world);
-    
-    // Log block spawn details
-    console.log(`Block spawned at ${Date.now()}:`, {
-      position: this.position,
-      halfExtents: this.blockHalfExtents,
-      spawnTime: this.spawnTime,
-      type: this.constructor.name
-    });
   }
 
   private isWithinBounds(position: Vector3Like): boolean {
@@ -221,11 +213,8 @@ export class MovingBlockEntity extends Entity {
   private handleCollision(other: Entity): void {
     // Check if the colliding entity is a projectile
     if (other.name.toLowerCase().includes('projectile') && other instanceof ProjectileEntity) {
-      console.log('Projectile hit detected!');
-      
       // Store the player ID from the projectile if available
       this.playerId = other.playerId;
-      console.log(`Projectile from player: ${this.playerId || 'Unknown'}`);
       
       // Calculate score using the new dynamic scoring system
       if (this.world && this.playerId) {
@@ -241,7 +230,6 @@ export class MovingBlockEntity extends Entity {
           );
           
           scoreManager.addScore(this.playerId, score);
-          console.log(`Dynamic score calculated and added: ${score} points`);
           
           // Get the player who hit the block
           const player = this.world.entityManager.getAllPlayerEntities()
@@ -267,11 +255,9 @@ export class MovingBlockEntity extends Entity {
             this.despawn();
           }
         } else {
-          console.warn('ScoreManager not found in world entities');
           this.takeDamage(1); // Fallback to simple damage
         }
       } else {
-        console.warn('World or player ID not available for scoring');
         this.takeDamage(1); // Fallback to simple damage
       }
       
@@ -286,7 +272,6 @@ export class MovingBlockEntity extends Entity {
     if (!this.isBreakable) return;
 
     this.health -= amount;
-    console.log(`Block took damage! Health: ${this.health}`);
     
     // Get the player who hit the block
     const player = this.world?.entityManager.getAllPlayerEntities()
@@ -298,11 +283,8 @@ export class MovingBlockEntity extends Entity {
     const sceneUIManager = SceneUIManager.getInstance(this.world);
     
     if (this.health <= 0) {
-      console.log('Block destroyed!');
-      
       // Calculate score before showing notification
       const score = this.calculateScore();
-      console.log('Block destroyed score:', score); // Debug log
       
       // Show block destroyed notification with appropriate score
       sceneUIManager.showBlockDestroyedNotification(this.position, score, player);
@@ -362,31 +344,21 @@ export class MovingBlockEntity extends Entity {
   private calculateScore(): number {
     // Base score calculation based on block type and difficulty
     let score = MOVING_BLOCK_CONFIG.BREAK_SCORE;
-    console.log('Initial base score:', score);
     
     // Multiply score based on movement behavior
     if (this.movementBehavior instanceof SineWaveMovement) {
       score *= 1.5; // Sine wave blocks are harder to hit
-      console.log('SineWave block score:', score);
     } else if (this.movementBehavior instanceof PopUpMovement) {
       score *= MOVING_BLOCK_CONFIG.POPUP_TARGET.SCORE_MULTIPLIER;
-      console.log('PopUp block score:', score);
     } else if (this.movementBehavior instanceof RisingMovement) {
       score *= MOVING_BLOCK_CONFIG.RISING_TARGET.SCORE_MULTIPLIER;
-      console.log('Rising block score:', score);
     } else if (this.movementBehavior instanceof ParabolicMovement) {
       score *= MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.SCORE_MULTIPLIER;
-      console.log('Parabolic block score:', score);
     } else if (this.movementBehavior instanceof StaticMovement) {
       score = MOVING_BLOCK_CONFIG.STATIC_TARGET.SCORE; // Static targets have their own base score
-      console.log('Static block score:', score);
-    } else {
-      console.log('Default block score:', score);
     }
     
-    const finalScore = Math.round(score);
-    console.log('Final calculated score:', finalScore, 'Movement behavior type:', this.movementBehavior.constructor.name);
-    return finalScore;
+    return Math.round(score);
   }
 
   // --- Added getter and helper methods for movement behavior use ---
@@ -815,15 +787,12 @@ export class MovingBlockManager {
           const score = MovingBlockEntity.DefaultBlockScore;
           
           this.scoreManager.addScore(playerId, score);
-          console.log(`Block broken by player ${playerId}! Awarded ${score} points`);
           
           // Broadcast updated scores
           this.scoreManager.broadcastScores(this.world);
           
           // Remove the block from our tracking array when broken
           this.removeBlock(block);
-        } else {
-          console.log('Block broken but no player ID found to award points');
         }
       }
     }));
@@ -831,7 +800,6 @@ export class MovingBlockManager {
     const finalSpawnPosition = spawnPosition || MovingBlockEntity.generateDefaultSpawnPosition();
     
     if (!MovingBlockEntity.isValidDefaultBlockPosition(finalSpawnPosition)) {
-      console.warn('Invalid spawn position provided, using default spawn position');
       block.spawn(this.world, MovingBlockEntity.DefaultSpawnPosition);
     } else {
       block.spawn(this.world, finalSpawnPosition);
@@ -883,8 +851,6 @@ export class MovingBlockManager {
           const score = MOVING_BLOCK_CONFIG.BREAK_SCORE * 1.5;
           
           this.scoreManager.addScore(playerId, score);
-          console.log(`Sine wave block broken by player ${playerId}! Awarded ${score} points`);
-          
           this.scoreManager.broadcastScores(this.world);
           this.removeBlock(block);
         }
@@ -914,8 +880,6 @@ export class MovingBlockManager {
           const score = MovingBlockEntity.DefaultTargetScore;
           
           this.scoreManager.addScore(playerId, score);
-          console.log(`Static target broken by player ${playerId}! Awarded ${score} points`);
-          
           this.scoreManager.broadcastScores(this.world);
           this.removeBlock(block);
         }
@@ -975,8 +939,6 @@ export class MovingBlockManager {
           const score = MOVING_BLOCK_CONFIG.BREAK_SCORE * MOVING_BLOCK_CONFIG.VERTICAL_WAVE.SCORE_MULTIPLIER;
           
           this.scoreManager.addScore(playerId, score);
-          console.log(`Vertical wave block broken by player ${playerId}! Awarded ${score} points`);
-          
           this.scoreManager.broadcastScores(this.world);
           this.removeBlock(block);
         }
@@ -1023,8 +985,6 @@ export class MovingBlockManager {
           const score = MOVING_BLOCK_CONFIG.BREAK_SCORE * MovingBlockEntity.DefaultPopUpScoreMultiplier;
           
           this.scoreManager.addScore(playerId, score);
-          console.log(`Pop-up target broken by player ${playerId}! Awarded ${score} points`);
-          
           this.scoreManager.broadcastScores(this.world);
           this.removeBlock(block);
         }
@@ -1035,7 +995,6 @@ export class MovingBlockManager {
     const spawnPosition = options.spawnPosition || MovingBlockEntity.generatePopUpSpawnPosition();
     
     if (!MovingBlockEntity.isValidPopUpPosition(spawnPosition)) {
-      console.warn('Invalid pop-up target position, using generated position');
       block.spawn(this.world, MovingBlockEntity.generatePopUpSpawnPosition());
     } else {
       block.spawn(this.world, spawnPosition);
@@ -1076,8 +1035,6 @@ export class MovingBlockManager {
           const score = MOVING_BLOCK_CONFIG.BREAK_SCORE * MovingBlockEntity.DefaultRisingScoreMultiplier;
           
           this.scoreManager.addScore(playerId, score);
-          console.log(`Rising target broken by player ${playerId}! Awarded ${score} points`);
-          
           this.scoreManager.broadcastScores(this.world);
           this.removeBlock(block);
         }
@@ -1088,7 +1045,6 @@ export class MovingBlockManager {
     const spawnPosition = options.spawnPosition || MovingBlockEntity.generateRisingSpawnPosition();
     
     if (!MovingBlockEntity.isValidRisingPosition(spawnPosition)) {
-      console.warn('Invalid rising target position, using generated position');
       block.spawn(this.world, MovingBlockEntity.generateRisingSpawnPosition());
     } else {
       block.spawn(this.world, spawnPosition);
@@ -1128,8 +1084,6 @@ export class MovingBlockManager {
           const score = MOVING_BLOCK_CONFIG.BREAK_SCORE * MovingBlockEntity.DefaultParabolicScoreMultiplier;
           
           this.scoreManager.addScore(playerId, score);
-          console.log(`Parabolic target broken by player ${playerId}! Awarded ${score} points`);
-          
           this.scoreManager.broadcastScores(this.world);
           this.removeBlock(block);
         }

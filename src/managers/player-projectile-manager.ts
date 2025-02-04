@@ -13,7 +13,7 @@ export interface PlayerProjectileState {
 
 export class PlayerProjectileManager {
   private static readonly INITIAL_AMMO_COUNT = 1000;
-  private static readonly SHOT_COOLDOWN = 0;
+  private static readonly SHOT_COOLDOWN = 400; // 400ms cooldown (~150 shots per minute)
   private playerStates = new Map<string, PlayerProjectileState>();
   private readonly world: World;
   private readonly raycastHandler: RaycastHandler;
@@ -105,9 +105,13 @@ export class PlayerProjectileManager {
       const timeSinceLastShot = currentTime - state.lastShotTime;
 
       if (timeSinceLastShot < PlayerProjectileManager.SHOT_COOLDOWN) {
-        // Still on cooldown
+        // Still on cooldown - provide feedback about remaining cooldown
         if (player) {
-          player.ui.sendData({ type: 'onCooldown' });
+          const remainingCooldown = Math.ceil((PlayerProjectileManager.SHOT_COOLDOWN - timeSinceLastShot) / 100) / 10;
+          player.ui.sendData({ 
+            type: 'onCooldown',
+            remainingSeconds: remainingCooldown
+          });
         }
         return;
       }

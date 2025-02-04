@@ -475,37 +475,81 @@
       text-shadow: 0 0 10px var(--glow-red),
                    0 0 20px var(--glow-red),
                    0 0 30px var(--glow-red);
-      animation: scoreAnimation 1.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
       opacity: 0;
       transform: scale(0.5) translateZ(0);
       transform-origin: center center;
       perspective: 1000px;
     }
 
+    /* Score class-specific styles */
+    .block-destroyed-notification .score.score-low {
+      color: var(--blood-red);
+      text-shadow: 0 0 10px var(--glow-red),
+                   0 0 20px var(--glow-red);
+    }
+
+    .block-destroyed-notification .score.score-medium {
+      color: #ffd700;
+      text-shadow: 0 0 10px #ffd700,
+                   0 0 20px #ffd700,
+                   0 0 30px #ff8c00;
+    }
+
+    .block-destroyed-notification .score.score-high {
+      color: #00ff00;
+      text-shadow: 0 0 10px #00ff00,
+                   0 0 20px #00ff00,
+                   0 0 30px #008000;
+    }
+
+    .block-destroyed-notification .score.score-epic {
+      color: #ff00ff;
+      text-shadow: 0 0 10px #ff00ff,
+                   0 0 20px #ff00ff,
+                   0 0 30px #800080,
+                   0 0 40px #ff00ff;
+      animation: epicPulse 0.5s ease-in-out infinite alternate !important;
+    }
+
+    @keyframes epicPulse {
+      from {
+        text-shadow: 0 0 10px #ff00ff,
+                     0 0 20px #ff00ff,
+                     0 0 30px #800080,
+                     0 0 40px #ff00ff;
+      }
+      to {
+        text-shadow: 0 0 15px #ff00ff,
+                     0 0 25px #ff00ff,
+                     0 0 35px #800080,
+                     0 0 50px #ff00ff;
+      }
+    }
+
     @keyframes scoreAnimation {
       0% {
         opacity: 0;
-        transform: scale(0.5) translateZ(-200px);
+        transform: scale(0.5) translateZ(-200px) rotate3d(1, 0, 0, -30deg);
       }
       25% {
         opacity: 1;
-        transform: scale(2) translateZ(150px);
+        transform: scale(2) translateZ(150px) rotate3d(1, 0, 0, 20deg);
       }
       40% {
         opacity: 1;
-        transform: scale(1.8) translateZ(100px);
+        transform: scale(1.8) translateZ(100px) rotate3d(1, 0, 0, 10deg);
       }
       60% {
         opacity: 1;
-        transform: scale(1.5) translateZ(50px) translateY(-10px);
+        transform: scale(1.5) translateZ(50px) translateY(-10px) rotate3d(1, 0, 0, 0deg);
       }
       80% {
         opacity: 0.8;
-        transform: scale(1.2) translateZ(25px) translateY(-30px);
+        transform: scale(1.2) translateZ(25px) translateY(-30px) rotate3d(1, 0, 0, -10deg);
       }
       100% {
         opacity: 0;
-        transform: scale(1) translateZ(0) translateY(-60px);
+        transform: scale(1) translateZ(0) translateY(-60px) rotate3d(1, 0, 0, -20deg);
       }
     }
   </style>
@@ -552,6 +596,16 @@
       if (scoreElement && state?.score != null) {
         const score = Math.round(Number(state.score));
         scoreElement.textContent = `+${score}`;
+        
+        // Apply score class
+        if (state.class) {
+          scoreElement.className = `score ${state.class}`;
+        }
+        
+        // Apply custom style if provided
+        if (state.style) {
+          scoreElement.style.cssText = state.style;
+        }
       }
     });
     

@@ -468,88 +468,209 @@
     }
 
     .block-destroyed-notification .score {
-      color: var(--blood-red);
       font-family: var(--display-font);
       font-size: 48px;
       font-weight: bold;
-      text-shadow: 0 0 10px var(--glow-red),
-                   0 0 20px var(--glow-red),
-                   0 0 30px var(--glow-red);
       opacity: 0;
       transform: scale(0.5) translateZ(0);
       transform-origin: center center;
       perspective: 1000px;
+      --pop-intensity: calc(var(--score-value, 0) * 0.01);
     }
 
     /* Score class-specific styles */
-    .block-destroyed-notification .score.score-low {
-      color: var(--blood-red);
-      text-shadow: 0 0 10px var(--glow-red),
-                   0 0 20px var(--glow-red);
+    .block-destroyed-notification .score.score-basic {
+      color: #888888;
+      text-shadow: 0 0 5px rgba(136, 136, 136, 0.5);
+      transition: opacity 0.3s ease;
+    }
+    .block-destroyed-notification .score.score-basic:hover {
+      opacity: 0.8;
     }
 
-    .block-destroyed-notification .score.score-medium {
-      color: #ffd700;
-      text-shadow: 0 0 10px #ffd700,
-                   0 0 20px #ffd700,
-                   0 0 30px #ff8c00;
+    .block-destroyed-notification .score.score-uncommon {
+      color: #2ecc71;
+      text-shadow: 0 0 10px rgba(46, 204, 113, 0.6);
+      animation: uncommonPulse 2s ease-in-out infinite;
     }
 
-    .block-destroyed-notification .score.score-high {
-      color: #00ff00;
-      text-shadow: 0 0 10px #00ff00,
-                   0 0 20px #00ff00,
-                   0 0 30px #008000;
+    .block-destroyed-notification .score.score-rare {
+      background: linear-gradient(45deg, #3498db, #2980b9);
+      -webkit-background-clip: text;
+      -moz-background-clip: text;
+      -ms-background-clip: text;
+      -o-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-shadow: 0 0 15px rgba(52, 152, 219, 0.7);
+      animation: rareShimmer 3s ease-in-out infinite;
     }
 
     .block-destroyed-notification .score.score-epic {
-      color: #ff00ff;
-      text-shadow: 0 0 10px #ff00ff,
-                   0 0 20px #ff00ff,
-                   0 0 30px #800080,
-                   0 0 40px #ff00ff;
-      animation: epicPulse 0.5s ease-in-out infinite alternate !important;
+      background: linear-gradient(45deg, #9b59b6, #e74c3c);
+      -webkit-background-clip: text;
+      -moz-background-clip: text;
+      -ms-background-clip: text;
+      -o-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-shadow: 0 0 20px rgba(155, 89, 182, 0.8);
+      animation: epicPulse 1.5s ease-in-out infinite;
+    }
+
+    .block-destroyed-notification .score.score-legendary {
+      background: linear-gradient(45deg, #f1c40f, #f39c12, #e67e22, #f1c40f);
+      background-size: 300% 300%;
+      -webkit-background-clip: text;
+      -moz-background-clip: text;
+      -ms-background-clip: text;
+      -o-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-shadow: 0 0 25px rgba(241, 196, 15, 0.9);
+      animation: legendaryShine 2s ease-in-out infinite;
+      position: relative;
+    }
+
+    .block-destroyed-notification .score.score-legendary::after {
+      content: '';
+      position: absolute;
+      top: -10%;
+      left: -10%;
+      right: -10%;
+      bottom: -10%;
+      background: radial-gradient(circle, rgba(241, 196, 15, 0.2) 0%, transparent 70%);
+      animation: legendarySparkle 3s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    @keyframes uncommonPulse {
+      0%, 100% { 
+        opacity: 0.8;
+        transform: translateY(0);
+      }
+      50% { 
+        opacity: 1;
+        transform: translateY(-3px);
+      }
+    }
+
+    @keyframes rareShimmer {
+      0% {
+        text-shadow: 0 0 15px rgba(52, 152, 219, 0.7);
+        transform: translateY(0);
+      }
+      25% {
+        text-shadow: 0 0 20px rgba(52, 152, 219, 0.8);
+        transform: translateY(-3px);
+      }
+      50% {
+        text-shadow: 0 0 25px rgba(52, 152, 219, 0.9);
+        transform: translateY(-7px);
+      }
+      75% {
+        text-shadow: 0 0 20px rgba(52, 152, 219, 0.8);
+        transform: translateY(-3px);
+      }
+      100% {
+        text-shadow: 0 0 15px rgba(52, 152, 219, 0.7);
+        transform: translateY(0);
+      }
     }
 
     @keyframes epicPulse {
-      from {
-        text-shadow: 0 0 10px #ff00ff,
-                     0 0 20px #ff00ff,
-                     0 0 30px #800080,
-                     0 0 40px #ff00ff;
+      0% {
+        background-position: 0% 50%;
+        transform: translateY(0) scale(1);
       }
-      to {
-        text-shadow: 0 0 15px #ff00ff,
-                     0 0 25px #ff00ff,
-                     0 0 35px #800080,
-                     0 0 50px #ff00ff;
+      25% {
+        transform: translateY(-5px) scale(1.05);
+      }
+      50% {
+        background-position: 100% 50%;
+        transform: translateY(-12px) scale(1.1);
+      }
+      75% {
+        transform: translateY(-5px) scale(1.05);
+      }
+      100% {
+        background-position: 0% 50%;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes legendaryShine {
+      0% {
+        background-position: 0% 50%;
+        transform: translateY(0) scale(1);
+      }
+      25% {
+        transform: translateY(-7px) scale(1.1);
+      }
+      50% {
+        background-position: 100% 50%;
+        transform: translateY(-15px) scale(1.2);
+      }
+      75% {
+        transform: translateY(-7px) scale(1.1);
+      }
+      100% {
+        background-position: 0% 50%;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes legendarySparkle {
+      0% {
+        transform: scale(1) translateY(0);
+        opacity: 0.2;
+      }
+      25% {
+        transform: scale(1.1) translateY(-5px);
+        opacity: 0.3;
+      }
+      50% {
+        transform: scale(1.2) translateY(-10px);
+        opacity: 0.4;
+      }
+      75% {
+        transform: scale(1.1) translateY(-5px);
+        opacity: 0.3;
+      }
+      100% {
+        transform: scale(1) translateY(0);
+        opacity: 0.2;
       }
     }
 
     @keyframes scoreAnimation {
       0% {
         opacity: 0;
-        transform: scale(0.5) translateZ(-200px) rotate3d(1, 0, 0, -30deg);
+        transform: scale(0.5) translateZ(-300px) translateY(calc(50px * var(--pop-intensity))) rotate3d(1, 0, 0, -45deg);
       }
-      25% {
+      15% {
         opacity: 1;
-        transform: scale(2) translateZ(150px) rotate3d(1, 0, 0, 20deg);
+        transform: scale(1.8) translateZ(200px) translateY(calc(-100px * var(--pop-intensity))) rotate3d(1, 0, 0, 30deg);
       }
-      40% {
+      30% {
         opacity: 1;
-        transform: scale(1.8) translateZ(100px) rotate3d(1, 0, 0, 10deg);
+        transform: scale(2) translateZ(150px) translateY(calc(-150px * var(--pop-intensity))) rotate3d(1, 0, 0, 15deg);
       }
-      60% {
+      50% {
         opacity: 1;
-        transform: scale(1.5) translateZ(50px) translateY(-10px) rotate3d(1, 0, 0, 0deg);
+        transform: scale(1.8) translateZ(100px) translateY(calc(-200px * var(--pop-intensity))) rotate3d(1, 0, 0, 0deg);
       }
-      80% {
-        opacity: 0.8;
-        transform: scale(1.2) translateZ(25px) translateY(-30px) rotate3d(1, 0, 0, -10deg);
+      70% {
+        opacity: 0.9;
+        transform: scale(1.5) translateZ(50px) translateY(calc(-250px * var(--pop-intensity))) rotate3d(1, 0, 0, -10deg);
+      }
+      85% {
+        opacity: 0.7;
+        transform: scale(1.2) translateZ(25px) translateY(calc(-300px * var(--pop-intensity))) rotate3d(1, 0, 0, -20deg);
       }
       100% {
         opacity: 0;
-        transform: scale(1) translateZ(0) translateY(-60px) rotate3d(1, 0, 0, -20deg);
+        transform: scale(1) translateZ(0) translateY(calc(-350px * var(--pop-intensity))) rotate3d(1, 0, 0, -30deg);
       }
     }
   </style>

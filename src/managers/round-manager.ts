@@ -59,19 +59,36 @@ export class RoundManager {
             };
         }
         
-        // Early rounds (2-3)
-        if (round <= 3) {
+        // Round 2 - Static targets with despawn timer
+        if (round === 2) {
             return {
                 duration: 75000,  // 75 seconds
-                minBlockCount: 10 + Math.floor(round * 2),
-                maxBlockCount: 15 + Math.floor(round * 3),
+                minBlockCount: 10,  // Slight increase from round 1
+                maxBlockCount: 15,  // Slight increase from round 1
+                blockSpawnInterval: 1800, // 1.8 seconds between spawns (slightly faster than round 1)
+                speedMultiplier: 0.7,  // Keep the same speed as round 1
+                blockTypes: {
+                    normal: 0,      // Still no normal blocks
+                    sineWave: 0,    // Still no sine waves
+                    static: 1.0,    // 100% static targets with despawn timer
+                    verticalWave: 0  // No vertical waves
+                }
+            };
+        }
+        
+        // Early rounds (3)
+        if (round === 3) {
+            return {
+                duration: 75000,  // 75 seconds
+                minBlockCount: 12 + Math.floor(round * 2),
+                maxBlockCount: 18 + Math.floor(round * 3),
                 blockSpawnInterval: 1500,  // 1.5 seconds between spawns
                 speedMultiplier: 0.8 + (round * 0.1),
                 blockTypes: {
-                    normal: Math.min(0.3, (round - 1) * 0.15),     // Gradually introduce normal
-                    sineWave: Math.min(0.2, (round - 2) * 0.1),    // Start sine waves from round 3
-                    static: Math.max(0.4, 1 - (round * 0.15)),     // Decrease static targets gradually
-                    verticalWave: 0                                 // No vertical waves yet
+                    normal: Math.min(0.3, (round - 2) * 0.15),     // Start introducing normal
+                    sineWave: 0,    // No sine waves yet
+                    static: Math.max(0.7, 1 - (round * 0.15)),     // Decrease static targets gradually
+                    verticalWave: 0  // No vertical waves yet
                 }
             };
         }
@@ -231,7 +248,7 @@ export class RoundManager {
                         if (!isTooCloseToBlocks && isSafeFromRightPlatform && isSafeFromLeftPlatform) break;
                         
                         attempts++;
-                    } while (attempts < 10); // Increased max attempts to find safe position
+                    } while (attempts < 10);
 
                     // If we couldn't find a safe position after max attempts, use a default safe position
                     if (attempts >= 10) {
@@ -258,6 +275,9 @@ export class RoundManager {
                     // Calculate the base speed for this block
                     const baseSpeed = 8 * config.speedMultiplier;
 
+                    // Add despawn timer for round 2
+                    const despawnTime = this.currentRound === 2 ? 6000 : undefined; // 6 seconds for round 2
+
                     // Spawn the chosen block type with appropriate spacing
                     switch(chosenType) {
                         case 'normal':
@@ -273,15 +293,16 @@ export class RoundManager {
                         case 'static':
                             this.blockManager.createStaticTarget({
                                 x: spawnPosition.x,
-                                y: 2 + Math.random() * 4, // Higher range for static targets
-                                z: spawnPosition.z
+                                y: spawnPosition.y,
+                                z: spawnPosition.z,
+                                despawnTime: despawnTime
                             });
                             break;
                         case 'verticalWave':
                             this.blockManager.createVerticalWaveBlock({
                                 spawnPosition: {
                                     ...spawnPosition,
-                                    y: Math.min(MOVING_BLOCK_CONFIG.VERTICAL_WAVE.HEIGHT_OFFSET, 7) // Higher cap
+                                    y: Math.min(MOVING_BLOCK_CONFIG.VERTICAL_WAVE.HEIGHT_OFFSET, 7)
                                 },
                                 moveSpeed: baseSpeed * 0.75
                             });

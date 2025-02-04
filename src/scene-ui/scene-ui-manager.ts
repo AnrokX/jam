@@ -52,61 +52,90 @@ export class SceneUIManager {
     // Ensure score is rounded and positive
     const roundedScore = Math.max(0, Math.round(score));
     
-    // Calculate dynamic duration based on score tier
-    const getDuration = (score: number): number => {
-      if (score >= 100) return 3000;      // Legendary
-      if (score >= 75) return 2500;       // Epic
-      if (score >= 50) return 2000;       // Rare
-      if (score >= 25) return 1500;       // Uncommon
-      return 1000;                        // Basic
+    // Dynamic color calculation based on score
+    const getScoreColor = (score: number): { main: string, glow: string, intensity: number } => {
+      // Base colors for spectrum
+      const colors = [
+        { score: 0, color: '#888888', glow: '#444444', intensity: 0.2 },    // Gray
+        { score: 10, color: '#39ff14', glow: '#2fb40e', intensity: 0.4 },   // Matrix green
+        { score: 20, color: '#00ffff', glow: '#00cccc', intensity: 0.6 },   // Cyan
+        { score: 35, color: '#ff3366', glow: '#cc295f', intensity: 0.8 },   // Pink
+        { score: 50, color: '#ff9933', glow: '#cc7a29', intensity: 1.0 },   // Orange
+        { score: 75, color: '#ff1717', glow: '#cc1313', intensity: 1.2 }    // Red
+      ];
+
+      // Find the two colors to interpolate between
+      let lower = colors[0];
+      let upper = colors[colors.length - 1];
+      
+      for (let i = 0; i < colors.length - 1; i++) {
+        if (score >= colors[i].score && score < colors[i + 1].score) {
+          lower = colors[i];
+          upper = colors[i + 1];
+          break;
+        }
+      }
+
+      // Calculate interpolation factor
+      const range = upper.score - lower.score;
+      const factor = range <= 0 ? 1 : (score - lower.score) / range;
+
+      // Interpolate color components
+      const interpolateHex = (hex1: string, hex2: string, factor: number) => {
+        const r1 = parseInt(hex1.slice(1, 3), 16);
+        const g1 = parseInt(hex1.slice(3, 5), 16);
+        const b1 = parseInt(hex1.slice(5, 7), 16);
+        const r2 = parseInt(hex2.slice(1, 3), 16);
+        const g2 = parseInt(hex2.slice(3, 5), 16);
+        const b2 = parseInt(hex2.slice(5, 7), 16);
+
+        const r = Math.round(r1 + (r2 - r1) * factor);
+        const g = Math.round(g1 + (g2 - g1) * factor);
+        const b = Math.round(b1 + (b2 - b1) * factor);
+
+        return `#${(r << 16 | g << 8 | b).toString(16).padStart(6, '0')}`;
+      };
+
+      const intensity = lower.intensity + (upper.intensity - lower.intensity) * factor;
+      
+      return {
+        main: interpolateHex(lower.color, upper.color, factor),
+        glow: interpolateHex(lower.glow, upper.glow, factor),
+        intensity
+      };
     };
-    
-    // Calculate dynamic scale based on score tier
-    const getScale = (score: number): number => {
-      const baseScale = 1.0;
-      if (score >= 100) return baseScale * 2.0;     // Legendary
-      if (score >= 75) return baseScale * 1.75;     // Epic
-      if (score >= 50) return baseScale * 1.5;      // Rare
-      if (score >= 25) return baseScale * 1.25;     // Uncommon
-      return baseScale;                             // Basic
-    };
-    
-    // Determine score class and effects based on value
-    const getScoreClass = (score: number): string => {
-      if (score >= 100) return 'score-legendary';
-      if (score >= 75) return 'score-epic';
-      if (score >= 50) return 'score-rare';
-      if (score >= 25) return 'score-uncommon';
-      return 'score-basic';
-    };
-    
-    const duration = getDuration(roundedScore);
-    const scale = getScale(roundedScore);
-    const scoreClass = getScoreClass(roundedScore);
-    
-    // Calculate vertical offset based on score
-    const verticalOffset = Math.min(3, 1.5 + (roundedScore / 100)); // Caps at 3 units
+
+    // Calculate dynamic properties based on score
+    const colorInfo = getScoreColor(roundedScore);
+    const duration = 1000 + Math.min(roundedScore * 20, 2000); // 1-3 seconds based on score
+    const scale = 1 + Math.min(roundedScore * 0.02, 1); // 1-2x scale based on score
+    const verticalOffset = 1.5 + Math.min(roundedScore * 0.01, 1.5); // 1.5-3 units based on score
     
     // Log feedback details for debugging
     console.log('Block destroyed feedback -', {
-      class: scoreClass,
+      score: roundedScore,
+      color: colorInfo,
       duration,
       scale: scale.toFixed(2),
       verticalOffset: verticalOffset.toFixed(2)
     });
+
+    // Create dynamic CSS for the animation
+    const dynamicStyle = `
+      animation: scoreAnimation ${duration}ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      font-size: ${scale * 48}px;
+      color: ${colorInfo.main};
+      text-shadow: 0 0 ${5 + colorInfo.intensity * 15}px ${colorInfo.glow};
+      --score-value: ${roundedScore};
+      --intensity: ${colorInfo.intensity};
+    `;
 
     // Create a new SceneUI instance for the block destroyed notification
     const destroyNotification = new SceneUI({
       templateId: 'block-destroyed-notification',
       state: { 
         score: roundedScore,
-        class: scoreClass,
-        style: `
-          animation: scoreAnimation ${duration}ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
-          font-size: ${scale * 48}px;
-          --score-value: ${roundedScore};
-          --vertical-offset: ${verticalOffset};
-        `
+        style: dynamicStyle
       },
       position: worldPosition,
       offset: { x: 0, y: verticalOffset, z: 0 }
@@ -126,7 +155,7 @@ export class SceneUIManager {
         notification.unload();
         this.hitNotifications.delete(notificationId);
       }
-    }, duration + 100); // Add small buffer to ensure animation completes
+    }, duration + 100);
   }
 
   public cleanup(): void {

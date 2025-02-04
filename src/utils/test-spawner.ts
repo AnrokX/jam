@@ -54,7 +54,7 @@ export class TestBlockSpawner {
         return {
             min: { 
                 x: MOVING_BLOCK_CONFIG.PENDULUM_TARGET.SPAWN_BOUNDS.LATERAL.MIN,
-                y: 0, // Y is determined by pivot point and length
+                y: 0,
                 z: MOVING_BLOCK_CONFIG.PENDULUM_TARGET.SPAWN_BOUNDS.FORWARD.MIN
             },
             max: { 
@@ -106,10 +106,106 @@ export class TestBlockSpawner {
         };
     }
 
+    // Helper methods for safe pendulum spawning
+    private isPositionSafeFromPlatforms(position: Vector3Like): boolean {
+        const safetyMargin = MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.PLATFORM_SAFETY_MARGIN;
+        
+        // Check distance from right platform
+        const rightPlatformDistance = Math.abs(position.x - MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.RIGHT_PLATFORM_EDGE.X);
+        const isInRightPlatformZRange = position.z >= MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.RIGHT_PLATFORM_EDGE.Z_MIN - safetyMargin && 
+                                      position.z <= MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.RIGHT_PLATFORM_EDGE.Z_MAX + safetyMargin;
+        
+        // Check distance from left platform
+        const leftPlatformDistance = Math.abs(position.x - MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.LEFT_PLATFORM_EDGE.X);
+        const isInLeftPlatformZRange = position.z >= MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.LEFT_PLATFORM_EDGE.Z_MIN - safetyMargin && 
+                                     position.z <= MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.LEFT_PLATFORM_EDGE.Z_MAX + safetyMargin;
+        
+        // A position is safe if it's either:
+        // 1. Far enough from the right platform OR not in its Z range
+        // 2. Far enough from the left platform OR not in its Z range
+        const isSafeFromRightPlatform = rightPlatformDistance >= MOVING_BLOCK_CONFIG.PENDULUM_TARGET.MIN_DISTANCE_FROM_PLATFORMS || 
+                                      !isInRightPlatformZRange;
+        const isSafeFromLeftPlatform = leftPlatformDistance >= MOVING_BLOCK_CONFIG.PENDULUM_TARGET.MIN_DISTANCE_FROM_PLATFORMS || 
+                                     !isInLeftPlatformZRange;
+        
+        return isSafeFromRightPlatform && isSafeFromLeftPlatform;
+    }
+
+    private isPositionSafeFromOtherPendulums(position: Vector3Like): boolean {
+        const existingPendulums = this.world.entityManager.getAllEntities()
+            .filter(entity => entity.name.toLowerCase().includes('block') && 
+                            entity.isSpawned);
+
+        for (const pendulum of existingPendulums) {
+            const xDistance = Math.abs(position.x - pendulum.position.x);
+            const zDistance = Math.abs(position.z - pendulum.position.z);
+
+            if (xDistance < MOVING_BLOCK_CONFIG.PENDULUM_TARGET.SPAWN_SPACING.MIN_X_DISTANCE &&
+                zDistance < MOVING_BLOCK_CONFIG.PENDULUM_TARGET.SPAWN_SPACING.MIN_Z_DISTANCE) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private getSafePendulumPosition(): Vector3Like {
+        let attempts = 0;
+        const maxAttempts = 50;
+        let position: Vector3Like;
+
+        do {
+            position = this.getRandomPendulumPosition();
+            attempts++;
+
+            if (attempts >= maxAttempts) {
+                // If we can't find a safe position after max attempts,
+                // return a default position in the middle of the map
+                return {
+                    x: 0,
+                    y: MOVING_BLOCK_CONFIG.PENDULUM_TARGET.PIVOT_HEIGHT,
+                    z: 0
+                };
+            }
+        } while (!this.isPositionSafeFromPlatforms(position) || 
+                 !this.isPositionSafeFromOtherPendulums(position));
+
+        return position;
+    }
+
     private getRandomPendulumPosition(): Vector3Like {
         const bounds = this.pendulumSpawnBounds;
-        const pivotX = Math.random() * (bounds.max.x - bounds.min.x) + bounds.min.x;
-        const pivotZ = Math.random() * (bounds.max.z - bounds.min.z) + bounds.min.z;
+        const safetyMargin = MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.PLATFORM_SAFETY_MARGIN;
+        
+        // Calculate safe spawn range excluding areas near platforms
+        const minX = Math.max(
+            bounds.min.x,
+            MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.LEFT_PLATFORM_EDGE.X + safetyMargin
+        );
+        const maxX = Math.min(
+            bounds.max.x,
+            MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.RIGHT_PLATFORM_EDGE.X - safetyMargin
+        );
+
+        // Calculate safe Z range
+        const minZ = Math.max(
+            bounds.min.z,
+            Math.min(
+                MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.LEFT_PLATFORM_EDGE.Z_MIN,
+                MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.RIGHT_PLATFORM_EDGE.Z_MIN
+            ) + safetyMargin
+        );
+        const maxZ = Math.min(
+            bounds.max.z,
+            Math.max(
+                MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.LEFT_PLATFORM_EDGE.Z_MAX,
+                MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.RIGHT_PLATFORM_EDGE.Z_MAX
+            ) - safetyMargin
+        );
+        
+        // Randomly choose a position within the safe range
+        const pivotX = Math.random() * (maxX - minX) + minX;
+        const pivotZ = Math.random() * (maxZ - minZ) + minZ;
         
         return {
             x: pivotX,
@@ -270,10 +366,17 @@ export class TestBlockSpawner {
     }
 
     public spawnPendulumTarget(speedMultiplier: number = 1): void {
-        const pivotPoint = this.getRandomPendulumPosition();
+        const pivotPoint = this.getSafePendulumPosition();
 
         if (this.DEBUG_ENABLED) {
-            // Remove debug log
+            console.log(`Spawning pendulum at (${pivotPoint.x.toFixed(2)}, ${pivotPoint.y.toFixed(2)}, ${pivotPoint.z.toFixed(2)})`);
+        }
+
+        // Validate the spawn position
+        if (!this.isValidSpawnPosition(pivotPoint, 'pendulum')) {
+            console.warn('Invalid pendulum spawn position, using default center position');
+            pivotPoint.x = 0;
+            pivotPoint.z = 0;
         }
 
         this.blockManager.createPendulumTarget({

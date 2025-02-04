@@ -26,18 +26,43 @@ export const MOVING_BLOCK_CONFIG = {
     SCORE: 10, // More points for hitting target
     HEALTH: 1  // One-shot kill
   },
+  PLATFORM_SAFETY: {
+    RIGHT_PLATFORM_EDGE: {
+      X: 19,
+      Z_MIN: -9,
+      Z_MAX: 9
+    },
+    LEFT_PLATFORM_EDGE: {
+      X: -18,
+      Z_MIN: -9,
+      Z_MAX: -8
+    },
+    PLATFORM_SAFETY_MARGIN: 8, // Increased margin for better spacing
+    MIN_DISTANCE_BETWEEN_TARGETS: 7  // Increased minimum distance between targets
+  },
   PENDULUM_TARGET: {
     TEXTURE: 'blocks/obsidian.png',
     HALF_EXTENTS: { x: 0.8, y: 0.8, z: 0.8 },
-    PIVOT_HEIGHT: 15, // Increased height for more dramatic swinging
-    LENGTH: 10, // Increased length for larger swing radius
-    AMPLITUDE: Math.PI / 3, // 60 degrees in radians for wider swings
-    FREQUENCY: 0.4, // Slightly slower for more dramatic swings
+    PIVOT_HEIGHT: 15,
+    LENGTH: 10,
+    AMPLITUDE: Math.PI / 3,
+    FREQUENCY: 0.4,
     SCORE_MULTIPLIER: 3,
     HEALTH: 1,
     SPAWN_BOUNDS: {
-      LATERAL: { MIN: -15, MAX: 15 }, // Wider lateral bounds
-      FORWARD: { MIN: -20, MAX: 20 }  // Deeper forward bounds
+      LATERAL: { 
+        MIN: -12,  // Reduced to keep further from left platform
+        MAX: 13    // Reduced to keep further from right platform
+      },
+      FORWARD: { 
+        MIN: -5,   // Reduced to keep further from platform depths
+        MAX: 5     // Reduced to keep further from platform depths
+      }
+    },
+    MIN_DISTANCE_FROM_PLATFORMS: 8, // Increased minimum distance from platforms
+    SPAWN_SPACING: {
+      MIN_X_DISTANCE: 2,  // Increased minimum X distance between pendulums
+      MIN_Z_DISTANCE: 8    // Increased minimum Z distance between pendulums
     }
   },
   VERTICAL_WAVE: {  // New configuration for vertical sine wave blocks

@@ -161,28 +161,53 @@ export class RoundManager {
                     const existingBlocks = this.world.entityManager.getAllEntities()
                         .filter(entity => entity.name.toLowerCase().includes('block'));
                     
-                    // Try to find a spawn position away from other blocks
+                    // Try to find a spawn position away from other blocks and platforms
                     let attempts = 0;
                     let spawnPosition: Vector3Like;
                     const minSpacing = 2; // Reduced spacing to allow more blocks
+                    const safetyMargin = MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.PLATFORM_SAFETY_MARGIN;
 
-                do {
-                    spawnPosition = {
-                        x: Math.random() * 16 - 8,  // Random x between -8 and 8 (wider spread)
-                        y: 2 + Math.random() * 3,   // Random y between 2 and 5 (slightly higher)
-                        z: Math.random() * 24 - 12  // Random z between -12 and 12 (wider spread)
-                    };
+                    do {
+                        // Generate position within game bounds
+                        spawnPosition = {
+                            x: Math.random() * 16 - 8,  // Random x between -8 and 8 (wider spread)
+                            y: 2 + Math.random() * 3,   // Random y between 2 and 5 (slightly higher)
+                            z: Math.random() * 24 - 12  // Random z between -12 and 12 (wider spread)
+                        };
 
+                        // Check distance from platforms
+                        const rightPlatformDistance = Math.abs(spawnPosition.x - MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.RIGHT_PLATFORM_EDGE.X);
+                        const isInRightPlatformZRange = spawnPosition.z >= MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.RIGHT_PLATFORM_EDGE.Z_MIN - safetyMargin && 
+                                                      spawnPosition.z <= MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.RIGHT_PLATFORM_EDGE.Z_MAX + safetyMargin;
+                        
+                        const leftPlatformDistance = Math.abs(spawnPosition.x - MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.LEFT_PLATFORM_EDGE.X);
+                        const isInLeftPlatformZRange = spawnPosition.z >= MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.LEFT_PLATFORM_EDGE.Z_MIN - safetyMargin && 
+                                                     spawnPosition.z <= MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.LEFT_PLATFORM_EDGE.Z_MAX + safetyMargin;
+                        
+                        const isSafeFromRightPlatform = rightPlatformDistance >= safetyMargin || !isInRightPlatformZRange;
+                        const isSafeFromLeftPlatform = leftPlatformDistance >= safetyMargin || !isInLeftPlatformZRange;
+                        
                         // Check distance from all existing blocks
-                        const isTooClose = existingBlocks.some(block => {
+                        const isTooCloseToBlocks = existingBlocks.some(block => {
                             const dx = block.position.x - spawnPosition.x;
                             const dz = block.position.z - spawnPosition.z;
                             return Math.sqrt(dx * dx + dz * dz) < minSpacing;
                         });
 
-                        if (!isTooClose) break;
+                        // Break if position is safe from both platforms and other blocks
+                        if (!isTooCloseToBlocks && isSafeFromRightPlatform && isSafeFromLeftPlatform) break;
+                        
                         attempts++;
-                    } while (attempts < 3); // Fewer attempts to speed up spawning
+                    } while (attempts < 10); // Increased max attempts to find safe position
+
+                    // If we couldn't find a safe position after max attempts, use a default safe position
+                    if (attempts >= 10) {
+                        spawnPosition = {
+                            x: 0,
+                            y: 3,
+                            z: 0
+                        };
+                    }
 
                     // Choose block type based on probabilities
                     const rand = Math.random();
@@ -231,7 +256,7 @@ export class RoundManager {
                     }
                 }
             }
-        };
+        }
 
         // Initial spawn - only spawn minimum required blocks
         for (let i = 0; i < config.minBlockCount; i++) {

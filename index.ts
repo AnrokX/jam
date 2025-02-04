@@ -18,7 +18,7 @@ import { TestBlockSpawner } from './src/utils/test-spawner';
 import { SceneUIManager } from './src/scene-ui/scene-ui-manager';
 
 // Configuration flags
-const IS_TEST_MODE = false;  // Set this to true to enable test mode, false for normal game
+const IS_TEST_MODE = true;  // Set this to true to enable test mode, false for normal game
 const DEBUG_ENABLED = false;  // Development debug flag
 
 startServer(world => {
@@ -93,6 +93,11 @@ startServer(world => {
       world.chatManager.sendPlayerMessage(player, 'Spawned a parabolic target (moves in a long, dramatic arc with physics-based motion)', 'FFFF00');
     });
 
+    world.chatManager.registerCommand('spawn8', (player) => {
+      testSpawner.spawnPendulumTarget();
+      world.chatManager.sendPlayerMessage(player, 'Spawned a pendulum target (swings like a pendulum in either XZ or YZ plane)', 'FFFF00');
+    });
+
     world.chatManager.registerCommand('spawnall', (player) => {
       testSpawner.spawnTestBlocks();
       world.chatManager.sendPlayerMessage(player, 'Spawned all block types', 'FFFF00');
@@ -115,6 +120,7 @@ startServer(world => {
       world.chatManager.sendPlayerMessage(player, 'spawn5 - Spawn pop-up target', 'FFFF00');
       world.chatManager.sendPlayerMessage(player, 'spawn6 - Spawn rising target (stops at pop-up height, then shoots up)', 'FFFF00');
       world.chatManager.sendPlayerMessage(player, 'spawn7 - Spawn parabolic target (long-range arc with physics-based motion)', 'FFFF00');
+      world.chatManager.sendPlayerMessage(player, 'spawn8 - Spawn pendulum target (swings like a pendulum in either XZ or YZ plane)', 'FFFF00');
       world.chatManager.sendPlayerMessage(player, 'spawnall - Spawn all block types', 'FFFF00');
       world.chatManager.sendPlayerMessage(player, 'clearblocks - Remove all blocks', 'FFFF00');
     });

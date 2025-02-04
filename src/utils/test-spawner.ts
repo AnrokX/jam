@@ -50,6 +50,21 @@ export class TestBlockSpawner {
         };
     }
 
+    private get pendulumSpawnBounds(): { min: Vector3Like, max: Vector3Like } {
+        return {
+            min: { 
+                x: MOVING_BLOCK_CONFIG.PENDULUM_TARGET.SPAWN_BOUNDS.LATERAL.MIN,
+                y: 0, // Y is determined by pivot point and length
+                z: MOVING_BLOCK_CONFIG.PENDULUM_TARGET.SPAWN_BOUNDS.FORWARD.MIN
+            },
+            max: { 
+                x: MOVING_BLOCK_CONFIG.PENDULUM_TARGET.SPAWN_BOUNDS.LATERAL.MAX,
+                y: MOVING_BLOCK_CONFIG.PENDULUM_TARGET.PIVOT_HEIGHT,
+                z: MOVING_BLOCK_CONFIG.PENDULUM_TARGET.SPAWN_BOUNDS.FORWARD.MAX
+            }
+        };
+    }
+
     // Helper methods for position generation
     private getRandomPosition(): Vector3Like {
         const bounds = this.defaultSpawnBounds;
@@ -91,6 +106,18 @@ export class TestBlockSpawner {
         };
     }
 
+    private getRandomPendulumPosition(): Vector3Like {
+        const bounds = this.pendulumSpawnBounds;
+        const pivotX = Math.random() * (bounds.max.x - bounds.min.x) + bounds.min.x;
+        const pivotZ = Math.random() * (bounds.max.z - bounds.min.z) + bounds.min.z;
+        
+        return {
+            x: pivotX,
+            y: MOVING_BLOCK_CONFIG.PENDULUM_TARGET.PIVOT_HEIGHT,
+            z: pivotZ
+        };
+    }
+
     // Block spawning methods
     public spawnTestBlocks(speedMultiplier: number = 1): void {
         if (this.DEBUG_ENABLED) {
@@ -108,6 +135,7 @@ export class TestBlockSpawner {
         this.spawnPopUpTarget(speedMultiplier);
         this.spawnRisingTarget(speedMultiplier);
         this.spawnParabolicTarget(speedMultiplier);
+        this.spawnPendulumTarget(speedMultiplier);
 
         if (this.DEBUG_ENABLED) {
             // Remove debug log
@@ -241,8 +269,23 @@ export class TestBlockSpawner {
         });
     }
 
+    public spawnPendulumTarget(speedMultiplier: number = 1): void {
+        const pivotPoint = this.getRandomPendulumPosition();
+
+        if (this.DEBUG_ENABLED) {
+            // Remove debug log
+        }
+
+        this.blockManager.createPendulumTarget({
+            pivotPoint,
+            length: MOVING_BLOCK_CONFIG.PENDULUM_TARGET.LENGTH,
+            amplitude: MOVING_BLOCK_CONFIG.PENDULUM_TARGET.AMPLITUDE,
+            frequency: MOVING_BLOCK_CONFIG.PENDULUM_TARGET.FREQUENCY * speedMultiplier
+        });
+    }
+
     // Helper methods for block validation
-    public isValidSpawnPosition(position: Vector3Like, type: 'static' | 'sine' | 'vertical' | 'regular' | 'popup' | 'rising' | 'parabolic'): boolean {
+    public isValidSpawnPosition(position: Vector3Like, type: 'static' | 'sine' | 'vertical' | 'regular' | 'popup' | 'rising' | 'parabolic' | 'pendulum'): boolean {
         switch (type) {
             case 'static':
                 return position.y >= 2 && position.y <= 6;
@@ -258,6 +301,8 @@ export class TestBlockSpawner {
                 return this.isWithinBounds(position, this.risingSpawnBounds);
             case 'parabolic':
                 return this.isWithinBounds(position, this.parabolicSpawnBounds);
+            case 'pendulum':
+                return this.isWithinBounds(position, this.pendulumSpawnBounds);
             default:
                 return false;
         }

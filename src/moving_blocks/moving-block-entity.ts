@@ -1,6 +1,6 @@
 import { Entity, EntityOptions, Vector3Like, ColliderShape, CollisionGroup, World, RigidBodyType, BlockType, PlayerEntity } from 'hytopia';
 import { ScoreManager } from '../managers/score-manager';
-import { BlockMovementBehavior, DefaultBlockMovement, SineWaveMovement, StaticMovement, PopUpMovement, RisingMovement, ParabolicMovement } from './block-movement';
+import { BlockMovementBehavior, DefaultBlockMovement, SineWaveMovement, StaticMovement, PopUpMovement, RisingMovement, ParabolicMovement, PendulumMovement } from './block-movement';
 import { DESTRUCTION_PARTICLE_CONFIG } from '../config/particle-config';
 import { BlockParticleEffects } from '../effects/block-particle-effects';
 import { SceneUIManager } from '../scene-ui/scene-ui-manager';
@@ -25,6 +25,20 @@ export const MOVING_BLOCK_CONFIG = {
     HEIGHT_RANGE: { min: 3, max: 8 },  // Higher range for better visibility
     SCORE: 10, // More points for hitting target
     HEALTH: 1  // One-shot kill
+  },
+  PENDULUM_TARGET: {
+    TEXTURE: 'blocks/obsidian.png',
+    HALF_EXTENTS: { x: 0.8, y: 0.8, z: 0.8 },
+    PIVOT_HEIGHT: 15, // Increased height for more dramatic swinging
+    LENGTH: 10, // Increased length for larger swing radius
+    AMPLITUDE: Math.PI / 3, // 60 degrees in radians for wider swings
+    FREQUENCY: 0.4, // Slightly slower for more dramatic swings
+    SCORE_MULTIPLIER: 3,
+    HEALTH: 1,
+    SPAWN_BOUNDS: {
+      LATERAL: { MIN: -15, MAX: 15 }, // Wider lateral bounds
+      FORWARD: { MIN: -20, MAX: 20 }  // Deeper forward bounds
+    }
   },
   VERTICAL_WAVE: {  // New configuration for vertical sine wave blocks
     TEXTURE: 'blocks/emerald-ore.png',
@@ -708,6 +722,55 @@ export class MovingBlockEntity extends Entity {
     return MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.SCORE_MULTIPLIER;
   }
 
+  // Static getters for pendulum target configuration
+  static get DefaultPendulumTexture(): string {
+    return MOVING_BLOCK_CONFIG.PENDULUM_TARGET.TEXTURE;
+  }
+
+  static get DefaultPendulumHalfExtents(): Vector3Like {
+    return MOVING_BLOCK_CONFIG.PENDULUM_TARGET.HALF_EXTENTS;
+  }
+
+  static get DefaultPendulumPivotHeight(): number {
+    return MOVING_BLOCK_CONFIG.PENDULUM_TARGET.PIVOT_HEIGHT;
+  }
+
+  static get DefaultPendulumLength(): number {
+    return MOVING_BLOCK_CONFIG.PENDULUM_TARGET.LENGTH;
+  }
+
+  static get DefaultPendulumAmplitude(): number {
+    return MOVING_BLOCK_CONFIG.PENDULUM_TARGET.AMPLITUDE;
+  }
+
+  static get DefaultPendulumFrequency(): number {
+    return MOVING_BLOCK_CONFIG.PENDULUM_TARGET.FREQUENCY;
+  }
+
+  static get DefaultPendulumScoreMultiplier(): number {
+    return MOVING_BLOCK_CONFIG.PENDULUM_TARGET.SCORE_MULTIPLIER;
+  }
+
+  // Helper method to create pendulum target configuration
+  static createPendulumConfiguration(customConfig?: Partial<MovingBlockOptions>): MovingBlockOptions {
+    return {
+      blockTextureUri: this.DefaultPendulumTexture,
+      blockHalfExtents: this.DefaultPendulumHalfExtents,
+      health: MOVING_BLOCK_CONFIG.PENDULUM_TARGET.HEALTH,
+      movementBehavior: new PendulumMovement({
+        pivotPoint: { 
+          x: 0, 
+          y: this.DefaultPendulumPivotHeight, 
+          z: 0 
+        },
+        length: this.DefaultPendulumLength,
+        amplitude: this.DefaultPendulumAmplitude,
+        frequency: this.DefaultPendulumFrequency
+      }),
+      ...customConfig
+    };
+  }
+
   // Helper method to create parabolic target configuration
   static createParabolicConfiguration(customConfig?: Partial<MovingBlockOptions>): MovingBlockOptions {
     // Calculate random start and end X positions using LATERAL bounds
@@ -1093,6 +1156,56 @@ export class MovingBlockManager {
     // Use the start point from the movement behavior
     const startPosition = (config.movementBehavior as ParabolicMovement)['startPoint'];
     block.spawn(this.world, startPosition);
+    this.blocks.push(block);
+    
+    return block;
+  }
+
+  public createPendulumTarget(options: {
+    pivotPoint?: Vector3Like;
+    length?: number;
+    amplitude?: number;
+    frequency?: number;
+    moveSpeed?: number;
+    blockTextureUri?: string;
+  } = {}): MovingBlockEntity {
+    // Clean up any despawned blocks first
+    this.blocks = this.blocks.filter(block => block.isSpawned);
+
+    const config = MovingBlockEntity.createPendulumConfiguration({
+      moveSpeed: options.moveSpeed,
+      blockTextureUri: options.blockTextureUri,
+      movementBehavior: new PendulumMovement({
+        pivotPoint: options.pivotPoint,
+        length: options.length,
+        amplitude: options.amplitude,
+        frequency: options.frequency
+      })
+    });
+
+    const block = new MovingBlockEntity({
+      ...config,
+      onBlockBroken: () => {
+        if (this.scoreManager && (block as any).playerId) {
+          const playerId = (block as any).playerId;
+          const score = MOVING_BLOCK_CONFIG.BREAK_SCORE * MovingBlockEntity.DefaultPendulumScoreMultiplier;
+          
+          this.scoreManager.addScore(playerId, score);
+          this.scoreManager.broadcastScores(this.world);
+          this.removeBlock(block);
+        }
+      }
+    });
+    
+    // Calculate spawn position based on pivot point and length
+    const spawnPosition = {
+      x: options.pivotPoint?.x ?? 0,
+      y: (options.pivotPoint?.y ?? MovingBlockEntity.DefaultPendulumPivotHeight) - 
+         (options.length ?? MovingBlockEntity.DefaultPendulumLength),
+      z: (options.pivotPoint?.z ?? 0) + (options.length ?? MovingBlockEntity.DefaultPendulumLength)
+    };
+    
+    block.spawn(this.world, spawnPosition);
     this.blocks.push(block);
     
     return block;

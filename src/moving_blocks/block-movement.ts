@@ -396,4 +396,40 @@ export class ParabolicMovement implements BlockMovementBehavior {
     const newPosition = this.calculatePosition(this.elapsedTime);
     block.setPosition(newPosition);
   }
+}
+
+export class PendulumMovement implements BlockMovementBehavior {
+  private elapsedTime: number = 0;
+  private readonly pivotPoint: Vector3Like;
+  private readonly length: number;
+  private readonly amplitude: number;
+  private readonly frequency: number;
+
+  constructor(options: {
+    pivotPoint?: Vector3Like;
+    length?: number;
+    amplitude?: number;
+    frequency?: number;
+  } = {}) {
+    this.pivotPoint = options.pivotPoint ?? { x: 0, y: 15, z: 0 }; // Higher default pivot point
+    this.length = options.length ?? 10; // Longer default length
+    this.amplitude = options.amplitude ?? Math.PI / 3; // 60 degrees in radians
+    this.frequency = options.frequency ?? 0.4; // Slightly slower frequency
+  }
+
+  update(block: MovingBlockEntity, deltaTimeMs: number): void {
+    this.elapsedTime += deltaTimeMs / 1000;
+    
+    // Calculate the current angle using a sine wave
+    const angle = this.amplitude * Math.sin(2 * Math.PI * this.frequency * this.elapsedTime);
+    
+    // Calculate new position - only rotating around Z axis
+    const newPosition = {
+      x: this.pivotPoint.x, // Keep X position fixed at pivot point
+      y: this.pivotPoint.y - this.length * Math.cos(angle), // Y position changes with swing
+      z: this.pivotPoint.z + this.length * Math.sin(angle)  // Z position changes with swing
+    };
+    
+    block.setPosition(newPosition);
+  }
 } 

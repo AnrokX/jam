@@ -3,6 +3,8 @@ import { MovingBlockManager, MOVING_BLOCK_CONFIG } from '../moving_blocks/moving
 
 export class TestBlockSpawner {
     private readonly DEBUG_ENABLED = false;
+    private testRoundInterval: NodeJS.Timeout | null = null;
+    private testRoundTimeout: NodeJS.Timeout | null = null;
 
     constructor(private world: World, private blockManager: MovingBlockManager) {}
 
@@ -441,5 +443,70 @@ export class TestBlockSpawner {
             position.y >= bounds.min.y && position.y <= bounds.max.y &&
             position.z >= bounds.min.z && position.z <= bounds.max.z
         );
+    }
+
+    public startTestRound(speedMultiplier: number = 1.2): void {
+        // Clear any existing round
+        this.stopTestRound();
+        
+        // Configuration for test round
+        const config = {
+            minBlockCount: 10,  // Start with fewer blocks for testing
+            maxBlockCount: 20,
+            spawnInterval: 2000,  // 2 seconds between spawns
+            duration: 60000,      // 1 minute round
+            speedMultiplier
+        };
+
+        // Initial block spawning
+        for (let i = 0; i < config.minBlockCount; i++) {
+            setTimeout(() => {
+                this.spawnRandomBlock(config.speedMultiplier);
+            }, i * 1000); // Stagger initial spawns by 1 second
+        }
+
+        // Periodic spawning
+        this.testRoundInterval = setInterval(() => {
+            const currentBlocks = this.blockManager.getBlockCount();
+            if (currentBlocks < config.maxBlockCount) {
+                this.spawnRandomBlock(config.speedMultiplier);
+            }
+        }, config.spawnInterval);
+
+        // End round after duration
+        this.testRoundTimeout = setTimeout(() => {
+            this.stopTestRound();
+        }, config.duration);
+    }
+
+    public stopTestRound(): void {
+        if (this.testRoundInterval) {
+            clearInterval(this.testRoundInterval);
+            this.testRoundInterval = null;
+        }
+        if (this.testRoundTimeout) {
+            clearTimeout(this.testRoundTimeout);
+            this.testRoundTimeout = null;
+        }
+        this.clearAllBlocks();
+    }
+
+    private spawnRandomBlock(speedMultiplier: number): void {
+        const blockType = Math.random();
+        if (blockType < 0.15) {
+            this.spawnStaticTarget();
+        } else if (blockType < 0.3) {
+            this.spawnSineWaveBlock(speedMultiplier);
+        } else if (blockType < 0.45) {
+            this.spawnVerticalWaveBlock(speedMultiplier);
+        } else if (blockType < 0.6) {
+            this.spawnPopUpTarget(speedMultiplier);
+        } else if (blockType < 0.75) {
+            this.spawnRisingTarget(speedMultiplier);
+        } else if (blockType < 0.9) {
+            this.spawnParabolicTarget(speedMultiplier);
+        } else {
+            this.spawnPendulumTarget(speedMultiplier);
+        }
     }
 } 

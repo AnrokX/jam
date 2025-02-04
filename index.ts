@@ -110,6 +110,17 @@ startServer(world => {
       world.chatManager.sendPlayerMessage(player, 'Cleared all blocks', 'FFFF00');
     });
 
+    world.chatManager.registerCommand('testround', (player) => {
+      testSpawner.startTestRound();
+      world.chatManager.sendPlayerMessage(player, 'Test Round Started!', 'FFFF00');
+      world.chatManager.sendPlayerMessage(player, 'Duration: 60 seconds', 'FFFF00');
+      
+      // End round notification
+      setTimeout(() => {
+        world.chatManager.sendPlayerMessage(player, 'Test Round Ended!', 'FFFF00');
+      }, 60000);
+    });
+
     world.chatManager.registerCommand('testhelp', (player) => {
       console.log('Executing testhelp command');
       world.chatManager.sendPlayerMessage(player, 'Test Mode Commands:', 'FFFF00');
@@ -123,6 +134,7 @@ startServer(world => {
       world.chatManager.sendPlayerMessage(player, 'spawn8 - Spawn pendulum target (swings like a pendulum in either XZ or YZ plane)', 'FFFF00');
       world.chatManager.sendPlayerMessage(player, 'spawnall - Spawn all block types', 'FFFF00');
       world.chatManager.sendPlayerMessage(player, 'clearblocks - Remove all blocks', 'FFFF00');
+      world.chatManager.sendPlayerMessage(player, 'testround - Start a 60-second test round with mixed blocks', 'FFFF00');
     });
   }
 

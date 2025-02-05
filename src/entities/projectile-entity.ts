@@ -186,6 +186,16 @@ export class ProjectileEntity extends Entity {
             this.rawRigidBody.enableCcd(true);
             this.rawRigidBody.setLinearDamping(ProjectileEntity.PHYSICS.LINEAR_DAMPING);
             this.rawRigidBody.setAngularDamping(0.3);
+            
+            // Add initial rotation to make sides face the player
+            // Rotate 90 degrees around the Z axis
+            const initialRotation = {
+                x: 0,
+                y: 0,
+                z: 0.7071068,  // Changed from Y to Z axis rotation
+                w: 0.7071068
+            };
+            this.rawRigidBody.setRotation(initialRotation);
         }
     }
 
@@ -230,18 +240,17 @@ export class ProjectileEntity extends Entity {
         this.rawRigidBody.applyImpulse(impulse);
         
         // Calculate the perpendicular axis for forward rolling motion
-        // Cross product of direction vector with up vector (0,1,0)
         const crossProduct = {
-            x: -normalizedDir.z,  // Cross product x component
-            y: 0,                 // Cross product y component
-            z: normalizedDir.x    // Cross product z component
+            x: -normalizedDir.z,
+            y: 0,
+            z: normalizedDir.x
         };
         
-        // Apply torque around this perpendicular axis
+        // Reduced torque multiplier by 66%
         const torque = {
-            x: crossProduct.x * 2.0,  // Adjust multiplier for spin speed
-            y: 0,                     // No vertical spin
-            z: crossProduct.z * 2.0   // Adjust multiplier for spin speed
+            x: crossProduct.x * 0.14,  // Reduced from 1.0 to 0.33
+            y: 0,
+            z: crossProduct.z * 0.14   // Reduced from 1.0 to 0.33
         };
         this.rawRigidBody.applyTorqueImpulse(torque);
     }

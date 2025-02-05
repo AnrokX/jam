@@ -393,8 +393,8 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 24px;
-      height: 24px;
+      width: var(--crosshair-size, 24px);
+      height: var(--crosshair-size, 24px);
       pointer-events: none;
       z-index: 1000;
       display: flex;
@@ -406,28 +406,27 @@
     .crosshair::before {
       content: '';
       position: absolute;
-      width: 20px;
-      height: 20px;
+      width: var(--ring-size, 20px);
+      height: var(--ring-size, 20px);
       border: 2px solid var(--crosshair-color, rgba(255, 255, 0, 0.8));
       border-radius: 50%;
       box-shadow: 0 0 4px var(--crosshair-glow, #ffff00),
                   inset 0 0 4px var(--crosshair-glow, #ffff00),
                   0 0 0 1px rgba(0, 0, 0, 0.5);
+      display: var(--show-ring, block);
     }
 
     /* Center dot */
     .crosshair::after {
       content: '';
       position: absolute;
-      width: 4px;
-      height: 4px;
+      width: var(--dot-size, 4px);
+      height: var(--dot-size, 4px);
       background-color: var(--crosshair-color, rgba(255, 255, 0, 0.9));
       border-radius: 50%;
       box-shadow: 0 0 4px var(--crosshair-glow, #ffff00),
                   0 0 2px rgba(0, 0, 0, 0.8);
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
+      display: var(--show-dot, block);
     }
 
     /* Scene UI Container and Notifications */
@@ -681,6 +680,21 @@
       text-align: center;
       letter-spacing: 2px;
     }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 28px;
+      color: white;
+      cursor: pointer;
+    }
+
+    .checkbox-label input[type="checkbox"] {
+      width: 24px;
+      height: 24px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -803,6 +817,40 @@
           <option value="#ff0088">Pink</option>
         </select>
         <input type="color" value="#ffff00" id="crosshair-color">
+      </div>
+    </div>
+    <div class="settings-option">
+      <span class="settings-label">Crosshair Elements</span>
+      <div class="settings-value">
+        <label class="checkbox-label">
+          <input type="checkbox" id="show-ring" checked>
+          Ring
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" id="show-dot" checked>
+          Dot
+        </label>
+      </div>
+    </div>
+    <div class="settings-option">
+      <span class="settings-label">Global Size</span>
+      <div class="settings-value">
+        <input type="range" min="12" max="48" value="24" id="global-size-slider">
+        <span id="global-size-value">24px</span>
+      </div>
+    </div>
+    <div class="settings-option">
+      <span class="settings-label">Ring Size</span>
+      <div class="settings-value">
+        <input type="range" min="8" max="40" value="20" id="ring-size-slider">
+        <span id="ring-size-value">20px</span>
+      </div>
+    </div>
+    <div class="settings-option">
+      <span class="settings-label">Dot Size</span>
+      <div class="settings-value">
+        <input type="range" min="2" max="12" value="4" id="dot-size-slider">
+        <span id="dot-size-value">4px</span>
       </div>
     </div>
   </div>
@@ -1182,6 +1230,56 @@ document.getElementById('color-preset').addEventListener('change', (e) => {
     updateCrosshairColor(e.target.value);
   }
 });
+
+// Function to update crosshair sizes
+function updateCrosshairSizes() {
+  const root = document.documentElement;
+  const globalSize = document.getElementById('global-size-slider').value;
+  const ringSize = document.getElementById('ring-size-slider').value;
+  const dotSize = document.getElementById('dot-size-slider').value;
+  
+  root.style.setProperty('--crosshair-size', `${globalSize}px`);
+  root.style.setProperty('--ring-size', `${ringSize}px`);
+  root.style.setProperty('--dot-size', `${dotSize}px`);
+  
+  // Update display values
+  document.getElementById('global-size-value').textContent = `${globalSize}px`;
+  document.getElementById('ring-size-value').textContent = `${ringSize}px`;
+  document.getElementById('dot-size-value').textContent = `${dotSize}px`;
+  
+  // Send to game
+  hytopia.sendData({
+    type: 'updateSettings',
+    setting: 'crosshairSizes',
+    value: { globalSize, ringSize, dotSize }
+  });
+}
+
+// Function to update crosshair visibility
+function updateCrosshairVisibility() {
+  const root = document.documentElement;
+  const showRing = document.getElementById('show-ring').checked;
+  const showDot = document.getElementById('show-dot').checked;
+  
+  root.style.setProperty('--show-ring', showRing ? 'block' : 'none');
+  root.style.setProperty('--show-dot', showDot ? 'block' : 'none');
+  
+  // Send to game
+  hytopia.sendData({
+    type: 'updateSettings',
+    setting: 'crosshairVisibility',
+    value: { showRing, showDot }
+  });
+}
+
+// Size slider handlers
+document.getElementById('global-size-slider').addEventListener('input', updateCrosshairSizes);
+document.getElementById('ring-size-slider').addEventListener('input', updateCrosshairSizes);
+document.getElementById('dot-size-slider').addEventListener('input', updateCrosshairSizes);
+
+// Visibility checkbox handlers
+document.getElementById('show-ring').addEventListener('change', updateCrosshairVisibility);
+document.getElementById('show-dot').addEventListener('change', updateCrosshairVisibility);
 </script>
 
 </body>

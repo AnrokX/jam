@@ -220,4 +220,28 @@ export class SceneUIManager {
     });
     this.hitNotifications.clear();
   }
+
+  public showComboNotification(consecutiveHits: number, comboBonus: number, position: Vector3Like): void {
+    console.log('Showing combo notification:', { hits: consecutiveHits, bonus: comboBonus });
+    
+    // Send the combo data to the HUD UI instead of creating a SceneUI
+    this.world.entityManager.getAllPlayerEntities().forEach(playerEntity => {
+      playerEntity.player.ui.sendData({
+        type: 'showCombo',
+        data: {
+          hits: consecutiveHits,
+          bonus: comboBonus,
+          text: this.getComboText(consecutiveHits)
+        }
+      });
+    });
+  }
+
+  private getComboText(hits: number): string {
+    if (hits >= 10) return 'UNSTOPPABLE!';
+    if (hits >= 7) return 'DOMINATING!';
+    if (hits >= 5) return 'IMPRESSIVE!';
+    if (hits >= 3) return 'NICE COMBO!';
+    return '';
+  }
 } 

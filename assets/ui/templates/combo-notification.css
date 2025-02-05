@@ -1,0 +1,9 @@
+.combo-notification {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  animation: comboSlideIn 0.3s ease-out;
+}
+
+/* Rest of the CSS stays the same */ 

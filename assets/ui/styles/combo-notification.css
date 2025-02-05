@@ -1,0 +1,119 @@
+:root {
+  --blood-red: #ff1717;
+  --dark-red: #8b0000;
+  --glow-red: #ff000d;
+  --matrix-green: #00ff41;
+  --terminal-green: #39ff14;
+  --matrix-dark: #0d0208;
+}
+
+.combo-notification {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  animation: comboSlideIn 0.3s ease-out;
+  font-family: 'Press Start 2P', monospace;
+  text-align: center;
+  z-index: 1000;
+}
+
+.combo-counter {
+  background: rgba(0, 0, 0, 0.85);
+  padding: 15px 25px;
+  border-radius: 12px;
+  border: 2px solid #ff1717;
+  box-shadow: 0 0 20px rgba(255, 0, 0, 0.3),
+              inset 0 0 15px rgba(255, 0, 0, 0.2);
+  animation: glowPulse 1.5s infinite;
+  transform: scale(1.5);
+}
+
+.combo-hits {
+  font-size: 48px;
+  font-weight: bold;
+  color: #ff1717;
+  text-shadow: 0 0 15px #ff000d;
+  display: block;
+  margin-bottom: 8px;
+  animation: scalePulse 0.5s infinite;
+}
+
+.combo-text {
+  font-size: 32px;
+  color: #00ff41;
+  text-shadow: 0 0 12px #39ff14;
+  display: block;
+  margin-bottom: 8px;
+  letter-spacing: 2px;
+}
+
+.combo-bonus {
+  font-size: 28px;
+  color: #ffff00;
+  text-shadow: 0 0 12px rgba(255, 255, 0, 0.8);
+  display: block;
+  letter-spacing: 1px;
+}
+
+/* Combo tiers with different colors */
+.combo .combo-hits { color: #00ff00; }
+.super-combo .combo-hits { color: #00ffff; }
+.ultra-combo .combo-hits { 
+  color: #ff00ff;
+  animation: pulse 0.5s infinite;
+}
+.mega-combo .combo-hits { 
+  color: #ff0000;
+  animation: pulse 0.5s infinite;
+}
+
+/* Animations */
+@keyframes comboSlideIn {
+  from {
+    transform: translateX(-50%) translateY(-50px) scale(1.5);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%) translateY(0) scale(1.5);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+@keyframes scalePulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+@keyframes glowPulse {
+  0% { 
+    box-shadow: 0 0 20px rgba(255, 0, 0, 0.5), 
+                inset 0 0 15px rgba(255, 0, 0, 0.4);
+  }
+  50% { 
+    box-shadow: 0 0 30px rgba(255, 0, 0, 0.7), 
+                inset 0 0 25px rgba(255, 0, 0, 0.6);
+  }
+  100% { 
+    box-shadow: 0 0 20px rgba(255, 0, 0, 0.5), 
+                inset 0 0 15px rgba(255, 0, 0, 0.4);
+  }
+}
+
+.fade-out {
+  animation: fadeOut 0.5s forwards;
+}
+
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px) scale(1.5);
+  }
+} 

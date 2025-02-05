@@ -5,6 +5,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/combo-notification.css">
   <style>
     :root {
       --matrix-green: #00ff41;
@@ -1037,6 +1038,88 @@
       from { opacity: 0; transform: translateX(-50%) translateY(20px); }
       to { opacity: 1; transform: translateX(-50%) translateY(0); }
     }
+
+    /* Add combo notification styles directly here */
+    .combo-notification {
+      position: fixed;
+      left: 50%;
+      bottom: 80px;  /* Moved lower, closer to the bottom */
+      transform: translateX(-50%);
+      pointer-events: none;
+      font-family: var(--display-font);
+      text-align: center;
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .combo-notification.active {
+      opacity: 1;
+    }
+
+    .combo-counter {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 4px 12px;
+      border-radius: 4px;
+      backdrop-filter: blur(2px);
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .combo-hits {
+      font-size: 24px;
+      font-weight: bold;
+      color: var(--matrix-green);
+      text-shadow: 0 0 6px var(--terminal-green);
+      opacity: 0.9;
+    }
+
+    .combo-text {
+      font-size: 18px;
+      color: rgba(255, 255, 255, 0.8);
+      text-shadow: 0 0 4px rgba(255, 255, 255, 0.4);
+      letter-spacing: 1px;
+    }
+
+    .combo-bonus {
+      font-size: 16px;
+      color: rgba(255, 255, 0, 0.8);
+      text-shadow: 0 0 4px rgba(255, 255, 0, 0.4);
+      letter-spacing: 1px;
+      margin-left: 4px;
+    }
+
+    @keyframes comboSlideIn {
+      from {
+        transform: translateX(-50%) translateY(20px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+      }
+    }
+
+    /* Combo tiers with different colors */
+    .combo .combo-hits { 
+      color: rgba(255, 255, 255, 0.9);
+      text-shadow: 0 0 4px rgba(255, 255, 255, 0.4);
+    }
+    .super-combo .combo-hits { 
+      color: rgba(0, 255, 255, 0.9);
+      text-shadow: 0 0 4px rgba(0, 255, 255, 0.4);
+    }
+    .ultra-combo .combo-hits { 
+      color: rgba(255, 0, 255, 0.9);
+      text-shadow: 0 0 4px rgba(255, 0, 255, 0.4);
+    }
+    .mega-combo .combo-hits { 
+      color: rgba(255, 0, 0, 0.9);
+      text-shadow: 0 0 4px rgba(255, 0, 0, 0.4);
+    }
   </style>
 </head>
 <body>
@@ -1050,6 +1133,16 @@
 <template id="block-destroyed-notification-template">
   <div class="block-destroyed-notification">
     <div class="score">+0</div>
+  </div>
+</template>
+
+<template id="combo-notification-template">
+  <div class="combo-notification">
+    <div class="combo-counter">
+      <div class="combo-hits"></div>
+      <div class="combo-text"></div>
+      <div class="combo-bonus"></div>
+    </div>
   </div>
 </template>
 
@@ -1091,6 +1184,36 @@
         if (state.style) {
           scoreElement.style.cssText = state.style;
         }
+      }
+    });
+    
+    return clone;
+  });
+
+  // Update the combo notification template registration
+  hytopia.registerSceneUITemplate('combo-notification', (id, onState) => {
+    const template = document.getElementById('combo-notification-template');
+    const clone = template.content.cloneNode(true);
+    
+    // Get all the elements we need to update
+    const container = clone.querySelector('.combo-notification');
+    const hitsElement = clone.querySelector('.combo-hits');
+    const textElement = clone.querySelector('.combo-text');
+    const bonusElement = clone.querySelector('.combo-bonus');
+    
+    onState(state => {
+      if (state && container) {
+        // Update the combo class based on hits
+        const comboClass = state.hits >= 10 ? 'mega-combo' :
+                          state.hits >= 7 ? 'ultra-combo' :
+                          state.hits >= 5 ? 'super-combo' :
+                          'combo';
+        container.className = `combo-notification ${comboClass} active`;
+        
+        // Update the text content
+        if (hitsElement) hitsElement.textContent = `${state.hits}x`;
+        if (textElement) textElement.textContent = state.text;
+        if (bonusElement) bonusElement.textContent = `+${state.bonus}%`;
       }
     });
     
@@ -1156,6 +1279,15 @@
 </div>
 
 <div class="crosshair"></div>
+
+<!-- Add the combo notification element here -->
+<div class="combo-notification">
+  <div class="combo-counter">
+    <div class="combo-hits"></div>
+    <div class="combo-text"></div>
+    <div class="combo-bonus"></div>
+  </div>
+</div>
 
 <div class="settings-overlay"></div>
 <div class="settings-menu">
@@ -1349,6 +1481,8 @@ hytopia.onData(data => {
     showCountdown(data.count);
   } else if (data.type === 'updateLeaderboard') {
     updateLeaderboard(data.leaderboard);
+  } else if (data.type === 'showCombo') {
+    showComboNotification(data.data);
   }
 });
 
@@ -1479,6 +1613,25 @@ function updateRoundInfo(roundData) {
   const roundNumber = document.querySelector('.round-number');
   roundNumber.textContent = `Round ${roundData.round}`;
   
+  // Clear any active combo notification
+  const comboNotification = document.querySelector('.combo-notification');
+  if (comboNotification) {
+    comboNotification.classList.remove('active');
+    if (comboTimeout) {
+      clearTimeout(comboTimeout);
+      comboTimeout = null;
+    }
+  }
+
+  // Reset round scores in the scoreboard
+  const scores = document.querySelectorAll('.player-score');
+  scores.forEach(score => {
+    const roundScore = score.querySelector('.round-score');
+    if (roundScore) {
+      roundScore.textContent = '(+0)';
+    }
+  });
+  
   // Start or update timer with the full duration
   if (roundData.timeRemaining > 0) {
     startLocalTimer(roundData.timeRemaining);
@@ -1497,8 +1650,17 @@ function handleRoundEnd(data) {
   statusMessage.style.animation = 'pulse 0.5s ease-out infinite';
   
   roundInfo.appendChild(statusMessage);
+
+  // Reset round scores to 0 but keep total scores
+  const scores = document.querySelectorAll('.player-score');
+  scores.forEach(score => {
+    const roundScore = score.querySelector('.round-score');
+    if (roundScore) {
+      roundScore.textContent = '(+0)';
+    }
+  });
   
-  // Remove after transition to next round
+  // Remove status message after transition to next round
   setTimeout(() => {
     statusMessage.remove();
   }, data.nextRoundIn);
@@ -1509,12 +1671,19 @@ function updateScoreboard(scores) {
   scores.forEach((score, index) => {
     const playerDiv = document.createElement('div');
     playerDiv.className = 'player-score';
+    
+    // Ensure we're using numbers and not accidentally concatenating strings
+    const totalScore = Number(score.totalScore);
+    const roundScore = Number(score.roundScore);
+    
     playerDiv.innerHTML = `
       <span class="player-label">P${index + 1}</span>
-      <span class="score-value">${score.totalScore}</span>
-      <span class="round-score">(+${score.roundScore})</span>
+      <span class="score-value">${totalScore}</span>
+      <span class="round-score">(+${roundScore})</span>
     `;
     scoresContainer.appendChild(playerDiv);
+    
+    console.log(`Player ${index + 1} scores - Total: ${totalScore}, Round: ${roundScore}`); // Debug log
   });
 }
 
@@ -1758,6 +1927,39 @@ document.addEventListener('keydown', (e) => {
 // Show hotkeys when menus are closed
 function onMenuClose() {
     updateHotkeysVisibility(true);
+}
+
+// Add this to your existing script
+let comboTimeout = null;
+
+function showComboNotification(data) {
+  const container = document.querySelector('.combo-notification');
+  const hitsElement = container.querySelector('.combo-hits');
+  const textElement = container.querySelector('.combo-text');
+  const bonusElement = container.querySelector('.combo-bonus');
+  
+  // Update the combo class based on hits
+  const comboClass = data.hits >= 10 ? 'mega-combo' :
+                    data.hits >= 7 ? 'ultra-combo' :
+                    data.hits >= 5 ? 'super-combo' :
+                    'combo';
+  
+  container.className = `combo-notification ${comboClass} active`;
+  
+  // Update the text content
+  hitsElement.textContent = `${data.hits}x`;
+  textElement.textContent = data.text;
+  bonusElement.textContent = `+${data.bonus}%`;
+  
+  // Clear any existing timeout
+  if (comboTimeout) {
+    clearTimeout(comboTimeout);
+  }
+  
+  // Hide after 2 seconds
+  comboTimeout = setTimeout(() => {
+    container.classList.remove('active');
+  }, 2000);
 }
 </script>
 

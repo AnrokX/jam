@@ -67,13 +67,17 @@ export class SceneUIManager {
     
     // Balanced duration with moderate curve for mid-range scores
     const duration = 500 + Math.min(
-      roundedScore <= 25 
+      roundedScore <= 30 
         ? Math.pow(roundedScore, 1.2) * 3 
         : Math.pow(roundedScore, 1.8) * 4
       * distanceMultiplier, 1200); 
     
-    // Keep the conservative scale for lower scores
-    const scale = 1 + Math.min(Math.pow(roundedScore / 50, 2.2) * distanceMultiplier, 2); 
+    // Even more conservative scale for mid-range scores
+    const scale = 1 + Math.min(
+      roundedScore <= 30
+        ? Math.pow(roundedScore / 60, 2.2)  // More conservative for scores <= 30
+        : Math.pow(roundedScore / 50, 2.2)  // Original scaling for higher scores
+      * distanceMultiplier, 2); 
     const verticalOffset = 1.5 + Math.min(Math.pow(roundedScore / 25, 1.6), 2.5);
 
     // Dynamic color calculation based on score

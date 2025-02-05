@@ -3,6 +3,7 @@ import { ProjectileEntity } from '../entities/projectile-entity';
 import { RaycastHandler } from '../raycast/raycast-handler';
 import { Vector3Like } from 'hytopia';
 import { BlockParticleEffects } from '../effects/block-particle-effects';
+import { AudioManager } from './audio-manager';
 
 export interface PlayerProjectileState {
   previewProjectile: ProjectileEntity | null;
@@ -18,11 +19,13 @@ export class PlayerProjectileManager {
   private readonly world: World;
   private readonly raycastHandler: RaycastHandler;
   private readonly enablePreview: boolean;
+  private readonly audioManager: AudioManager;
 
   constructor(world: World, raycastHandler: RaycastHandler, enablePreview: boolean = false) {
     this.world = world;
     this.raycastHandler = raycastHandler;
     this.enablePreview = enablePreview;
+    this.audioManager = AudioManager.getInstance(world);
   }
 
   initializePlayer(playerId: string): void {
@@ -136,6 +139,9 @@ export class PlayerProjectileManager {
 
     // Right mouse button just released
     if (mrJustReleased && state.previewProjectile) {
+      // Play grenade launcher sound
+      this.audioManager.playSoundEffect('audio/sfx/projectile/grenade-launcher.mp3', 0.4);
+      
       // Throw the projectile and clean up preview
       state.previewProjectile.throw(direction);
       state.previewProjectile.clearTrajectoryMarkers();

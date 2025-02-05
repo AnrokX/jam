@@ -4,6 +4,7 @@ export class AudioManager {
     private static instance: AudioManager;
     private world: World;
     private backgroundMusic?: Audio;
+    private sfxVolume: number = 0.5;
 
     private constructor(world: World) {
         this.world = world;
@@ -23,6 +24,19 @@ export class AudioManager {
             volume: 0.1,
         });
         this.backgroundMusic.play(this.world);
+    }
+
+    public playSoundEffect(sfxPath: string, volume: number = this.sfxVolume): void {
+        const sfx = new Audio({
+            uri: sfxPath,
+            loop: false,
+            volume: volume,
+        });
+        sfx.play(this.world);
+    }
+
+    public setSfxVolume(volume: number): void {
+        this.sfxVolume = Math.max(0, Math.min(1, volume));
     }
 
     public cleanup(): void {

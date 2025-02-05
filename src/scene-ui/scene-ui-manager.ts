@@ -25,7 +25,8 @@ export class SceneUIManager {
       templateId: 'hit-notification',
       state: { score: Math.round(score) },
       position: worldPosition,
-      offset: { x: 0, y: 0.5, z: 0 } // Add a small offset to prevent z-fighting
+      offset: { x: 0, y: 0.5, z: 0 },
+      viewDistance: 200 // Add this to increase view distance
     });
 
     // Load the SceneUI into the world
@@ -179,7 +180,8 @@ export class SceneUIManager {
         style: dynamicStyle
       },
       position: worldPosition,
-      offset: { x: 0, y: verticalOffset, z: 0 }
+      offset: { x: 0, y: verticalOffset, z: 0 },
+      viewDistance: 200 // Add this to increase view distance (in world units)
     });
 
     // Load the SceneUI into the world

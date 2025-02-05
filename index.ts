@@ -40,11 +40,8 @@ startServer(world => {
   raycastHandler.enableDebugRaycasting(DEBUG_ENABLED);
   console.log('RaycastHandler initialized with debug enabled');
 
-  // Development flag for trajectory preview - set to false to disable
-  const SHOW_TRAJECTORY_PREVIEW = false;
-
   // Initialize the projectile manager
-  const projectileManager = new PlayerProjectileManager(world, raycastHandler, SHOW_TRAJECTORY_PREVIEW);
+  const projectileManager = new PlayerProjectileManager(world, raycastHandler);
 
   // Initialize the score manager
   const scoreManager = new ScoreManager();

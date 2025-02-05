@@ -36,15 +36,11 @@ export class ProjectileEntity extends Entity {
         SPEED_LOSS_PER_BOUNCE: 0.35,  // 35% speed loss per bounce
         SPAWN_HEIGHT_OFFSET: -1.0,  // Meters below eye level (adjust as needed)
         SPAWN_FORWARD_OFFSET: -0.5,  // Meters forward from player (adjust as needed)
-    } as const;
-
-    // Trajectory preview constants
-    private static readonly PREVIEW = {
-        TRAJECTORY_STEPS: 10,
-        TIME_STEP: 0.1,
+        // Adding trajectory-related constants
         MARKER_URI: 'models/projectiles/bomb.gltf',
         MARKER_SCALE: 0.3,
-        MARKER_OPACITY: 0.7
+        TRAJECTORY_STEPS: 10,
+        TIME_STEP: 0.1
     } as const;
 
     private speed: number;
@@ -70,7 +66,7 @@ export class ProjectileEntity extends Entity {
         super({
             ...options,
             name: options.name || 'Projectile',
-            modelUri: options.modelUri || ProjectileEntity.PREVIEW.MARKER_URI,
+            modelUri: options.modelUri || ProjectileEntity.PHYSICS.MARKER_URI,
             modelScale: options.modelScale || 0.5
         });
 
@@ -283,12 +279,12 @@ export class ProjectileEntity extends Entity {
         };
 
         // Predict trajectory points
-        for (let i = 0; i < ProjectileEntity.PREVIEW.TRAJECTORY_STEPS; i++) {
+        for (let i = 0; i < ProjectileEntity.PHYSICS.TRAJECTORY_STEPS; i++) {
             // Calculate next position based on current velocity
             const nextPos = {
-                x: currentPos.x + velocity.x * ProjectileEntity.PREVIEW.TIME_STEP,
-                y: currentPos.y + velocity.y * ProjectileEntity.PREVIEW.TIME_STEP,
-                z: currentPos.z + velocity.z * ProjectileEntity.PREVIEW.TIME_STEP
+                x: currentPos.x + velocity.x * ProjectileEntity.PHYSICS.TIME_STEP,
+                y: currentPos.y + velocity.y * ProjectileEntity.PHYSICS.TIME_STEP,
+                z: currentPos.z + velocity.z * ProjectileEntity.PHYSICS.TIME_STEP
             };
 
             // Calculate direction to next point
@@ -339,7 +335,7 @@ export class ProjectileEntity extends Entity {
             // Update position and velocity for next iteration
             currentPos = nextPos;
             // Apply gravity to Y velocity
-            velocity.y -= ProjectileEntity.PHYSICS.GRAVITY * ProjectileEntity.PREVIEW.TIME_STEP;
+            velocity.y -= ProjectileEntity.PHYSICS.GRAVITY * ProjectileEntity.PHYSICS.TIME_STEP;
         }
 
         return points;
@@ -375,9 +371,9 @@ export class ProjectileEntity extends Entity {
             if (this.trajectoryMarkers.length === 0) {
                 const marker = new Entity({
                     name: 'ImpactMarker',
-                    modelUri: ProjectileEntity.PREVIEW.MARKER_URI,
-                    modelScale: ProjectileEntity.PREVIEW.MARKER_SCALE,
-                    opacity: ProjectileEntity.PREVIEW.MARKER_OPACITY
+                    modelUri: ProjectileEntity.PHYSICS.MARKER_URI,
+                    modelScale: ProjectileEntity.PHYSICS.MARKER_SCALE,
+                    
                 });
                 this.trajectoryMarkers.push(marker);
                 marker.spawn(this.world, collisionPoint.position);

@@ -23,13 +23,11 @@ export class PlayerProjectileManager {
   private playerStates = new Map<string, PlayerProjectileState>();
   private readonly world: World;
   private readonly raycastHandler: RaycastHandler;
-  private readonly enablePreview: boolean;
   private readonly audioManager: AudioManager;
 
-  constructor(world: World, raycastHandler: RaycastHandler, enablePreview: boolean = false) {
+  constructor(world: World, raycastHandler: RaycastHandler) {
     this.world = world;
     this.raycastHandler = raycastHandler;
-    this.enablePreview = enablePreview;
     this.audioManager = AudioManager.getInstance(world);
   }
 
@@ -58,7 +56,6 @@ export class PlayerProjectileManager {
     const projectile = new ProjectileEntity({
       modelScale: 1,
       raycastHandler: this.raycastHandler,
-      enablePreview: this.enablePreview,
       playerId
     });
 

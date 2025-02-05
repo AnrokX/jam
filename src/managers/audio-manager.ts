@@ -5,6 +5,7 @@ export class AudioManager {
     private world: World;
     private backgroundMusic?: Audio;
     private sfxVolume: number = 0.5;
+    private bgmVolume: number = 0.1; // Default background music volume
 
     private constructor(world: World) {
         this.world = world;
@@ -18,12 +19,55 @@ export class AudioManager {
     }
 
     public playBackgroundMusic(): void {
-        this.backgroundMusic = new Audio({
-            uri: 'audio/music/hytopia-main.mp3',
-            loop: true,
-            volume: 0.1,
-        });
-        this.backgroundMusic.play(this.world);
+        try {
+            // If we already have background music, just update its volume
+            if (this.backgroundMusic) {
+                const actualVolume = this.bgmVolume === 0 ? 0 : this.bgmVolume;
+                this.backgroundMusic.setVolume(actualVolume);
+                console.log(`Background music volume updated to: ${actualVolume}`);
+                return;
+            }
+
+            // Create new background music instance
+            this.backgroundMusic = new Audio({
+                uri: 'audio/music/hytopia-main.mp3',
+                loop: true,
+                volume: this.bgmVolume,
+            });
+
+            // Play the music and log success
+            this.backgroundMusic.play(this.world);
+            console.log(`Background music started with volume: ${this.bgmVolume}`);
+        } catch (error) {
+            console.error('Failed to initialize background music:', error);
+            this.backgroundMusic = undefined;
+        }
+    }
+
+    public setBgmVolume(volume: number): void {
+        // Update the stored volume
+        this.bgmVolume = Math.max(0, Math.min(1, volume));
+        
+        // Try to update the actual audio instance
+        try {
+            // Always try to initialize music if it doesn't exist
+            if (!this.backgroundMusic) {
+                this.playBackgroundMusic();
+                return;
+            }
+
+            // Update volume of existing background music
+            // Ensure we're setting exactly 0 when muting
+            const actualVolume = this.bgmVolume === 0 ? 0 : this.bgmVolume;
+            this.backgroundMusic.setVolume(actualVolume);
+            console.log(`Background music volume set to: ${actualVolume}`);
+        } catch (error) {
+            console.error('Error setting background music volume:', error);
+        }
+    }
+
+    public getBgmVolume(): number {
+        return this.bgmVolume;
     }
 
     public playSoundEffect(sfxPath: string, volume: number = this.sfxVolume): void {
@@ -45,7 +89,13 @@ export class AudioManager {
     }
 
     public cleanup(): void {
-        // Audio cleanup will be handled by the world's garbage collection
+        try {
+            if (this.backgroundMusic) {
+                this.backgroundMusic.setVolume(0);
+            }
+        } catch (error) {
+            console.error('Error during audio cleanup:', error);
+        }
         this.backgroundMusic = undefined;
     }
 } 

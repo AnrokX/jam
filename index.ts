@@ -146,8 +146,7 @@ startServer(world => {
 
   // Initialize AudioManager and start background music
   const audioManager = AudioManager.getInstance(world);
-  audioManager.playBackgroundMusic();
-
+  
   /**
    * Handles the event when a player joins the game.
    * Sets up player entity and input handling for raycasting.
@@ -162,6 +161,20 @@ startServer(world => {
     
     // Load the UI first
     player.ui.load('ui/index.html');
+    
+    // Initialize audio with player's settings
+    const playerSettings = settingsManager.getPlayerSettings(player.id);
+    if (playerSettings) {
+      // Start background music with initial volume
+      audioManager.setBgmVolume(playerSettings.bgmVolume);
+      audioManager.playBackgroundMusic();
+      
+      // Send initial settings to UI
+      player.ui.sendData({
+        type: 'settingsUpdate',
+        settings: playerSettings
+      });
+    }
     
     // Send initial projectile count to UI
     player.ui.sendData({
@@ -281,6 +294,12 @@ startServer(world => {
     player.ui.onData = (_playerUI: PlayerUI, data: any) => {
       if (data && data.type === 'updateSettings') {
         settingsManager.updateSetting(player.id, data.setting, data.value);
+        
+        // Handle background music volume changes
+        if (data.setting === 'bgmVolume') {
+          const volume = data.value / 100; // Convert from percentage to decimal
+          audioManager.setBgmVolume(volume);
+        }
       }
     };
 

@@ -828,6 +828,13 @@
         <span id="sensitivity-value">50</span>
       </div>
     </div>
+    <div class="settings-option">
+      <span class="settings-label">Background Music Volume</span>
+      <div class="settings-value">
+        <input type="range" min="0" max="100" value="10" id="bgm-volume-slider">
+        <span id="bgm-volume-value">10</span>
+      </div>
+    </div>
   </div>
 
   <!-- Crosshair Settings Section -->
@@ -955,6 +962,17 @@ hytopia.onData(data => {
     showCountdown(data.count);
   } else if (data.type === 'updateLeaderboard') {
     updateLeaderboard(data.leaderboard);
+  } else if (data.type === 'settingsUpdate' && data.settings) {
+    // Update volume slider
+    if (data.settings.bgmVolume !== undefined) {
+      const volumeSlider = document.getElementById('bgm-volume-slider');
+      const volumeValue = document.getElementById('bgm-volume-value');
+      if (volumeSlider && volumeValue) {
+        const uiValue = Math.round(data.settings.bgmVolume * 100);
+        volumeSlider.value = String(uiValue);
+        volumeValue.textContent = String(uiValue);
+      }
+    }
   }
 });
 
@@ -1178,6 +1196,11 @@ function toggleSettings(show) {
   if (show) {
     menu.classList.add('visible');
     overlay.classList.add('visible');
+    
+    // Request current settings when opening menu
+    hytopia.sendData({ 
+      type: 'requestSettings'
+    });
   } else {
     menu.classList.remove('visible');
     overlay.classList.remove('visible');
@@ -1229,6 +1252,48 @@ document.getElementById('sensitivity-slider').addEventListener('input', (e) => {
     setting: 'sensitivity',
     value: Number(value)
   });
+});
+
+// Background music volume handler with debounce
+let volumeTimeout;
+const volumeSlider = document.getElementById('bgm-volume-slider');
+const volumeValue = document.getElementById('bgm-volume-value');
+
+// Initialize volume UI with default value
+volumeSlider.value = '10'; // Default value (10%)
+volumeValue.textContent = '10';
+
+volumeSlider.addEventListener('input', (e) => {
+  const value = e.target.value;
+  volumeValue.textContent = value;
+  
+  // Clear any pending timeout
+  if (volumeTimeout) {
+    clearTimeout(volumeTimeout);
+  }
+  
+  // Set a new timeout to update the volume
+  volumeTimeout = setTimeout(() => {
+    // Ensure we send exactly 0 when slider is at minimum
+    const volumeValue = Number(value);
+    hytopia.sendData({ 
+      type: 'updateSettings',
+      setting: 'bgmVolume',
+      value: volumeValue === 0 ? 0 : volumeValue
+    });
+  }, 50); // Small delay to prevent too many updates
+});
+
+// Listen for settings updates from the game
+hytopia.onData(data => {
+  if (data.type === 'settingsUpdate' && data.settings) {
+    // Update volume slider
+    if (data.settings.bgmVolume !== undefined) {
+      const uiValue = Math.round(data.settings.bgmVolume * 100);
+      volumeSlider.value = String(uiValue);
+      volumeValue.textContent = String(uiValue);
+    }
+  }
 });
 
 // Function to update crosshair color

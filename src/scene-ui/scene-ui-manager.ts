@@ -56,12 +56,10 @@ export class SceneUIManager {
     const getScoreColor = (score: number): { main: string, glow: string, intensity: number } => {
       // Base colors for spectrum
       const colors = [
-        { score: 0, color: '#888888', glow: '#444444', intensity: 0.2 },    // Gray
-        { score: 10, color: '#39ff14', glow: '#2fb40e', intensity: 0.4 },   // Matrix green
-        { score: 20, color: '#00ffff', glow: '#00cccc', intensity: 0.6 },   // Cyan
-        { score: 35, color: '#ff3366', glow: '#cc295f', intensity: 0.8 },   // Pink
-        { score: 50, color: '#ff9933', glow: '#cc7a29', intensity: 1.0 },   // Orange
-        { score: 75, color: '#ff1717', glow: '#cc1313', intensity: 1.2 }    // Red
+        { score: 0, color: '#FFFFFF', glow: '#CCCCCC', intensity: 0.3 },    // White
+        { score: 15, color: '#FFFF00', glow: '#CCCC00', intensity: 0.6 },   // Yellow
+        { score: 35, color: '#FFA500', glow: '#CC8400', intensity: 0.9 },   // Orange
+        { score: 50, color: '#FF0000', glow: '#CC0000', intensity: 1.2 }    // Red
       ];
 
       // Find the two colors to interpolate between

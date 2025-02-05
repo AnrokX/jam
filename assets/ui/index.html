@@ -397,6 +397,9 @@
       height: 24px;
       pointer-events: none;
       z-index: 1000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
 
     /* Outer circle */
@@ -407,10 +410,10 @@
       height: 20px;
       left: 2px;
       top: 2px;
-      border: 2px solid rgba(0, 255, 255, 0.8);
+      border: 2px solid rgba(255, 255, 0, 0.8);
       border-radius: 50%;
-      box-shadow: 0 0 4px #00ffff,
-                  inset 0 0 4px #00ffff,
+      box-shadow: 0 0 4px #ffff00,
+                  inset 0 0 4px #ffff00,
                   0 0 0 1px rgba(0, 0, 0, 0.5);
     }
 
@@ -420,11 +423,9 @@
       position: absolute;
       width: 4px;
       height: 4px;
-      left: 10px;
-      top: 10px;
-      background-color: rgba(255, 255, 255, 0.9);
+      background-color: rgba(255, 255, 0, 0.9);
       border-radius: 50%;
-      box-shadow: 0 0 4px #00ffff,
+      box-shadow: 0 0 4px #ffff00,
                   0 0 2px rgba(0, 0, 0, 0.8);
     }
 
@@ -441,31 +442,31 @@
       position: absolute;
       width: 8px;
       height: 2px;
-      background: rgba(0, 255, 255, 0.8);
-      box-shadow: 0 0 3px #00ffff,
+      background: rgba(255, 255, 0, 0.8);
+      box-shadow: 0 0 3px #ffff00,
                   0 0 1px rgba(0, 0, 0, 0.8);
     }
 
     .crosshair .diagonal:nth-child(1)::before {
-      top: 4px;
+      top: 9px;
       left: -8px;
       transform: rotate(45deg);
     }
 
     .crosshair .diagonal:nth-child(1)::after {
-      bottom: 4px;
+      bottom: 9px;
       right: -8px;
       transform: rotate(45deg);
     }
 
     .crosshair .diagonal:nth-child(2)::before {
-      top: 4px;
+      top: 9px;
       right: -8px;
       transform: rotate(-45deg);
     }
 
     .crosshair .diagonal:nth-child(2)::after {
-      bottom: 4px;
+      bottom: 9px;
       left: -8px;
       transform: rotate(-45deg);
     }
@@ -655,10 +656,7 @@
   <div class="projectile-count">5</div>
 </div>
 
-<div class="crosshair">
-  <div class="diagonal"></div>
-  <div class="diagonal"></div>
-</div>
+<div class="crosshair"></div>
 
 <script>
 let projectileCount = 5;

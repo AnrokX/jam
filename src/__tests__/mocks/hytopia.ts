@@ -72,4 +72,22 @@ export class Simulation {
         
         return null;
     }
+}
+
+export class PlayerUI {
+    onData?: (playerUI: PlayerUI, data: any) => void;
+
+    sendData(data: any): void {
+        if (this.onData) {
+            this.onData(this, data);
+        }
+    }
+}
+
+export class Player {
+    ui: PlayerUI = new PlayerUI();
+    settings = {
+        sensitivity: 50,
+        crosshairColor: '#ffff00'
+    };
 } 

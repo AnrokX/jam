@@ -17,6 +17,7 @@ import { BlockParticleEffects } from './src/effects/block-particle-effects';
 import { TestBlockSpawner } from './src/utils/test-spawner';
 import { SceneUIManager } from './src/scene-ui/scene-ui-manager';
 import { AudioManager } from './src/managers/audio-manager';
+import { PlayerSettingsManager, UISettingsData } from './src/managers/player-settings-manager';
 
 // Configuration flags
 const IS_TEST_MODE = false;  // Set this to true to enable test mode, false for normal game
@@ -27,8 +28,9 @@ startServer(world => {
   console.log('Starting server and initializing debug settings...');
   console.log(`Test mode: ${IS_TEST_MODE ? 'enabled' : 'disabled'}`);
   
-  // Initialize SceneUIManager
+  // Initialize managers
   const sceneUIManager = SceneUIManager.getInstance(world);
+  const settingsManager = PlayerSettingsManager.getInstance(world);
   
   // Enable debug rendering for development
   world.simulation.enableDebugRendering(DEBUG_ENABLED);
@@ -153,11 +155,10 @@ startServer(world => {
   world.onPlayerJoin = player => {
     console.log('New player joined the game');
     
-    // Initialize player's score
+    // Initialize player states
     scoreManager.initializePlayer(player.id);
-    
-    // Initialize player's projectile state
     projectileManager.initializePlayer(player.id);
+    settingsManager.initializePlayer(player.id);
     
     // Load the UI first
     player.ui.load('ui/index.html');
@@ -222,8 +223,17 @@ startServer(world => {
   
     // Wire up raycast handler and projectile system to the SDK's input system
     playerEntity.controller!.onTickWithPlayerInput = (entity, input, cameraOrientation, deltaTimeMs) => {
+      // Apply sensitivity to camera orientation
+      const adjustedOrientation = settingsManager.applyCameraSensitivity(player.id, cameraOrientation);
+      
+      // Create a clean copy of the input state to avoid recursive references
+      const cleanInput = {
+        ml: input.ml || false,
+        mr: input.mr || false,
+      };
+
       // Right click for raycast
-      if (input.mr) {
+      if (cleanInput.mr) {
         const result = raycastHandler.raycast(
           entity.position,
           entity.player.camera.facingDirection,
@@ -240,21 +250,20 @@ startServer(world => {
           console.log('Raycast missed');
         }
         
-        input.mr = false;
+        cleanInput.mr = false;
       }
 
       // Handle projectile input through the manager with left click
-      const modifiedInput = { ...input };
-      if (input.ml) {
-        modifiedInput.mr = true;
-        modifiedInput.ml = false;
+      if (cleanInput.ml) {
+        cleanInput.mr = true;
+        cleanInput.ml = false;
       }
       
       projectileManager.handleProjectileInput(
         player.id,
         entity.position,
         entity.player.camera.facingDirection,
-        modifiedInput,
+        cleanInput,
         player
       );
 
@@ -263,6 +272,16 @@ startServer(world => {
         type: 'updateProjectileCount',
         count: projectileManager.getProjectilesRemaining(player.id)
       });
+
+      // Return the adjusted orientation to apply the sensitivity
+      return adjustedOrientation;
+    };
+
+    // Handle settings updates from UI
+    player.ui.onData = (_playerUI: PlayerUI, data: any) => {
+      if (data && data.type === 'updateSettings') {
+        settingsManager.updateSetting(player.id, data.setting, data.value);
+      }
     };
 
     // Start the round or spawn test blocks based on mode
@@ -280,6 +299,7 @@ startServer(world => {
     world.chatManager.sendPlayerMessage(player, 'Hold shift to sprint.');
     world.chatManager.sendPlayerMessage(player, 'Right click to raycast.');
     world.chatManager.sendPlayerMessage(player, 'Left click to throw projectiles.');
+    world.chatManager.sendPlayerMessage(player, 'Press ESC, Tab, or P to open settings.', '00FF00');
     
     if (IS_TEST_MODE) {
       world.chatManager.sendPlayerMessage(player, 'TEST MODE: One of each block type has been spawned', 'FFFF00');
@@ -304,6 +324,7 @@ startServer(world => {
     // Clean up player states
     scoreManager.removePlayer(player.id);
     projectileManager.removePlayer(player.id);
+    settingsManager.removePlayer(player.id);
     
     // Handle round system when player leaves (only in normal mode)
     if (!IS_TEST_MODE && roundManager) {
@@ -313,8 +334,9 @@ startServer(world => {
     world.entityManager.getPlayerEntitiesByPlayer(player).forEach(entity => entity.despawn());
   };
 
-  // Cleanup particle effects, UI, and audio when the scene changes or the game shuts down
+  // Cleanup managers when the scene changes or the game shuts down
   BlockParticleEffects.getInstance(world).cleanup();
   sceneUIManager.cleanup();
   audioManager.cleanup();
+  settingsManager.cleanup();
 });

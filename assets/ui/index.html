@@ -957,7 +957,7 @@
       left: 50%;
       transform: translateX(-50%);
       display: flex;
-      gap: 30px;
+      gap: 40px; /* Increased gap for bigger text */
       font-family: var(--display-font);
       opacity: 0;
       animation: fadeInGuide 0.5s ease-out 1.5s forwards;
@@ -965,9 +965,10 @@
 
     .hotkey-item {
       color: var(--matrix-green);
-      text-shadow: 0 0 8px var(--terminal-green);
-      font-size: 20px;
-      letter-spacing: 1px;
+      text-shadow: 0 0 12px var(--terminal-green); /* Increased glow for bigger text */
+      font-size: 32px; /* Much bigger text */
+      letter-spacing: 2px; /* Increased letter spacing */
+      font-weight: 500; /* Slightly bolder */
     }
 
     /* Updated Help Menu Styles */
@@ -1025,6 +1026,11 @@
 
     .control-item .action {
       text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+    }
+
+    @keyframes fadeInGuide {
+      from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
     }
   </style>
 </head>

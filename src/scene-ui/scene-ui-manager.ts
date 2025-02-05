@@ -103,16 +103,24 @@ export class SceneUIManager {
       };
     };
 
-    // Calculate dynamic properties based on score
+    // Calculate dynamic properties based on score and distance
     const colorInfo = getScoreColor(roundedScore);
     
-    // Exponential scaling for duration (between 1-4 seconds)
-    const duration = 1000 + Math.min(Math.pow(roundedScore, 1.5) * 10, 3000); 
+    // Get distance multiplier if spawn origin is available
+    let distanceMultiplier = 1;
+    if (this.world && worldPosition && this.world.spawnOrigin) {
+      const dx = worldPosition.x - this.world.spawnOrigin.x;
+      const dy = worldPosition.y - this.world.spawnOrigin.y;
+      const dz = worldPosition.z - this.world.spawnOrigin.z;
+      const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      
+      // Exponential scaling based on distance (starts at 1x, caps at 3x)
+      distanceMultiplier = 1 + Math.min(Math.pow(distance / 10, 1.5), 2);
+    }
     
-    // Exponential scaling for size (between 1-3x)
-    const scale = 1 + Math.min(Math.pow(roundedScore / 20, 1.8), 2); 
-    
-    // Exponential scaling for vertical offset (between 1.5-4 units)
+    // Apply distance multiplier to duration and scale
+    const duration = 1000 + Math.min(Math.pow(roundedScore, 1.5) * 10 * distanceMultiplier, 3000); 
+    const scale = 1 + Math.min(Math.pow(roundedScore / 20, 1.8) * distanceMultiplier, 2); 
     const verticalOffset = 1.5 + Math.min(Math.pow(roundedScore / 25, 1.6), 2.5);
 
     // Log feedback details for debugging
@@ -121,7 +129,8 @@ export class SceneUIManager {
       color: colorInfo,
       duration,
       scale: scale.toFixed(2),
-      verticalOffset: verticalOffset.toFixed(2)
+      verticalOffset: verticalOffset.toFixed(2),
+      distanceMultiplier: distanceMultiplier.toFixed(2)
     });
 
     // Create dynamic CSS for the animation

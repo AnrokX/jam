@@ -879,8 +879,21 @@ export class MovingBlockManager {
   ) {}
 
   public getBlockCount(): number {
-    // Filter out any despawned blocks
-    this.blocks = this.blocks.filter(block => block.isSpawned);
+    const MAX_BLOCK_AGE_MS = 300000; // 5 minutes
+    const now = Date.now();
+    
+    // Filter out despawned blocks AND old blocks
+    this.blocks = this.blocks.filter(block => {
+        const isValid = block.isSpawned && 
+                       (now - block.getSpawnTime()) < MAX_BLOCK_AGE_MS;
+        
+        // If not valid, make sure it's properly despawned
+        if (!isValid && block.isSpawned) {
+            block.despawn();
+        }
+        return isValid;
+    });
+    
     return this.blocks.length;
   }
 

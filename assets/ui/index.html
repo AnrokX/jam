@@ -1043,7 +1043,7 @@
     .combo-notification {
       position: fixed;
       left: 50%;
-      top: 20%;  /* Position it near the top center */
+      bottom: 80px;  /* Moved lower, closer to the bottom */
       transform: translateX(-50%);
       pointer-events: none;
       font-family: var(--display-font);
@@ -1059,7 +1059,7 @@
 
     .combo-counter {
       background: rgba(0, 0, 0, 0.3);
-      padding: 4px 10px;
+      padding: 4px 12px;
       border-radius: 4px;
       backdrop-filter: blur(2px);
       display: flex;
@@ -1070,7 +1070,7 @@
     }
 
     .combo-hits {
-      font-size: 28px;
+      font-size: 24px;
       font-weight: bold;
       color: var(--matrix-green);
       text-shadow: 0 0 6px var(--terminal-green);
@@ -1078,18 +1078,29 @@
     }
 
     .combo-text {
-      font-size: 20px;
+      font-size: 18px;
       color: rgba(255, 255, 255, 0.8);
       text-shadow: 0 0 4px rgba(255, 255, 255, 0.4);
       letter-spacing: 1px;
     }
 
     .combo-bonus {
-      font-size: 18px;
+      font-size: 16px;
       color: rgba(255, 255, 0, 0.8);
       text-shadow: 0 0 4px rgba(255, 255, 0, 0.4);
       letter-spacing: 1px;
       margin-left: 4px;
+    }
+
+    @keyframes comboSlideIn {
+      from {
+        transform: translateX(-50%) translateY(20px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+      }
     }
 
     /* Combo tiers with different colors */
@@ -1108,17 +1119,6 @@
     .mega-combo .combo-hits { 
       color: rgba(255, 0, 0, 0.9);
       text-shadow: 0 0 4px rgba(255, 0, 0, 0.4);
-    }
-
-    @keyframes comboSlideIn {
-      from {
-        transform: translateX(20px);
-        opacity: 0;
-      }
-      to {
-        transform: translateX(0);
-        opacity: 1;
-      }
     }
   </style>
 </head>

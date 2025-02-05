@@ -5,6 +5,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/combo-notification.css">
   <style>
     :root {
       --matrix-green: #00ff41;
@@ -1037,6 +1038,100 @@
       from { opacity: 0; transform: translateX(-50%) translateY(20px); }
       to { opacity: 1; transform: translateX(-50%) translateY(0); }
     }
+
+    /* Add combo notification styles directly here */
+    .combo-notification {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      pointer-events: none;
+      animation: comboSlideIn 0.3s ease-out;
+      font-family: var(--display-font);
+      text-align: center;
+      z-index: 1000;
+    }
+
+    .combo-counter {
+      background: rgba(0, 0, 0, 0.85);
+      padding: 15px 25px;
+      border-radius: 12px;
+      border: 2px solid var(--blood-red);
+      box-shadow: 0 0 20px rgba(255, 0, 0, 0.3),
+                  inset 0 0 15px rgba(255, 0, 0, 0.2);
+      animation: glowPulse 1.5s infinite;
+      transform: scale(1.5);
+    }
+
+    .combo-hits {
+      font-size: 48px;
+      font-weight: bold;
+      color: var(--blood-red);
+      text-shadow: 0 0 15px var(--glow-red);
+      display: block;
+      margin-bottom: 8px;
+      animation: scalePulse 0.5s infinite;
+    }
+
+    .combo-text {
+      font-size: 32px;
+      color: var(--matrix-green);
+      text-shadow: 0 0 12px var(--terminal-green);
+      display: block;
+      margin-bottom: 8px;
+      letter-spacing: 2px;
+    }
+
+    .combo-bonus {
+      font-size: 28px;
+      color: #ffff00;
+      text-shadow: 0 0 12px rgba(255, 255, 0, 0.8);
+      display: block;
+      letter-spacing: 1px;
+    }
+
+    /* Combo tiers with different colors */
+    .combo .combo-hits { color: var(--matrix-green); }
+    .super-combo .combo-hits { color: #00ffff; }
+    .ultra-combo .combo-hits { 
+      color: #ff00ff;
+      animation: scalePulse 0.5s infinite;
+    }
+    .mega-combo .combo-hits { 
+      color: var(--blood-red);
+      animation: scalePulse 0.5s infinite;
+    }
+
+    @keyframes comboSlideIn {
+      from {
+        transform: translateX(-50%) translateY(-50px) scale(1.5);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(-50%) translateY(0) scale(1.5);
+        opacity: 1;
+      }
+    }
+
+    @keyframes scalePulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes glowPulse {
+      0% { 
+        box-shadow: 0 0 20px rgba(255, 0, 0, 0.5), 
+                    inset 0 0 15px rgba(255, 0, 0, 0.4);
+      }
+      50% { 
+        box-shadow: 0 0 30px rgba(255, 0, 0, 0.7), 
+                    inset 0 0 25px rgba(255, 0, 0, 0.6);
+      }
+      100% { 
+        box-shadow: 0 0 20px rgba(255, 0, 0, 0.5), 
+                    inset 0 0 15px rgba(255, 0, 0, 0.4);
+      }
+    }
   </style>
 </head>
 <body>
@@ -1050,6 +1145,16 @@
 <template id="block-destroyed-notification-template">
   <div class="block-destroyed-notification">
     <div class="score">+0</div>
+  </div>
+</template>
+
+<template id="combo-notification-template">
+  <div class="combo-notification">
+    <div class="combo-counter">
+      <div class="combo-hits"></div>
+      <div class="combo-text"></div>
+      <div class="combo-bonus"></div>
+    </div>
   </div>
 </template>
 
@@ -1091,6 +1196,36 @@
         if (state.style) {
           scoreElement.style.cssText = state.style;
         }
+      }
+    });
+    
+    return clone;
+  });
+
+  // Update the combo notification template registration
+  hytopia.registerSceneUITemplate('combo-notification', (id, onState) => {
+    const template = document.getElementById('combo-notification-template');
+    const clone = template.content.cloneNode(true);
+    
+    // Get all the elements we need to update
+    const container = clone.querySelector('.combo-notification');
+    const hitsElement = clone.querySelector('.combo-hits');
+    const textElement = clone.querySelector('.combo-text');
+    const bonusElement = clone.querySelector('.combo-bonus');
+    
+    onState(state => {
+      if (state && container) {
+        // Update the combo class based on hits
+        const comboClass = state.hits >= 10 ? 'mega-combo' :
+                          state.hits >= 7 ? 'ultra-combo' :
+                          state.hits >= 5 ? 'super-combo' :
+                          'combo';
+        container.className = `combo-notification ${comboClass}`;
+        
+        // Update the text content
+        if (hitsElement) hitsElement.textContent = `${state.hits}x`;
+        if (textElement) textElement.textContent = state.text;
+        if (bonusElement) bonusElement.textContent = `+${state.bonus}%`;
       }
     });
     

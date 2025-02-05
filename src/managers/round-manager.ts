@@ -203,121 +203,127 @@ export class RoundManager {
         const spawnBlock = () => {
             if (!this.isRoundActive) return;
 
-            // Try to spawn multiple blocks at once
-            for(let i = 0; i < 1; i++) {
-                const currentBlocks = this.blockManager.getBlockCount();
-                if (currentBlocks < config.maxBlockCount) {
-                    // Add spacing between spawns
-                    const existingBlocks = this.world.entityManager.getAllEntities()
-                        .filter(entity => entity.name.toLowerCase().includes('block'));
+            const currentBlocks = this.blockManager.getBlockCount();
+            
+            // Determine how many blocks to spawn
+            const blocksNeeded = Math.min(
+                config.maxBlockCount - currentBlocks,
+                // If below minimum, spawn up to 3 at once to reach minimum faster
+                currentBlocks < config.minBlockCount ? 3 : 1
+            );
+
+            // Try to spawn multiple blocks if needed
+            for(let i = 0; i < blocksNeeded; i++) {
+                // Add spacing between spawns
+                const existingBlocks = this.world.entityManager.getAllEntities()
+                    .filter(entity => entity.name.toLowerCase().includes('block'));
+                
+                // Try to find a spawn position away from other blocks and platforms
+                let attempts = 0;
+                let spawnPosition: Vector3Like;
+                const minSpacing = 2; // Reduced spacing to allow more blocks
+                const safetyMargin = MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.PLATFORM_SAFETY_MARGIN;
+
+                do {
+                    // Generate position within game bounds
+                    spawnPosition = {
+                        x: Math.random() * 16 - 8,  // Random x between -8 and 8 (wider spread)
+                        y: 2 + Math.random() * 3,   // Random y between 2 and 5 (slightly higher)
+                        z: Math.random() * 24 - 12  // Random z between -12 and 12 (wider spread)
+                    };
+
+                    // Check distance from platforms
+                    const rightPlatformDistance = Math.abs(spawnPosition.x - MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.RIGHT_PLATFORM_EDGE.X);
+                    const isInRightPlatformZRange = spawnPosition.z >= MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.RIGHT_PLATFORM_EDGE.Z_MIN - safetyMargin && 
+                                                  spawnPosition.z <= MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.RIGHT_PLATFORM_EDGE.Z_MAX + safetyMargin;
                     
-                    // Try to find a spawn position away from other blocks and platforms
-                    let attempts = 0;
-                    let spawnPosition: Vector3Like;
-                    const minSpacing = 2; // Reduced spacing to allow more blocks
-                    const safetyMargin = MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.PLATFORM_SAFETY_MARGIN;
+                    const leftPlatformDistance = Math.abs(spawnPosition.x - MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.LEFT_PLATFORM_EDGE.X);
+                    const isInLeftPlatformZRange = spawnPosition.z >= MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.LEFT_PLATFORM_EDGE.Z_MIN - safetyMargin && 
+                                                 spawnPosition.z <= MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.LEFT_PLATFORM_EDGE.Z_MAX + safetyMargin;
+                    
+                    const isSafeFromRightPlatform = rightPlatformDistance >= safetyMargin || !isInRightPlatformZRange;
+                    const isSafeFromLeftPlatform = leftPlatformDistance >= safetyMargin || !isInLeftPlatformZRange;
+                    
+                    // Check distance from all existing blocks
+                    const isTooCloseToBlocks = existingBlocks.some(block => {
+                        const dx = block.position.x - spawnPosition.x;
+                        const dz = block.position.z - spawnPosition.z;
+                        return Math.sqrt(dx * dx + dz * dz) < minSpacing;
+                    });
 
-                    do {
-                        // Generate position within game bounds
-                        spawnPosition = {
-                            x: Math.random() * 16 - 8,  // Random x between -8 and 8 (wider spread)
-                            y: 2 + Math.random() * 3,   // Random y between 2 and 5 (slightly higher)
-                            z: Math.random() * 24 - 12  // Random z between -12 and 12 (wider spread)
-                        };
+                    // Break if position is safe from both platforms and other blocks
+                    if (!isTooCloseToBlocks && isSafeFromRightPlatform && isSafeFromLeftPlatform) break;
+                    
+                    attempts++;
+                } while (attempts < 10);
 
-                        // Check distance from platforms
-                        const rightPlatformDistance = Math.abs(spawnPosition.x - MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.RIGHT_PLATFORM_EDGE.X);
-                        const isInRightPlatformZRange = spawnPosition.z >= MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.RIGHT_PLATFORM_EDGE.Z_MIN - safetyMargin && 
-                                                      spawnPosition.z <= MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.RIGHT_PLATFORM_EDGE.Z_MAX + safetyMargin;
-                        
-                        const leftPlatformDistance = Math.abs(spawnPosition.x - MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.LEFT_PLATFORM_EDGE.X);
-                        const isInLeftPlatformZRange = spawnPosition.z >= MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.LEFT_PLATFORM_EDGE.Z_MIN - safetyMargin && 
-                                                     spawnPosition.z <= MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.LEFT_PLATFORM_EDGE.Z_MAX + safetyMargin;
-                        
-                        const isSafeFromRightPlatform = rightPlatformDistance >= safetyMargin || !isInRightPlatformZRange;
-                        const isSafeFromLeftPlatform = leftPlatformDistance >= safetyMargin || !isInLeftPlatformZRange;
-                        
-                        // Check distance from all existing blocks
-                        const isTooCloseToBlocks = existingBlocks.some(block => {
-                            const dx = block.position.x - spawnPosition.x;
-                            const dz = block.position.z - spawnPosition.z;
-                            return Math.sqrt(dx * dx + dz * dz) < minSpacing;
+                // If we couldn't find a safe position after max attempts, use a default safe position
+                if (attempts >= 10) {
+                    spawnPosition = {
+                        x: 0,
+                        y: 3,
+                        z: 0
+                    };
+                }
+
+                // Choose block type based on probabilities
+                const rand = Math.random();
+                const total = Object.values(config.blockTypes).reduce((a, b) => a + b, 0);
+                let sum = 0;
+                let chosenType: keyof typeof config.blockTypes | null = null;
+
+                for (const [type, weight] of Object.entries(config.blockTypes)) {
+                    sum += weight / total;
+                    if (rand <= sum && !chosenType) {
+                        chosenType = type as keyof typeof config.blockTypes;
+                    }
+                }
+
+                // Calculate the base speed for this block
+                const baseSpeed = 8 * config.speedMultiplier;
+
+                // Add despawn timer for round 2
+                const despawnTime = this.currentRound === 2 ? 6000 : undefined; // 6 seconds for round 2
+
+                // Spawn the chosen block type with appropriate spacing
+                switch(chosenType) {
+                    case 'normal':
+                        this.blockManager.createZAxisBlock(spawnPosition);
+                        break;
+                    case 'sineWave':
+                        this.blockManager.createSineWaveBlock({
+                            spawnPosition,
+                            moveSpeed: baseSpeed,
+                            amplitude: 2 + Math.random() * 2
                         });
-
-                        // Break if position is safe from both platforms and other blocks
-                        if (!isTooCloseToBlocks && isSafeFromRightPlatform && isSafeFromLeftPlatform) break;
-                        
-                        attempts++;
-                    } while (attempts < 10);
-
-                    // If we couldn't find a safe position after max attempts, use a default safe position
-                    if (attempts >= 10) {
-                        spawnPosition = {
-                            x: 0,
-                            y: 3,
-                            z: 0
-                        };
-                    }
-
-                    // Choose block type based on probabilities
-                    const rand = Math.random();
-                    const total = Object.values(config.blockTypes).reduce((a, b) => a + b, 0);
-                    let sum = 0;
-                    let chosenType: keyof typeof config.blockTypes | null = null;
-
-                    for (const [type, weight] of Object.entries(config.blockTypes)) {
-                        sum += weight / total;
-                        if (rand <= sum && !chosenType) {
-                            chosenType = type as keyof typeof config.blockTypes;
-                        }
-                    }
-
-                    // Calculate the base speed for this block
-                    const baseSpeed = 8 * config.speedMultiplier;
-
-                    // Add despawn timer for round 2
-                    const despawnTime = this.currentRound === 2 ? 6000 : undefined; // 6 seconds for round 2
-
-                    // Spawn the chosen block type with appropriate spacing
-                    switch(chosenType) {
-                        case 'normal':
-                            this.blockManager.createZAxisBlock(spawnPosition);
-                            break;
-                        case 'sineWave':
-                            this.blockManager.createSineWaveBlock({
-                                spawnPosition,
-                                moveSpeed: baseSpeed,
-                                amplitude: 2 + Math.random() * 2
-                            });
-                            break;
-                        case 'static':
-                            this.blockManager.createStaticTarget({
-                                x: spawnPosition.x,
-                                y: spawnPosition.y,
-                                z: spawnPosition.z,
-                                despawnTime: despawnTime
-                            });
-                            break;
-                        case 'verticalWave':
-                            this.blockManager.createVerticalWaveBlock({
-                                spawnPosition: {
-                                    ...spawnPosition,
-                                    y: Math.min(MOVING_BLOCK_CONFIG.VERTICAL_WAVE.HEIGHT_OFFSET, 7)
-                                },
-                                moveSpeed: baseSpeed * 0.75
-                            });
-                            break;
-                    }
+                        break;
+                    case 'static':
+                        this.blockManager.createStaticTarget({
+                            x: spawnPosition.x,
+                            y: spawnPosition.y,
+                            z: spawnPosition.z,
+                            despawnTime: despawnTime
+                        });
+                        break;
+                    case 'verticalWave':
+                        this.blockManager.createVerticalWaveBlock({
+                            spawnPosition: {
+                                ...spawnPosition,
+                                y: Math.min(MOVING_BLOCK_CONFIG.VERTICAL_WAVE.HEIGHT_OFFSET, 7)
+                            },
+                            moveSpeed: baseSpeed * 0.75
+                        });
+                        break;
                 }
             }
         }
 
-        // Initial spawn - only spawn minimum required blocks
+        // Initial spawn - spawn minimum blocks more quickly
         for (let i = 0; i < config.minBlockCount; i++) {
-            setTimeout(() => spawnBlock(), i * 1000); // Stagger initial spawns by 1 second each
+            setTimeout(() => spawnBlock(), i * 500); // Faster initial spawn (0.5s between)
         }
 
-        // Set up periodic spawning
+        // Regular spawn interval
         this.blockSpawnTimer = setInterval(spawnBlock, config.blockSpawnInterval);
     }
 

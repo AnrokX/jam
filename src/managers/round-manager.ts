@@ -84,10 +84,10 @@ export class RoundManager {
                 blockSpawnInterval: 1500,  // 1.5 seconds between spawns
                 speedMultiplier: 0.8 + (round * 0.1),
                 blockTypes: {
-                    normal: Math.min(0.3, (round - 2) * 0.15),     // Start introducing normal
-                    sineWave: 0,    // No sine waves yet
+                    normal: Math.min(0.25, (round - 2) * 0.15),    // Slightly reduced to make room for sine waves
+                    sineWave: 0.05,                                // 5% sine waves
                     static: Math.max(0.7, 1 - (round * 0.15)),     // Decrease static targets gradually
-                    verticalWave: 0  // No vertical waves yet
+                    verticalWave: 0                                // No vertical waves yet
                 }
             };
         }
@@ -216,10 +216,10 @@ export class RoundManager {
             // Determine how many blocks to spawn using scaled values
             const blocksNeeded = Math.min(
                 scaledMaxBlocks - currentBlocks,
-                // If 0-2 blocks left, spawn up to 4 at once
+                // If 0-1 blocks left, spawn up to 4 at once
                 // If below minimum, spawn up to 2 at once
                 // If below 25% of max, spawn up to 3 at once
-                currentBlocks <= 2 ? 4 :
+                currentBlocks <= 1 ? 4 :
                 currentBlocks < scaledMinBlocks ? 2 : 
                 currentBlocks < (scaledMaxBlocks * 0.25) ? 3 : 1
             );

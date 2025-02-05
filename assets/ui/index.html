@@ -565,6 +565,114 @@
         filter: brightness(100%);
       }
     }
+
+    /* Settings Menu */
+    .settings-menu {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.95);
+      background: linear-gradient(135deg, var(--matrix-dark) 0%, rgba(13, 2, 8, 0.98) 100%);
+      padding: 30px;
+      border-radius: 16px;
+      color: #ffffff;
+      font-family: var(--text-font);
+      backdrop-filter: blur(10px);
+      border: 2px solid var(--blood-red);
+      box-shadow: 0 0 40px rgba(255, 0, 0, 0.2),
+                  inset 0 0 20px rgba(255, 0, 0, 0.1);
+      z-index: 2000;
+      min-width: 300px;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .settings-menu.visible {
+      opacity: 1;
+      visibility: visible;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .settings-title {
+      font-family: var(--title-font);
+      font-size: 24px;
+      color: var(--blood-red);
+      text-align: center;
+      margin-bottom: 25px;
+      text-shadow: 0 0 10px var(--glow-red);
+      letter-spacing: 2px;
+    }
+
+    .settings-section {
+      margin-bottom: 20px;
+    }
+
+    .settings-option {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 0, 0, 0.2);
+    }
+
+    .settings-option:last-child {
+      border-bottom: none;
+    }
+
+    .settings-label {
+      font-size: 16px;
+      color: #ffffff;
+      text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+    }
+
+    .settings-value {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .settings-button {
+      background: linear-gradient(135deg, var(--blood-red) 0%, var(--dark-red) 100%);
+      border: none;
+      padding: 8px 16px;
+      border-radius: 5px;
+      color: white;
+      font-family: var(--text-font);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+      box-shadow: 0 0 10px rgba(255, 0, 0, 0.2);
+    }
+
+    .settings-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 15px rgba(255, 0, 0, 0.3);
+    }
+
+    .settings-button:active {
+      transform: translateY(0);
+    }
+
+    /* Settings overlay background */
+    .settings-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(3px);
+      z-index: 1999;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .settings-overlay.visible {
+      opacity: 1;
+      visibility: visible;
+    }
   </style>
 </head>
 <body>
@@ -658,6 +766,29 @@
 </div>
 
 <div class="crosshair"></div>
+
+<div class="settings-overlay"></div>
+<div class="settings-menu">
+  <div class="settings-title">Settings</div>
+  <div class="settings-section">
+    <div class="settings-option">
+      <span class="settings-label">Mouse Sensitivity</span>
+      <div class="settings-value">
+        <input type="range" min="1" max="100" value="50" id="sensitivity-slider">
+        <span id="sensitivity-value">50</span>
+      </div>
+    </div>
+    <div class="settings-option">
+      <span class="settings-label">Crosshair Color</span>
+      <div class="settings-value">
+        <input type="color" value="#ffff00" id="crosshair-color">
+      </div>
+    </div>
+  </div>
+  <div class="settings-option">
+    <button class="settings-button" id="resume-button">Resume Game</button>
+  </div>
+</div>
 
 <script>
 let projectileCount = 5;
@@ -927,6 +1058,65 @@ function updateLeaderboard(leaderboardData) {
     container.appendChild(entryDiv);
   });
 }
+
+// Settings menu functionality
+let isSettingsOpen = false;
+
+function toggleSettings(show) {
+  const menu = document.querySelector('.settings-menu');
+  const overlay = document.querySelector('.settings-overlay');
+  isSettingsOpen = show;
+  
+  if (show) {
+    menu.classList.add('visible');
+    overlay.classList.add('visible');
+    // Tell the game to pause
+    hytopia.sendData({ type: 'pauseGame' });
+  } else {
+    menu.classList.remove('visible');
+    overlay.classList.remove('visible');
+    // Tell the game to resume
+    hytopia.sendData({ type: 'resumeGame' });
+  }
+}
+
+// Listen for Escape key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    toggleSettings(!isSettingsOpen);
+  }
+});
+
+// Resume button
+document.getElementById('resume-button').addEventListener('click', () => {
+  toggleSettings(false);
+});
+
+// Handle settings changes
+document.getElementById('sensitivity-slider').addEventListener('input', (e) => {
+  const value = e.target.value;
+  document.getElementById('sensitivity-value').textContent = value;
+  hytopia.sendData({ 
+    type: 'updateSettings',
+    setting: 'sensitivity',
+    value: Number(value)
+  });
+});
+
+document.getElementById('crosshair-color').addEventListener('input', (e) => {
+  const color = e.target.value;
+  const crosshair = document.querySelector('.crosshair');
+  
+  // Update crosshair color
+  const rgba = `rgba(${parseInt(color.slice(1,3),16)}, ${parseInt(color.slice(3,5),16)}, ${parseInt(color.slice(5,7),16)}, 0.8)`;
+  crosshair.style.setProperty('--crosshair-color', rgba);
+  
+  hytopia.sendData({ 
+    type: 'updateSettings',
+    setting: 'crosshairColor',
+    value: color
+  });
+});
 </script>
 
 </body>

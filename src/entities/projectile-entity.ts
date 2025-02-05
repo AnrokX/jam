@@ -188,7 +188,7 @@ export class ProjectileEntity extends Entity {
     }
 
     throw(direction: Vector3Like): void {
-        if (!this.rawRigidBody) return;
+        if (!this.rawRigidBody || !this.isSpawned) return;
 
         // Normalize direction properly
         const magnitude = Math.sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z);
@@ -227,12 +227,13 @@ export class ProjectileEntity extends Entity {
             z: normalizedDir.x
         };
         
-        // Reduced torque multiplier by 66%
+        // Apply torque for rotation
         const torque = {
-            x: crossProduct.x * 0.14,  // Reduced from 1.0 to 0.33
+            x: crossProduct.x * 0.14,
             y: 0,
-            z: crossProduct.z * 0.14   // Reduced from 1.0 to 0.33
+            z: crossProduct.z * 0.14
         };
+        
         this.rawRigidBody.applyTorqueImpulse(torque);
     }
 

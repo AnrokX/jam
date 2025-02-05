@@ -145,9 +145,9 @@ export class PlayerProjectileManager {
         return;
       }
 
-      // Create and throw projectile immediately
+      // Create and throw projectile
       const projectile = this.createProjectile(playerId, position, direction);
-      if (projectile) {  // Only throw if creation was successful
+      if (projectile) {
           projectile.throw(direction);
           
           // Play random grenade launcher sound

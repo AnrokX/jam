@@ -208,8 +208,8 @@ export class RoundManager {
             // Determine how many blocks to spawn
             const blocksNeeded = Math.min(
                 config.maxBlockCount - currentBlocks,
-                // If below minimum, spawn up to 3 at once to reach minimum faster
-                currentBlocks < config.minBlockCount ? 3 : 1
+                // If below minimum, spawn up to 2 at once to reach minimum faster
+                currentBlocks < config.minBlockCount ? 2 : 1
             );
 
             // Try to spawn multiple blocks if needed

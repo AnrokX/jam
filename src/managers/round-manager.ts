@@ -53,7 +53,7 @@ export class RoundManager {
                 blockTypes: {
                     normal: 0,      // No normal blocks in tutorial
                     sineWave: 0,    // No sine waves in tutorial
-                    static: 0.7,    // 70% static targets to learn aiming
+                    static: 1.0,    // static targets to learn aiming
                     verticalWave: 0  // No vertical waves in tutorial
                 }
             };

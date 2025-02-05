@@ -184,8 +184,8 @@ export class ProjectileEntity extends Entity {
 
         if (this.rawRigidBody) {
             this.rawRigidBody.enableCcd(true);
-            this.rawRigidBody.lockRotations(true);
             this.rawRigidBody.setLinearDamping(ProjectileEntity.PHYSICS.LINEAR_DAMPING);
+            this.rawRigidBody.setAngularDamping(0.3);
         }
     }
 
@@ -228,6 +228,22 @@ export class ProjectileEntity extends Entity {
         };
         
         this.rawRigidBody.applyImpulse(impulse);
+        
+        // Calculate the perpendicular axis for forward rolling motion
+        // Cross product of direction vector with up vector (0,1,0)
+        const crossProduct = {
+            x: -normalizedDir.z,  // Cross product x component
+            y: 0,                 // Cross product y component
+            z: normalizedDir.x    // Cross product z component
+        };
+        
+        // Apply torque around this perpendicular axis
+        const torque = {
+            x: crossProduct.x * 2.0,  // Adjust multiplier for spin speed
+            y: 0,                     // No vertical spin
+            z: crossProduct.z * 2.0   // Adjust multiplier for spin speed
+        };
+        this.rawRigidBody.applyTorqueImpulse(torque);
     }
 
     /**

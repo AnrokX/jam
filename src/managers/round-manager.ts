@@ -226,22 +226,60 @@ export class RoundManager {
 
             // Try to spawn multiple blocks if needed
             for(let i = 0; i < blocksNeeded; i++) {
+                // Choose block type first
+                const rand = Math.random();
+                const total = Object.values(config.blockTypes).reduce((a, b) => a + b, 0);
+                let sum = 0;
+                let chosenType: keyof typeof config.blockTypes | null = null;
+
+                for (const [type, weight] of Object.entries(config.blockTypes)) {
+                    sum += weight / total;
+                    if (rand <= sum && !chosenType) {
+                        chosenType = type as keyof typeof config.blockTypes;
+                    }
+                }
+
                 // Add spacing between spawns
                 const existingBlocks = this.world.entityManager.getAllEntities()
                     .filter(entity => entity.name.toLowerCase().includes('block'));
                 
-                // Try to find a spawn position away from other blocks and platforms
                 let attempts = 0;
                 let spawnPosition: Vector3Like;
-                const minSpacing = 2; // Reduced spacing to allow more blocks
+                const minSpacing = 2;
                 const safetyMargin = MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.PLATFORM_SAFETY_MARGIN;
 
                 do {
-                    // Generate position within game bounds with full vertical variance
+                    // Adjust spawn ranges based on block type
+                    const isStaticBlock = chosenType === 'static';
+                    const isVerticalWave = chosenType === 'verticalWave';
+
                     spawnPosition = {
-                        x: Math.random() * 16 - 8,  // Random x between -8 and 8
-                        y: 1 + Math.random() * 7,   // Random y between 1 and 8 (full range)
-                        z: Math.random() * 24 - 12  // Random z between -12 and 12
+                        x: (() => {
+                            if (isStaticBlock) return Math.random() * 16 - 8; // Static: -8 to 8
+                            // Moving blocks: Much wider range, with platform proximity
+                            const nearPlatform = Math.random() < 0.3;  // 30% chance to spawn near platform
+                            if (nearPlatform) {
+                                return Math.random() < 0.5 ? -20 - Math.random() * 8 : 20 + Math.random() * 8;
+                            }
+                            return Math.random() * 48 - 24;  // Much wider range: -24 to 24
+                        })(),
+                        y: (() => {
+                            if (isStaticBlock) return 1 + Math.random() * 7;  // Static: 1 to 8
+                            if (isVerticalWave) return Math.min(MOVING_BLOCK_CONFIG.VERTICAL_WAVE.HEIGHT_OFFSET, 7);
+                            // Moving blocks: Much more extreme height variance
+                            const heightType = Math.random();
+                            if (heightType < 0.3) return 1 + Math.random() * 4;    // 30% low (1-5)
+                            if (heightType < 0.7) return 6 + Math.random() * 8;    // 40% mid (6-14)
+                            return 15 + Math.random() * 10;  // 30% very high (15-25)
+                        })(),
+                        z: (() => {
+                            if (isStaticBlock) return Math.random() * 24 - 12; // Static: -12 to 12
+                            // Moving blocks: Much more extreme depth variance
+                            const depthType = Math.random();
+                            if (depthType < 0.3) return Math.random() * 20 - 10;   // 30% middle (-10 to 10)
+                            if (depthType < 0.6) return -30 + Math.random() * 10;  // 30% very far back (-30 to -20)
+                            return 20 + Math.random() * 10;  // 40% much closer (20 to 30)
+                        })()
                     };
 
                     // Check distance from platforms
@@ -276,19 +314,6 @@ export class RoundManager {
                         y: 3,
                         z: 0
                     };
-                }
-
-                // Choose block type based on probabilities
-                const rand = Math.random();
-                const total = Object.values(config.blockTypes).reduce((a, b) => a + b, 0);
-                let sum = 0;
-                let chosenType: keyof typeof config.blockTypes | null = null;
-
-                for (const [type, weight] of Object.entries(config.blockTypes)) {
-                    sum += weight / total;
-                    if (rand <= sum && !chosenType) {
-                        chosenType = type as keyof typeof config.blockTypes;
-                    }
                 }
 
                 // Calculate the base speed for this block

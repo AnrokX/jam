@@ -224,35 +224,17 @@ export class SceneUIManager {
   public showComboNotification(consecutiveHits: number, comboBonus: number, position: Vector3Like): void {
     console.log('Showing combo notification:', { hits: consecutiveHits, bonus: comboBonus });
     
-    // Create a new SceneUI instance for the combo notification
-    const comboUI = new SceneUI({
-      templateId: 'combo-notification',
-      position: position,
-      offset: { x: 0, y: 3, z: 0 }, // Increased offset to be more visible
-      viewDistance: 200, // Match other notifications view distance
-      state: {
-        hits: consecutiveHits,
-        bonus: comboBonus,
-        text: this.getComboText(consecutiveHits)
-      }
+    // Send the combo data to the HUD UI instead of creating a SceneUI
+    this.world.entityManager.getAllPlayerEntities().forEach(playerEntity => {
+      playerEntity.player.ui.sendData({
+        type: 'showCombo',
+        data: {
+          hits: consecutiveHits,
+          bonus: comboBonus,
+          text: this.getComboText(consecutiveHits)
+        }
+      });
     });
-
-    // Load the UI into the world
-    comboUI.load(this.world);
-    console.log('Combo notification loaded with state:', comboUI.state);
-
-    // Store the notification with a unique ID
-    const notificationId = this.nextNotificationId++;
-    this.hitNotifications.set(notificationId, comboUI);
-
-    // Remove after animation duration
-    setTimeout(() => {
-      const notification = this.hitNotifications.get(notificationId);
-      if (notification) {
-        notification.unload();
-        this.hitNotifications.delete(notificationId);
-      }
-    }, 2000);
   }
 
   private getComboText(hits: number): string {

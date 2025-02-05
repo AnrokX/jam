@@ -59,7 +59,6 @@ export class RoundManager {
             };
         }
         
-        // Round 2 - Static targets with despawn timer
         if (round === 2) {
             return {
                 duration: 75000,  // 75 seconds
@@ -68,9 +67,9 @@ export class RoundManager {
                 blockSpawnInterval: 1800, // 1.8 seconds between spawns (slightly faster than round 1)
                 speedMultiplier: 0.7,  // Keep the same speed as round 1
                 blockTypes: {
-                    normal: 0,      // Still no normal blocks
+                    normal: 0.1,      // Still no normal blocks
                     sineWave: 0,    // Still no sine waves
-                    static: 1.0,    // 100% static targets with despawn timer
+                    static: 0.9,    // 100% static targets with despawn timer
                     verticalWave: 0  // No vertical waves
                 }
             };
@@ -217,10 +216,10 @@ export class RoundManager {
             // Determine how many blocks to spawn using scaled values
             const blocksNeeded = Math.min(
                 scaledMaxBlocks - currentBlocks,
-                // If 0-1 blocks left, spawn up to 4 at once
+                // If 0-2 blocks left, spawn up to 4 at once
                 // If below minimum, spawn up to 2 at once
                 // If below 25% of max, spawn up to 3 at once
-                currentBlocks <= 1 ? 4 :
+                currentBlocks <= 2 ? 4 :
                 currentBlocks < scaledMinBlocks ? 2 : 
                 currentBlocks < (scaledMaxBlocks * 0.25) ? 3 : 1
             );

@@ -531,16 +531,16 @@
       left: 50%;
       transform: translate(-50%, -50%) scale(0.95);
       background: linear-gradient(135deg, var(--matrix-dark) 0%, rgba(13, 2, 8, 0.98) 100%);
-      padding: 30px;
-      border-radius: 16px;
+      padding: 60px;
+      border-radius: 20px;
       color: #ffffff;
       font-family: var(--text-font);
       backdrop-filter: blur(10px);
-      border: 2px solid var(--blood-red);
+      border: 3px solid var(--blood-red);
       box-shadow: 0 0 40px rgba(255, 0, 0, 0.2),
                   inset 0 0 20px rgba(255, 0, 0, 0.1);
       z-index: 2000;
-      min-width: 300px;
+      min-width: 700px;
       opacity: 0;
       visibility: hidden;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -549,29 +549,28 @@
     .settings-menu.visible {
       opacity: 1;
       visibility: visible;
-      transform: translate(-50%, -50%) scale(1);
     }
 
     .settings-title {
       font-family: var(--title-font);
-      font-size: 24px;
+      font-size: 48px;
       color: var(--blood-red);
       text-align: center;
-      margin-bottom: 25px;
+      margin-bottom: 50px;
       text-shadow: 0 0 10px var(--glow-red);
-      letter-spacing: 2px;
+      letter-spacing: 4px;
     }
 
     .settings-section {
-      margin-bottom: 20px;
+      margin-bottom: 40px;
     }
 
     .settings-option {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 10px 0;
-      border-bottom: 1px solid rgba(255, 0, 0, 0.2);
+      padding: 30px 0;
+      border-bottom: 2px solid rgba(255, 0, 0, 0.2);
     }
 
     .settings-option:last-child {
@@ -579,28 +578,32 @@
     }
 
     .settings-label {
-      font-size: 16px;
+      font-size: 32px;
       color: #ffffff;
       text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+      letter-spacing: 2px;
     }
 
     .settings-value {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 30px;
     }
 
     .settings-button {
       background: linear-gradient(135deg, var(--blood-red) 0%, var(--dark-red) 100%);
       border: none;
-      padding: 8px 16px;
-      border-radius: 5px;
+      padding: 20px 40px;
+      border-radius: 12px;
       color: white;
       font-family: var(--text-font);
+      font-size: 32px;
       cursor: pointer;
       transition: all 0.3s ease;
       text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
       box-shadow: 0 0 10px rgba(255, 0, 0, 0.2);
+      margin-top: 30px;
+      letter-spacing: 2px;
     }
 
     .settings-button:hover {
@@ -634,25 +637,49 @@
 
     .color-dropdown {
       background: rgba(0, 0, 0, 0.8);
-      border: 1px solid var(--blood-red);
+      border: 2px solid var(--blood-red);
       color: white;
-      padding: 5px 10px;
-      border-radius: 4px;
+      padding: 15px 25px;
+      border-radius: 8px;
       font-family: var(--text-font);
+      font-size: 28px;
       cursor: pointer;
-      margin-right: 10px;
+      margin-right: 20px;
+      min-width: 200px;
+      letter-spacing: 1px;
     }
 
     .color-dropdown option {
       background: rgba(0, 0, 0, 0.9);
       color: white;
-      padding: 5px;
+      padding: 15px;
+      font-size: 28px;
     }
 
     .color-controls {
       display: flex;
       align-items: center;
       gap: 10px;
+    }
+
+    input[type="range"] {
+      width: 300px;
+      height: 12px;
+    }
+
+    input[type="color"] {
+      width: 70px;
+      height: 70px;
+      padding: 0;
+      border: none;
+      border-radius: 8px;
+    }
+
+    #sensitivity-value {
+      font-size: 32px;
+      min-width: 60px;
+      text-align: center;
+      letter-spacing: 2px;
     }
   </style>
 </head>

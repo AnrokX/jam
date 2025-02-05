@@ -48,7 +48,7 @@ export class RoundManager {
                 duration: 90000,  // 90 seconds for first round to give more time
                 minBlockCount: 8,  // Start with fewer blocks
                 maxBlockCount: 12, // Keep it manageable
-                blockSpawnInterval: 2000, // Slower spawning (2 seconds)
+                blockSpawnInterval: 1800, // Slower spawning (2 seconds)
                 speedMultiplier: 0.7,  // Slower speed for learning
                 blockTypes: {
                     normal: 0,      // No normal blocks in tutorial
@@ -208,8 +208,10 @@ export class RoundManager {
             // Determine how many blocks to spawn
             const blocksNeeded = Math.min(
                 config.maxBlockCount - currentBlocks,
-                // If below minimum, spawn up to 2 at once to reach minimum faster
-                // If below 25% of max, spawn up to 3 at once to recover quickly
+                // If 0-1 blocks left, spawn up to 4 at once
+                // If below minimum, spawn up to 2 at once
+                // If below 25% of max, spawn up to 3 at once
+                currentBlocks <= 1 ? 4 :
                 currentBlocks < config.minBlockCount ? 2 : 
                 currentBlocks < (config.maxBlockCount * 0.25) ? 3 : 1
             );

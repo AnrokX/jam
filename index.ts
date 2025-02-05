@@ -222,8 +222,15 @@ startServer(world => {
   
     // Wire up raycast handler and projectile system to the SDK's input system
     playerEntity.controller!.onTickWithPlayerInput = (entity, input, cameraOrientation, deltaTimeMs) => {
+      // Create a clean copy of the input state to avoid recursive references
+      const cleanInput = {
+        ml: input.ml || false,
+        mr: input.mr || false,
+        // Add other input properties if needed
+      };
+
       // Right click for raycast
-      if (input.mr) {
+      if (cleanInput.mr) {
         const result = raycastHandler.raycast(
           entity.position,
           entity.player.camera.facingDirection,
@@ -240,21 +247,20 @@ startServer(world => {
           console.log('Raycast missed');
         }
         
-        input.mr = false;
+        cleanInput.mr = false;
       }
 
       // Handle projectile input through the manager with left click
-      const modifiedInput = { ...input };
-      if (input.ml) {
-        modifiedInput.mr = true;
-        modifiedInput.ml = false;
+      if (cleanInput.ml) {
+        cleanInput.mr = true;
+        cleanInput.ml = false;
       }
       
       projectileManager.handleProjectileInput(
         player.id,
         entity.position,
         entity.player.camera.facingDirection,
-        modifiedInput,
+        cleanInput,
         player
       );
 

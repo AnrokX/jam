@@ -1070,26 +1070,46 @@ function toggleSettings(show) {
   if (show) {
     menu.classList.add('visible');
     overlay.classList.add('visible');
-    // Tell the game to pause
-    hytopia.sendData({ type: 'pauseGame' });
   } else {
     menu.classList.remove('visible');
     overlay.classList.remove('visible');
-    // Tell the game to resume
-    hytopia.sendData({ type: 'resumeGame' });
   }
 }
 
-// Listen for Escape key
+// Listen for Escape key - work with cursor state
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
-    toggleSettings(!isSettingsOpen);
+    // If settings are open, close them
+    if (isSettingsOpen) {
+      toggleSettings(false);
+      e.preventDefault(); // Prevent the default escape behavior
+    } else {
+      // If cursor becomes visible (handled by game), show settings
+      setTimeout(() => {
+        const cursorStyle = window.getComputedStyle(document.body).cursor;
+        if (cursorStyle === 'default' || cursorStyle === 'auto') {
+          toggleSettings(true);
+        }
+      }, 50); // Small delay to ensure cursor state has updated
+    }
   }
 });
 
-// Resume button
+// Multiple hotkeys for settings
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Tab' || e.key.toLowerCase() === 'p') { // Added 'P' key
+    e.preventDefault(); // Prevent default behavior
+    const cursorStyle = window.getComputedStyle(document.body).cursor;
+    if (cursorStyle === 'default' || cursorStyle === 'auto') {
+      toggleSettings(!isSettingsOpen);
+    }
+  }
+});
+
+// Resume button - close settings and hide cursor
 document.getElementById('resume-button').addEventListener('click', () => {
   toggleSettings(false);
+  hytopia.sendData({ type: 'hideCursor' }); // Tell game to hide cursor again
 });
 
 // Handle settings changes

@@ -61,8 +61,8 @@ export class SceneUIManager {
       const dz = worldPosition.z - spawnOrigin.z;
       const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
       
-      // Very subtle distance scaling (starts at 1x, caps at 1.3x)
-      distanceMultiplier = 1 + Math.min(Math.pow(distance / 20, 1.2), 0.3);
+      // Reduced from 0.3 to 0.1 max bonus (1.1x max instead of 1.3x)
+      distanceMultiplier = 1 + Math.min(Math.pow(distance / 30, 1.1), 0.1);
     }
     
     // Balanced duration with moderate curve for mid-range scores
@@ -72,13 +72,14 @@ export class SceneUIManager {
         : Math.pow(roundedScore, 1.8) * 4
       * distanceMultiplier, 1200); 
     
-    // Even more conservative scale for mid-range scores
+    // Much more conservative scale for all scores
     const scale = 1 + Math.min(
       roundedScore <= 30
-        ? Math.pow(roundedScore / 60, 2.2)  // More conservative for scores <= 30
-        : Math.pow(roundedScore / 50, 2.2)  // Original scaling for higher scores
-      * distanceMultiplier, 2); 
-    const verticalOffset = 1.5 + Math.min(Math.pow(roundedScore / 25, 1.6), 2.5);
+        ? Math.pow(roundedScore / 80, 2.4)   // More conservative scaling for normal scores
+        : Math.pow(roundedScore / 70, 2.4)   // More conservative scaling for high scores
+      * distanceMultiplier, 0.8);              // Reduced max scale from 2 to 1.8
+    
+    const verticalOffset = 1.5 + Math.min(Math.pow(roundedScore / 30, 1.4), 1.5); // Reduced from 2.5 to 1.5
 
     // Dynamic color calculation based on score
     const getScoreColor = (score: number): { main: string, glow: string, intensity: number } => {

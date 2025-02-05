@@ -1,0 +1,101 @@
+/* Combo Notifications */
+.combo-notification {
+  position: fixed;
+  top: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  pointer-events: none;
+  animation: comboSlideIn 0.3s ease-out;
+}
+
+.combo-counter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: 'Arial', sans-serif;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+  color: white;
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(0,0,0,0.7);
+}
+
+.combo-hits {
+  font-size: 48px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.combo-text {
+  font-size: 24px;
+  margin-bottom: 5px;
+}
+
+.combo-bonus {
+  font-size: 20px;
+  color: #ffdd00;
+}
+
+/* Combo tiers */
+.combo { color: #00ff00; }
+.super-combo { color: #00ffff; }
+.ultra-combo { color: #ff00ff; }
+.mega-combo { 
+  color: #ff0000;
+  animation: pulse 0.5s infinite;
+}
+
+/* Animations */
+@keyframes comboSlideIn {
+  from {
+    transform: translateX(-50%) translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.fade-out {
+  animation: fadeOut 0.5s forwards;
+}
+
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+}
+
+/* Persistent Combo Display */
+.combo-display {
+  position: fixed;
+  top: 100px;
+  right: 20px;
+  background: rgba(0,0,0,0.7);
+  padding: 10px;
+  border-radius: 8px;
+  color: white;
+  font-family: 'Arial', sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.combo-display.active {
+  animation: glowPulse 1s infinite;
+}
+
+@keyframes glowPulse {
+  0% { box-shadow: 0 0 5px #ffdd00; }
+  50% { box-shadow: 0 0 20px #ffdd00; }
+  100% { box-shadow: 0 0 5px #ffdd00; }
+} 

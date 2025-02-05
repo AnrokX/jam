@@ -61,8 +61,8 @@ export class SceneUIManager {
       const dz = worldPosition.z - spawnOrigin.z;
       const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
       
-      // Very subtle distance scaling (starts at 1x, caps at 1.3x)
-      distanceMultiplier = 1 + Math.min(Math.pow(distance / 20, 1.2), 0.3);
+      // Reduced from 0.3 to 0.1 max bonus (1.1x max instead of 1.3x)
+      distanceMultiplier = 1 + Math.min(Math.pow(distance / 30, 1.1), 0.1);
     }
     
     // Balanced duration with moderate curve for mid-range scores
@@ -72,13 +72,14 @@ export class SceneUIManager {
         : Math.pow(roundedScore, 1.8) * 4
       * distanceMultiplier, 1200); 
     
-    // Even more conservative scale for mid-range scores
+    // Much more conservative scale for all scores
     const scale = 1 + Math.min(
       roundedScore <= 30
-        ? Math.pow(roundedScore / 60, 2.2)  // More conservative for scores <= 30
-        : Math.pow(roundedScore / 50, 2.2)  // Original scaling for higher scores
-      * distanceMultiplier, 2); 
-    const verticalOffset = 1.5 + Math.min(Math.pow(roundedScore / 25, 1.6), 2.5);
+        ? Math.pow(roundedScore / 80, 2.4)   // More conservative scaling for normal scores
+        : Math.pow(roundedScore / 70, 2.4)   // More conservative scaling for high scores
+      * distanceMultiplier, 0.8);              // Reduced max scale from 2 to 1.8
+    
+    const verticalOffset = 1.5 + Math.min(Math.pow(roundedScore / 30, 1.4), 1.5); // Reduced from 2.5 to 1.5
 
     // Dynamic color calculation based on score
     const getScoreColor = (score: number): { main: string, glow: string, intensity: number } => {
@@ -86,8 +87,9 @@ export class SceneUIManager {
       const colors = [
         { score: 0, color: '#FFFFFF', glow: '#CCCCCC', intensity: 0.3 },    // White
         { score: 15, color: '#FFFF00', glow: '#CCCC00', intensity: 0.6 },   // Yellow
-        { score: 35, color: '#FFA500', glow: '#CC8400', intensity: 0.9 },   // Orange
-        { score: 50, color: '#FF0000', glow: '#CC0000', intensity: 1.2 }    // Red
+        { score: 25, color: '#FFA500', glow: '#CC8400', intensity: 0.9 },   // Orange
+        { score: 50, color: '#FF0000', glow: '#CC0000', intensity: 1.2 },   // Red
+        { score: 150, color: '#FF00FF', glow: '#FFFFFF', intensity: 1.5 }    // Purple with white glow
       ];
 
       // Find the two colors to interpolate between
@@ -217,5 +219,29 @@ export class SceneUIManager {
       notification.unload();
     });
     this.hitNotifications.clear();
+  }
+
+  public showComboNotification(consecutiveHits: number, comboBonus: number, position: Vector3Like): void {
+    console.log('Showing combo notification:', { hits: consecutiveHits, bonus: comboBonus });
+    
+    // Send the combo data to the HUD UI instead of creating a SceneUI
+    this.world.entityManager.getAllPlayerEntities().forEach(playerEntity => {
+      playerEntity.player.ui.sendData({
+        type: 'showCombo',
+        data: {
+          hits: consecutiveHits,
+          bonus: comboBonus,
+          text: this.getComboText(consecutiveHits)
+        }
+      });
+    });
+  }
+
+  private getComboText(hits: number): string {
+    if (hits >= 10) return 'UNSTOPPABLE!';
+    if (hits >= 7) return 'DOMINATING!';
+    if (hits >= 5) return 'IMPRESSIVE!';
+    if (hits >= 3) return 'NICE COMBO!';
+    return '';
   }
 } 

@@ -3,6 +3,7 @@
 import { World, Vector3Like, Entity } from 'hytopia';
 import { MovingBlockEntity } from '../moving_blocks/moving-block-entity';
 import { ProjectileEntity } from '../entities/projectile-entity';
+import { SceneUIManager } from '../scene-ui/scene-ui-manager';
 
 export interface ScoreOptions {
   score: number;
@@ -27,11 +28,12 @@ export class ScoreManager extends Entity {
     
     // Movement multipliers adjusted for progression
     BASE_MOVEMENT_MULTIPLIER: 1.0,   // Base for static targets
-    SINE_WAVE_MULTIPLIER: 2.0,      // Reduced from 2.5 for better scaling
-    VERTICAL_WAVE_MULTIPLIER: 2.5,   // Reduced from 3.0
-    POPUP_MULTIPLIER: 2.0,          // Reduced from 3.5
-    RISING_MULTIPLIER: 2.5,         // Reduced from 4.0
-    PARABOLIC_MULTIPLIER: 3.0,      // Reduced from 4.5
+    Z_AXIS_MULTIPLIER: 1.5,         // New multiplier for Z-Axis blocks
+    SINE_WAVE_MULTIPLIER: 3.0,      // Reduced from 2.5 for better scaling
+    VERTICAL_WAVE_MULTIPLIER: 3.0,   // Reduced from 3.0
+    POPUP_MULTIPLIER: 4.0,          // Reduced from 3.5
+    RISING_MULTIPLIER: 5.5,         // Reduced from 4.0
+    PARABOLIC_MULTIPLIER: 6.0,      // Reduced from 4.5
     
     // Combo system adjusted for early game
     MAX_COMBO_BONUS: 0.5,           // Slightly reduced max combo
@@ -227,6 +229,8 @@ export class ScoreManager extends Entity {
     console.log(`Determining multiplier for behavior type: ${behaviorType}`);
     
     switch (behaviorType) {
+      case 'ZAxisMovement':
+        return ScoreManager.SCORING_CONFIG.Z_AXIS_MULTIPLIER;
       case 'SineWaveMovement':
         return ScoreManager.SCORING_CONFIG.SINE_WAVE_MULTIPLIER;
       case 'VerticalWaveMovement':
@@ -243,7 +247,7 @@ export class ScoreManager extends Entity {
   }
 
   // Update combo and multi-hit counters
-  private updateHitCounters(playerId: string): void {
+  private updateHitCounters(playerId: string, hitPosition: Vector3Like): void {
     const stats = this.playerStats.get(playerId);
     if (!stats) return;
 
@@ -254,7 +258,6 @@ export class ScoreManager extends Entity {
       stats.consecutiveHits++;
       stats.multiHitCount++;
     } else {
-      // Reset counters if combo timeout has passed
       stats.consecutiveHits = 1;
       stats.multiHitCount = 1;
     }
@@ -262,17 +265,26 @@ export class ScoreManager extends Entity {
     stats.lastHitTime = currentTime;
     this.playerStats.set(playerId, stats);
     
-    // Update combo bonus calculation
     const comboBonus = Math.min(
-      (stats.consecutiveHits - 1) * 0.15,  // Reduced per-hit bonus (was 0.2)
+      (stats.consecutiveHits - 1) * 0.15,
       ScoreManager.SCORING_CONFIG.MAX_COMBO_BONUS
     );
     
     const multiHitBonus = Math.min(
-      (stats.multiHitCount - 1) * 0.1,     // Reduced per-hit bonus (was 0.2)
+      (stats.multiHitCount - 1) * 0.1,
       ScoreManager.SCORING_CONFIG.MAX_MULTI_HIT_BONUS
     );
-    
+
+    // Show combo notification for 3+ hits
+    if (stats.consecutiveHits >= 3 && this.world) {
+      const totalBonus = Math.round((comboBonus + multiHitBonus) * 100);
+      SceneUIManager.getInstance(this.world).showComboNotification(
+        stats.consecutiveHits,
+        totalBonus,
+        hitPosition
+      );
+    }
+
     console.log(`Player ${playerId} hit counters updated:`, {
       consecutiveHits: stats.consecutiveHits,
       multiHitCount: stats.multiHitCount,
@@ -338,7 +350,7 @@ export class ScoreManager extends Entity {
       this.initializePlayer(playerId);
     }
     
-    this.updateHitCounters(playerId);
+    this.updateHitCounters(playerId, impactPoint);
     const updatedStats = this.playerStats.get(playerId)!;
     
     const comboBonus = Math.min(

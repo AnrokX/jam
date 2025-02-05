@@ -879,8 +879,21 @@ export class MovingBlockManager {
   ) {}
 
   public getBlockCount(): number {
-    // Filter out any despawned blocks
-    this.blocks = this.blocks.filter(block => block.isSpawned);
+    const MAX_BLOCK_AGE_MS = 300000; // 5 minutes
+    const now = Date.now();
+    
+    // Filter out despawned blocks AND old blocks
+    this.blocks = this.blocks.filter(block => {
+        const isValid = block.isSpawned && 
+                       (now - block.getSpawnTime()) < MAX_BLOCK_AGE_MS;
+        
+        // If not valid, make sure it's properly despawned
+        if (!isValid && block.isSpawned) {
+            block.despawn();
+        }
+        return isValid;
+    });
+    
     return this.blocks.length;
   }
 
@@ -888,21 +901,30 @@ export class MovingBlockManager {
     // Clean up any despawned blocks first
     this.blocks = this.blocks.filter(block => block.isSpawned);
 
+    // Get default half extents and reduce by 40%
+    const defaultHalfExtents = MovingBlockEntity.DefaultBlockHalfExtents;
+    const scaledHalfExtents = {
+        x: defaultHalfExtents.x * 0.6,  // 40% smaller
+        y: defaultHalfExtents.y * 0.6,  // 40% smaller
+        z: defaultHalfExtents.z * 0.6   // 40% smaller
+    };
+
     const block = new MovingBlockEntity(MovingBlockEntity.createDefaultBlockConfiguration({
-      onBlockBroken: () => {
-        if (this.scoreManager && (block as any).playerId) {
-          const playerId = (block as any).playerId;
-          const score = MovingBlockEntity.DefaultBlockScore;
-          
-          this.scoreManager.addScore(playerId, score);
-          
-          // Broadcast updated scores
-          this.scoreManager.broadcastScores(this.world);
-          
-          // Remove the block from our tracking array when broken
-          this.removeBlock(block);
+        blockHalfExtents: scaledHalfExtents,  // Apply the smaller size
+        onBlockBroken: () => {
+            if (this.scoreManager && (block as any).playerId) {
+                const playerId = (block as any).playerId;
+                const score = MovingBlockEntity.DefaultBlockScore;
+                
+                this.scoreManager.addScore(playerId, score);
+                
+                // Broadcast updated scores
+                this.scoreManager.broadcastScores(this.world);
+                
+                // Remove the block from our tracking array when broken
+                this.removeBlock(block);
+            }
         }
-      }
     }));
     
     const finalSpawnPosition = spawnPosition || MovingBlockEntity.generateDefaultSpawnPosition();

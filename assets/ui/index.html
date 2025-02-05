@@ -5,6 +5,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/combo-notification.css">
   <style>
     :root {
       --matrix-green: #00ff41;
@@ -720,6 +721,405 @@
       text-align: center;
       letter-spacing: 2px;
     }
+
+    /* Updated HUD Guide Styles */
+    .scoring-guide-hud {
+      position: fixed;
+      left: 40px;
+      top: 300px; /* Moved down further */
+      background: linear-gradient(135deg, var(--matrix-dark) 0%, rgba(13, 2, 8, 0.85) 100%);
+      padding: 15px;
+      border-radius: 10px;
+      color: #ffffff;
+      font-family: var(--text-font);
+      border: 1px solid var(--blood-red);
+      box-shadow: 0 0 15px rgba(255, 0, 0, 0.15);
+      max-width: 320px; /* Increased width */
+      opacity: 0.85;
+      transition: opacity 0.3s;
+    }
+
+    .scoring-guide-hud .guide-header {
+      font-family: var(--title-font);
+      font-size: 16px; /* Bigger header */
+      color: var(--blood-red);
+      margin-bottom: 10px;
+      letter-spacing: 1.5px;
+      text-align: center;
+    }
+
+    .scoring-guide-hud .guide-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 15px; /* Bigger text */
+      letter-spacing: 0.5px;
+      padding: 4px 0;
+    }
+
+    .scoring-guide-hud .guide-icon {
+      font-size: 18px; /* Bigger icons */
+      min-width: 25px;
+      text-align: center;
+    }
+
+    /* Countdown Guide Styles (made even bigger) */
+    .round-scoring-guide {
+      position: fixed;
+      left: 50%;
+      top: 60%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, var(--matrix-dark) 0%, rgba(13, 2, 8, 0.95) 100%);
+      padding: 35px; /* More padding */
+      border-radius: 20px;
+      color: #ffffff;
+      font-family: var(--text-font);
+      border: 3px solid var(--blood-red);
+      box-shadow: 0 0 40px rgba(255, 0, 0, 0.25);
+      min-width: 500px; /* Even wider */
+    }
+
+    .round-scoring-guide .guide-header {
+      font-family: var(--title-font);
+      font-size: 32px; /* Much bigger header */
+      color: var(--blood-red);
+      margin-bottom: 25px;
+      letter-spacing: 3px;
+      text-align: center;
+      text-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
+      font-weight: bold;
+    }
+
+    .round-scoring-guide .guide-items {
+      display: flex;
+      flex-direction: column;
+      gap: 20px; /* More spacing between items */
+    }
+
+    .round-scoring-guide .guide-item {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-size: 26px; /* Much bigger text */
+      letter-spacing: 1.5px;
+      font-weight: 500; /* Slightly bolder */
+    }
+
+    .round-scoring-guide .guide-icon {
+      font-size: 32px; /* Much bigger icons */
+      min-width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 0, 0, 0.15);
+      border-radius: 50%;
+      text-shadow: 0 0 15px rgba(255, 255, 255, 0.6);
+    }
+
+    .round-scoring-guide .guide-text {
+      color: rgba(255, 255, 255, 0.95); /* Slightly more opaque */
+      text-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+      font-weight: 500; /* Slightly bolder */
+    }
+
+    .help-menu {
+      position: fixed;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: linear-gradient(135deg, var(--matrix-dark) 0%, rgba(13, 2, 8, 0.95) 100%);
+      border: 2px solid var(--blood-red);
+      border-radius: 15px;
+      color: #ffffff;
+      padding: 25px;
+      display: none;
+      z-index: 1000;
+      min-width: 400px;
+      box-shadow: 0 0 30px rgba(255, 0, 0, 0.2);
+    }
+
+    .help-menu.visible {
+      display: block;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateY(-50%) translateX(50px); opacity: 0; }
+      to { transform: translateY(-50%) translateX(0); opacity: 1; }
+    }
+
+    .help-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--blood-red);
+    }
+
+    .help-title {
+      font-family: var(--title-font);
+      font-size: 28px;
+      color: var(--blood-red);
+      letter-spacing: 2px;
+    }
+
+    .help-key {
+      background: rgba(255, 0, 0, 0.2);
+      padding: 5px 10px;
+      border-radius: 5px;
+      font-size: 16px;
+      color: var(--blood-red);
+    }
+
+    .help-section {
+      margin-bottom: 25px;
+    }
+
+    .help-section h3 {
+      font-size: 20px;
+      color: var(--blood-red);
+      margin-bottom: 15px;
+      letter-spacing: 1px;
+    }
+
+    .guide-items {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .guide-item {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      font-size: 18px;
+    }
+
+    .guide-icon {
+      font-size: 24px;
+      min-width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 0, 0, 0.1);
+      border-radius: 50%;
+    }
+
+    .control-item {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 10px;
+    }
+
+    .control-item .key {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 5px 10px;
+      border-radius: 5px;
+      font-size: 16px;
+      min-width: 60px;
+      text-align: center;
+    }
+
+    .control-item .action {
+      font-size: 16px;
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    /* Subtle HUD Hotkey Hints */
+    .hotkey-hints {
+      position: fixed;
+      right: 250px;   /* Moved even more to the left (from 150px) */
+      bottom: 40px;
+      display: flex;
+      gap: 20px;
+      font-family: var(--display-font);
+      font-size: 18px;
+      opacity: 0.7;
+      transition: opacity 0.3s;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 10px 15px;
+      border-radius: 8px;
+      z-index: 999;
+    }
+
+    .hotkey-hints:hover {
+      opacity: 1;
+    }
+
+    .hotkey-hint {
+      color: var(--matrix-green);
+      text-shadow: 0 0 8px var(--terminal-green);
+      letter-spacing: 0.5px;
+    }
+
+    /* Countdown Hotkey Reminder */
+    .hotkey-reminder {
+      position: absolute;
+      bottom: 10%;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 40px; /* Increased gap for bigger text */
+      font-family: var(--display-font);
+      opacity: 0;
+      animation: fadeInGuide 0.5s ease-out 1.5s forwards;
+    }
+
+    .hotkey-item {
+      color: var(--matrix-green);
+      text-shadow: 0 0 12px var(--terminal-green); /* Increased glow for bigger text */
+      font-size: 32px; /* Much bigger text */
+      letter-spacing: 2px; /* Increased letter spacing */
+      font-weight: 500; /* Slightly bolder */
+    }
+
+    /* Updated Help Menu Styles */
+    .help-menu {
+      font-family: var(--display-font);
+    }
+
+    .help-title {
+      font-family: var(--title-font);
+      font-size: 32px;
+      color: var(--blood-red);
+      letter-spacing: 3px;
+      text-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
+    }
+
+    .help-key {
+      font-family: var(--display-font);
+      font-size: 20px;
+      padding: 8px 15px;
+      border: 1px solid var(--blood-red);
+      text-shadow: 0 0 8px var(--glow-red);
+    }
+
+    .help-section h3 {
+      font-family: var(--title-font);
+      font-size: 24px;
+      color: var(--blood-red);
+      margin-bottom: 20px;
+      letter-spacing: 2px;
+      text-shadow: 0 0 10px rgba(255, 0, 0, 0.3);
+    }
+
+    .guide-item {
+      font-family: var(--display-font);
+      font-size: 22px;
+      letter-spacing: 1.5px;
+    }
+
+    .guide-text {
+      text-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+    }
+
+    .control-item {
+      font-family: var(--display-font);
+      font-size: 20px;
+      letter-spacing: 1px;
+    }
+
+    .control-item .key {
+      font-family: var(--display-font);
+      font-size: 18px;
+      border: 1px solid rgba(255, 0, 0, 0.3);
+      text-shadow: 0 0 5px var(--glow-red);
+    }
+
+    .control-item .action {
+      text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+    }
+
+    @keyframes fadeInGuide {
+      from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+
+    /* Add combo notification styles directly here */
+    .combo-notification {
+      position: fixed;
+      left: 50%;
+      bottom: 80px;  /* Moved lower, closer to the bottom */
+      transform: translateX(-50%);
+      pointer-events: none;
+      font-family: var(--display-font);
+      text-align: center;
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .combo-notification.active {
+      opacity: 1;
+    }
+
+    .combo-counter {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 4px 12px;
+      border-radius: 4px;
+      backdrop-filter: blur(2px);
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .combo-hits {
+      font-size: 24px;
+      font-weight: bold;
+      color: var(--matrix-green);
+      text-shadow: 0 0 6px var(--terminal-green);
+      opacity: 0.9;
+    }
+
+    .combo-text {
+      font-size: 18px;
+      color: rgba(255, 255, 255, 0.8);
+      text-shadow: 0 0 4px rgba(255, 255, 255, 0.4);
+      letter-spacing: 1px;
+    }
+
+    .combo-bonus {
+      font-size: 16px;
+      color: rgba(255, 255, 0, 0.8);
+      text-shadow: 0 0 4px rgba(255, 255, 0, 0.4);
+      letter-spacing: 1px;
+      margin-left: 4px;
+    }
+
+    @keyframes comboSlideIn {
+      from {
+        transform: translateX(-50%) translateY(20px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+      }
+    }
+
+    /* Combo tiers with different colors */
+    .combo .combo-hits { 
+      color: rgba(255, 255, 255, 0.9);
+      text-shadow: 0 0 4px rgba(255, 255, 255, 0.4);
+    }
+    .super-combo .combo-hits { 
+      color: rgba(0, 255, 255, 0.9);
+      text-shadow: 0 0 4px rgba(0, 255, 255, 0.4);
+    }
+    .ultra-combo .combo-hits { 
+      color: rgba(255, 0, 255, 0.9);
+      text-shadow: 0 0 4px rgba(255, 0, 255, 0.4);
+    }
+    .mega-combo .combo-hits { 
+      color: rgba(255, 0, 0, 0.9);
+      text-shadow: 0 0 4px rgba(255, 0, 0, 0.4);
+    }
   </style>
 </head>
 <body>
@@ -733,6 +1133,16 @@
 <template id="block-destroyed-notification-template">
   <div class="block-destroyed-notification">
     <div class="score">+0</div>
+  </div>
+</template>
+
+<template id="combo-notification-template">
+  <div class="combo-notification">
+    <div class="combo-counter">
+      <div class="combo-hits"></div>
+      <div class="combo-text"></div>
+      <div class="combo-bonus"></div>
+    </div>
   </div>
 </template>
 
@@ -779,10 +1189,66 @@
     
     return clone;
   });
+
+  // Update the combo notification template registration
+  hytopia.registerSceneUITemplate('combo-notification', (id, onState) => {
+    const template = document.getElementById('combo-notification-template');
+    const clone = template.content.cloneNode(true);
+    
+    // Get all the elements we need to update
+    const container = clone.querySelector('.combo-notification');
+    const hitsElement = clone.querySelector('.combo-hits');
+    const textElement = clone.querySelector('.combo-text');
+    const bonusElement = clone.querySelector('.combo-bonus');
+    
+    onState(state => {
+      if (state && container) {
+        // Update the combo class based on hits
+        const comboClass = state.hits >= 10 ? 'mega-combo' :
+                          state.hits >= 7 ? 'ultra-combo' :
+                          state.hits >= 5 ? 'super-combo' :
+                          'combo';
+        container.className = `combo-notification ${comboClass} active`;
+        
+        // Update the text content
+        if (hitsElement) hitsElement.textContent = `${state.hits}x`;
+        if (textElement) textElement.textContent = state.text;
+        if (bonusElement) bonusElement.textContent = `+${state.bonus}%`;
+      }
+    });
+    
+    return clone;
+  });
 </script>
 
 <div class="countdown-overlay">
   <div class="countdown-display"></div>
+  <div class="round-scoring-guide">
+    <div class="guide-header">HOW TO SCORE</div>
+    <div class="guide-items">
+      <div class="guide-item">
+        <span class="guide-icon">🎯</span>
+        <span class="guide-text">DISTANCE = MORE POINTS</span>
+      </div>
+      <div class="guide-item">
+        <span class="guide-icon">⚡</span>
+        <span class="guide-text">FASTER BLOCKS = BIGGER SCORE</span>
+      </div>
+      <div class="guide-item">
+        <span class="guide-icon">⏱️</span>
+        <span class="guide-text">QUICK SHOTS COUNT</span>
+      </div>
+      <div class="guide-item">
+        <span class="guide-icon">🔥</span>
+        <span class="guide-text">CHAIN HITS FOR COMBOS</span>
+      </div>
+    </div>
+  </div>
+  <div class="hotkey-reminder">
+    <div class="hotkey-item">[H] Game Guide</div>
+    <div class="hotkey-item">[P] Settings</div>
+    <div class="hotkey-item">[ESC] Show Cursor</div>
+  </div>
 </div>
 
 <div class="scoreboard">
@@ -813,6 +1279,15 @@
 </div>
 
 <div class="crosshair"></div>
+
+<!-- Add the combo notification element here -->
+<div class="combo-notification">
+  <div class="combo-counter">
+    <div class="combo-hits"></div>
+    <div class="combo-text"></div>
+    <div class="combo-bonus"></div>
+  </div>
+</div>
 
 <div class="settings-overlay"></div>
 <div class="settings-menu">
@@ -905,6 +1380,57 @@
   </div>
 </div>
 
+<div class="help-menu">
+    <div class="help-header">
+        <span class="help-title">GAME GUIDE</span>
+        <span class="help-key">[H]</span>
+    </div>
+    <div class="help-content">
+        <div class="help-section scoring">
+            <h3>🎯 SCORING SYSTEM</h3>
+            <div class="guide-items">
+                <div class="guide-item">
+                    <span class="guide-icon">🎯</span>
+                    <span class="guide-text">DISTANCE = MORE POINTS</span>
+                </div>
+                <div class="guide-item">
+                    <span class="guide-icon">⚡</span>
+                    <span class="guide-text">FASTER BLOCKS = BIGGER SCORE</span>
+                </div>
+                <div class="guide-item">
+                    <span class="guide-icon">⏱️</span>
+                    <span class="guide-text">QUICK SHOTS COUNT</span>
+                </div>
+                <div class="guide-item">
+                    <span class="guide-icon">🔥</span>
+                    <span class="guide-text">CHAIN HITS FOR COMBOS</span>
+                </div>
+            </div>
+        </div>
+        <div class="help-section controls">
+            <h3>🎮 CONTROLS</h3>
+            <div class="control-item">
+                <span class="key">[ESC]</span>
+                <span class="action">Show Cursor</span>
+            </div>
+            <div class="control-item">
+                <span class="key">[P]</span>
+                <span class="action">Settings Menu</span>
+            </div>
+            <div class="control-item">
+                <span class="key">[H]</span>
+                <span class="action">Help Guide</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="hotkey-hints">
+    <div class="hotkey-hint">[H] Game Guide</div>
+    <div class="hotkey-hint">[P] Settings</div>
+    <div class="hotkey-hint">[ESC] Show Cursor</div>
+</div>
+
 <script>
 let projectileCount = 5;
 let particles = [];
@@ -962,17 +1488,8 @@ hytopia.onData(data => {
     showCountdown(data.count);
   } else if (data.type === 'updateLeaderboard') {
     updateLeaderboard(data.leaderboard);
-  } else if (data.type === 'settingsUpdate' && data.settings) {
-    // Update volume slider
-    if (data.settings.bgmVolume !== undefined) {
-      const volumeSlider = document.getElementById('bgm-volume-slider');
-      const volumeValue = document.getElementById('bgm-volume-value');
-      if (volumeSlider && volumeValue) {
-        const uiValue = Math.round(data.settings.bgmVolume * 100);
-        volumeSlider.value = String(uiValue);
-        volumeValue.textContent = String(uiValue);
-      }
-    }
+  } else if (data.type === 'showCombo') {
+    showComboNotification(data.data);
   }
 });
 
@@ -1103,6 +1620,25 @@ function updateRoundInfo(roundData) {
   const roundNumber = document.querySelector('.round-number');
   roundNumber.textContent = `Round ${roundData.round}`;
   
+  // Clear any active combo notification
+  const comboNotification = document.querySelector('.combo-notification');
+  if (comboNotification) {
+    comboNotification.classList.remove('active');
+    if (comboTimeout) {
+      clearTimeout(comboTimeout);
+      comboTimeout = null;
+    }
+  }
+
+  // Reset round scores in the scoreboard
+  const scores = document.querySelectorAll('.player-score');
+  scores.forEach(score => {
+    const roundScore = score.querySelector('.round-score');
+    if (roundScore) {
+      roundScore.textContent = '(+0)';
+    }
+  });
+  
   // Start or update timer with the full duration
   if (roundData.timeRemaining > 0) {
     startLocalTimer(roundData.timeRemaining);
@@ -1121,8 +1657,17 @@ function handleRoundEnd(data) {
   statusMessage.style.animation = 'pulse 0.5s ease-out infinite';
   
   roundInfo.appendChild(statusMessage);
+
+  // Reset round scores to 0 but keep total scores
+  const scores = document.querySelectorAll('.player-score');
+  scores.forEach(score => {
+    const roundScore = score.querySelector('.round-score');
+    if (roundScore) {
+      roundScore.textContent = '(+0)';
+    }
+  });
   
-  // Remove after transition to next round
+  // Remove status message after transition to next round
   setTimeout(() => {
     statusMessage.remove();
   }, data.nextRoundIn);
@@ -1133,12 +1678,19 @@ function updateScoreboard(scores) {
   scores.forEach((score, index) => {
     const playerDiv = document.createElement('div');
     playerDiv.className = 'player-score';
+    
+    // Ensure we're using numbers and not accidentally concatenating strings
+    const totalScore = Number(score.totalScore);
+    const roundScore = Number(score.roundScore);
+    
     playerDiv.innerHTML = `
       <span class="player-label">P${index + 1}</span>
-      <span class="score-value">${score.totalScore}</span>
-      <span class="round-score">(+${score.roundScore})</span>
+      <span class="score-value">${totalScore}</span>
+      <span class="round-score">(+${roundScore})</span>
     `;
     scoresContainer.appendChild(playerDiv);
+    
+    console.log(`Player ${index + 1} scores - Total: ${totalScore}, Round: ${roundScore}`); // Debug log
   });
 }
 
@@ -1384,6 +1936,85 @@ document.getElementById('dot-size-slider').addEventListener('input', updateCross
 // Visibility checkbox handlers
 document.getElementById('show-ring').addEventListener('change', updateCrosshairVisibility);
 document.getElementById('show-dot').addEventListener('change', updateCrosshairVisibility);
+
+// Add this to your existing script section
+let isHelpOpen = false;
+
+document.addEventListener('keydown', (e) => {
+    if (e.key.toLowerCase() === 'h') {
+        e.preventDefault();
+        toggleHelp(!isHelpOpen);
+    }
+});
+
+function toggleHelp(show) {
+    const menu = document.querySelector('.help-menu');
+    isHelpOpen = show;
+    
+    if (show) {
+        menu.classList.add('visible');
+    } else {
+        menu.classList.remove('visible');
+    }
+}
+
+// Add help toggle to pause menu
+document.getElementById('settings-menu').addEventListener('click', () => {
+    toggleHelp(false); // Close help when opening settings
+});
+
+// Add this to your existing script
+function updateHotkeysVisibility(show) {
+    const hints = document.querySelector('.hotkey-hints');
+    if (hints) {
+        hints.style.display = show ? 'flex' : 'none';
+    }
+}
+
+// Hide hotkeys when menus are open
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' || e.key.toLowerCase() === 'p' || e.key.toLowerCase() === 'h') {
+        updateHotkeysVisibility(false);
+    }
+});
+
+// Show hotkeys when menus are closed
+function onMenuClose() {
+    updateHotkeysVisibility(true);
+}
+
+// Add this to your existing script
+let comboTimeout = null;
+
+function showComboNotification(data) {
+  const container = document.querySelector('.combo-notification');
+  const hitsElement = container.querySelector('.combo-hits');
+  const textElement = container.querySelector('.combo-text');
+  const bonusElement = container.querySelector('.combo-bonus');
+  
+  // Update the combo class based on hits
+  const comboClass = data.hits >= 10 ? 'mega-combo' :
+                    data.hits >= 7 ? 'ultra-combo' :
+                    data.hits >= 5 ? 'super-combo' :
+                    'combo';
+  
+  container.className = `combo-notification ${comboClass} active`;
+  
+  // Update the text content
+  hitsElement.textContent = `${data.hits}x`;
+  textElement.textContent = data.text;
+  bonusElement.textContent = `+${data.bonus}%`;
+  
+  // Clear any existing timeout
+  if (comboTimeout) {
+    clearTimeout(comboTimeout);
+  }
+  
+  // Hide after 2 seconds
+  comboTimeout = setTimeout(() => {
+    container.classList.remove('active');
+  }, 2000);
+}
 </script>
 
 </body>

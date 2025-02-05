@@ -927,6 +927,105 @@
       font-size: 16px;
       color: rgba(255, 255, 255, 0.9);
     }
+
+    /* Subtle HUD Hotkey Hints */
+    .hotkey-hints {
+      position: fixed;
+      right: 40px;
+      top: 20px;
+      display: flex;
+      gap: 15px;
+      font-family: var(--display-font);
+      font-size: 14px;
+      opacity: 0.6;
+      transition: opacity 0.3s;
+    }
+
+    .hotkey-hints:hover {
+      opacity: 1;
+    }
+
+    .hotkey-hint {
+      color: var(--matrix-green);
+      text-shadow: 0 0 5px var(--terminal-green);
+    }
+
+    /* Countdown Hotkey Reminder */
+    .hotkey-reminder {
+      position: absolute;
+      bottom: 10%;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 30px;
+      font-family: var(--display-font);
+      opacity: 0;
+      animation: fadeInGuide 0.5s ease-out 1.5s forwards;
+    }
+
+    .hotkey-item {
+      color: var(--matrix-green);
+      text-shadow: 0 0 8px var(--terminal-green);
+      font-size: 20px;
+      letter-spacing: 1px;
+    }
+
+    /* Updated Help Menu Styles */
+    .help-menu {
+      font-family: var(--display-font);
+    }
+
+    .help-title {
+      font-family: var(--title-font);
+      font-size: 32px;
+      color: var(--blood-red);
+      letter-spacing: 3px;
+      text-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
+    }
+
+    .help-key {
+      font-family: var(--display-font);
+      font-size: 20px;
+      padding: 8px 15px;
+      border: 1px solid var(--blood-red);
+      text-shadow: 0 0 8px var(--glow-red);
+    }
+
+    .help-section h3 {
+      font-family: var(--title-font);
+      font-size: 24px;
+      color: var(--blood-red);
+      margin-bottom: 20px;
+      letter-spacing: 2px;
+      text-shadow: 0 0 10px rgba(255, 0, 0, 0.3);
+    }
+
+    .guide-item {
+      font-family: var(--display-font);
+      font-size: 22px;
+      letter-spacing: 1.5px;
+    }
+
+    .guide-text {
+      text-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+    }
+
+    .control-item {
+      font-family: var(--display-font);
+      font-size: 20px;
+      letter-spacing: 1px;
+    }
+
+    .control-item .key {
+      font-family: var(--display-font);
+      font-size: 18px;
+      border: 1px solid rgba(255, 0, 0, 0.3);
+      text-shadow: 0 0 5px var(--glow-red);
+    }
+
+    .control-item .action {
+      text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+    }
   </style>
 </head>
 <body>
@@ -1011,6 +1110,11 @@
       </div>
     </div>
   </div>
+  <div class="hotkey-reminder">
+    <div class="hotkey-item">[H] Game Guide</div>
+    <div class="hotkey-item">[P] Settings</div>
+    <div class="hotkey-item">[ESC] Pause</div>
+  </div>
 </div>
 
 <div class="scoreboard">
@@ -1025,29 +1129,6 @@
       <!-- Scores will be added here dynamically -->
     </div>
   </div>
-</div>
-
-<!-- Regular HUD Guide (top left) -->
-<div class="scoring-guide-hud">
-    <div class="guide-header">SCORING GUIDE</div>
-    <div class="guide-items">
-        <div class="guide-item">
-            <span class="guide-icon">🎯</span>
-            <span class="guide-text">DISTANCE = MORE POINTS</span>
-        </div>
-        <div class="guide-item">
-            <span class="guide-icon">⚡</span>
-            <span class="guide-text">FASTER BLOCKS = BIGGER SCORE</span>
-        </div>
-        <div class="guide-item">
-            <span class="guide-icon">⏱️</span>
-            <span class="guide-text">QUICK SHOTS COUNT</span>
-        </div>
-        <div class="guide-item">
-            <span class="guide-icon">🔥</span>
-            <span class="guide-text">CHAIN HITS FOR COMBOS</span>
-        </div>
-    </div>
 </div>
 
 <div class="leaderboard">

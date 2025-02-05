@@ -105,10 +105,16 @@ export class SceneUIManager {
 
     // Calculate dynamic properties based on score
     const colorInfo = getScoreColor(roundedScore);
-    const duration = 1000 + Math.min(roundedScore * 20, 2000); // 1-3 seconds based on score
-    const scale = 1 + Math.min(roundedScore * 0.02, 1); // 1-2x scale based on score
-    const verticalOffset = 1.5 + Math.min(roundedScore * 0.01, 1.5); // 1.5-3 units based on score
     
+    // Exponential scaling for duration (between 1-4 seconds)
+    const duration = 1000 + Math.min(Math.pow(roundedScore, 1.5) * 10, 3000); 
+    
+    // Exponential scaling for size (between 1-3x)
+    const scale = 1 + Math.min(Math.pow(roundedScore / 20, 1.8), 2); 
+    
+    // Exponential scaling for vertical offset (between 1.5-4 units)
+    const verticalOffset = 1.5 + Math.min(Math.pow(roundedScore / 25, 1.6), 2.5);
+
     // Log feedback details for debugging
     console.log('Block destroyed feedback -', {
       score: roundedScore,
@@ -120,7 +126,35 @@ export class SceneUIManager {
 
     // Create dynamic CSS for the animation
     const dynamicStyle = `
-      animation: scoreAnimation ${duration}ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      @keyframes scoreAnimation {
+        0% {
+          opacity: 0;
+          transform: translateY(0) scale(0.2);
+        }
+        15% {
+          opacity: 1;
+          transform: translateY(-${8 * scale}px) scale(${scale * 0.9});
+        }
+        30% {
+          opacity: 1;
+          transform: translateY(-${20 * scale}px) scale(${scale});
+        }
+        60% {
+          opacity: 1;
+          transform: translateY(-${35 * scale}px) scale(${scale});
+        }
+        85% {
+          opacity: 0.5;
+          transform: translateY(-${45 * scale}px) scale(${scale * 0.9});
+        }
+        100% {
+          opacity: 0;
+          transform: translateY(-${50 * scale}px) scale(${scale * 0.8});
+        }
+      }
+      animation: scoreAnimation ${duration}ms ease-out forwards;
+      will-change: transform, opacity;
+      transform: translateZ(0);
       font-size: ${scale * 48}px;
       color: ${colorInfo.main};
       text-shadow: 0 0 ${5 + colorInfo.intensity * 15}px ${colorInfo.glow};

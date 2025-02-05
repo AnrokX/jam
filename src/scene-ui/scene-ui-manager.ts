@@ -65,8 +65,12 @@ export class SceneUIManager {
       distanceMultiplier = 1 + Math.min(Math.pow(distance / 20, 1.2), 0.3);
     }
     
-    // Much shorter duration for all scores
-    const duration = 400 + Math.min(Math.pow(roundedScore, 1.8) * 4 * distanceMultiplier, 1200); 
+    // Balanced duration with moderate curve for mid-range scores
+    const duration = 500 + Math.min(
+      roundedScore <= 25 
+        ? Math.pow(roundedScore, 1.2) * 3 
+        : Math.pow(roundedScore, 1.8) * 4
+      * distanceMultiplier, 1200); 
     
     // Keep the conservative scale for lower scores
     const scale = 1 + Math.min(Math.pow(roundedScore / 50, 2.2) * distanceMultiplier, 2); 

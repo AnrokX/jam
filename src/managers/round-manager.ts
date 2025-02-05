@@ -284,9 +284,6 @@ export class RoundManager {
                 // Calculate the base speed for this block
                 const baseSpeed = 8 * config.speedMultiplier;
 
-                // Add despawn timer for round 2
-                const despawnTime = this.currentRound === 2 ? 6000 : undefined; // 6 seconds for round 2
-
                 // Spawn the chosen block type with appropriate spacing
                 switch(chosenType) {
                     case 'normal':
@@ -303,8 +300,7 @@ export class RoundManager {
                         this.blockManager.createStaticTarget({
                             x: spawnPosition.x,
                             y: spawnPosition.y,
-                            z: spawnPosition.z,
-                            despawnTime: despawnTime
+                            z: spawnPosition.z
                         });
                         break;
                     case 'verticalWave':

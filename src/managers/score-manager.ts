@@ -27,6 +27,7 @@ export class ScoreManager extends Entity {
     
     // Movement multipliers adjusted for progression
     BASE_MOVEMENT_MULTIPLIER: 1.0,   // Base for static targets
+    Z_AXIS_MULTIPLIER: 1.5,         // New multiplier for Z-Axis blocks
     SINE_WAVE_MULTIPLIER: 2.0,      // Reduced from 2.5 for better scaling
     VERTICAL_WAVE_MULTIPLIER: 2.5,   // Reduced from 3.0
     POPUP_MULTIPLIER: 2.0,          // Reduced from 3.5
@@ -227,6 +228,8 @@ export class ScoreManager extends Entity {
     console.log(`Determining multiplier for behavior type: ${behaviorType}`);
     
     switch (behaviorType) {
+      case 'ZAxisMovement':
+        return ScoreManager.SCORING_CONFIG.Z_AXIS_MULTIPLIER;
       case 'SineWaveMovement':
         return ScoreManager.SCORING_CONFIG.SINE_WAVE_MULTIPLIER;
       case 'VerticalWaveMovement':

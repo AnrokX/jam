@@ -888,21 +888,30 @@ export class MovingBlockManager {
     // Clean up any despawned blocks first
     this.blocks = this.blocks.filter(block => block.isSpawned);
 
+    // Get default half extents and reduce by 40%
+    const defaultHalfExtents = MovingBlockEntity.DefaultBlockHalfExtents;
+    const scaledHalfExtents = {
+        x: defaultHalfExtents.x * 0.6,  // 40% smaller
+        y: defaultHalfExtents.y * 0.6,  // 40% smaller
+        z: defaultHalfExtents.z * 0.6   // 40% smaller
+    };
+
     const block = new MovingBlockEntity(MovingBlockEntity.createDefaultBlockConfiguration({
-      onBlockBroken: () => {
-        if (this.scoreManager && (block as any).playerId) {
-          const playerId = (block as any).playerId;
-          const score = MovingBlockEntity.DefaultBlockScore;
-          
-          this.scoreManager.addScore(playerId, score);
-          
-          // Broadcast updated scores
-          this.scoreManager.broadcastScores(this.world);
-          
-          // Remove the block from our tracking array when broken
-          this.removeBlock(block);
+        blockHalfExtents: scaledHalfExtents,  // Apply the smaller size
+        onBlockBroken: () => {
+            if (this.scoreManager && (block as any).playerId) {
+                const playerId = (block as any).playerId;
+                const score = MovingBlockEntity.DefaultBlockScore;
+                
+                this.scoreManager.addScore(playerId, score);
+                
+                // Broadcast updated scores
+                this.scoreManager.broadcastScores(this.world);
+                
+                // Remove the block from our tracking array when broken
+                this.removeBlock(block);
+            }
         }
-      }
     }));
     
     const finalSpawnPosition = spawnPosition || MovingBlockEntity.generateDefaultSpawnPosition();

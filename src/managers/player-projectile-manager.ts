@@ -47,8 +47,6 @@ export class PlayerProjectileManager {
   }
 
   private createProjectile(playerId: string, position: Vector3Like, direction: Vector3Like): ProjectileEntity | null {
-    console.log(`Creating projectile for player ${playerId} at position:`, position);
-    
     // Normalize direction for validation
     const magnitude = Math.sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z);
     if (magnitude === 0) return null;
@@ -61,7 +59,6 @@ export class PlayerProjectileManager {
 
     // Check if looking too far down
     if (normalizedDir.y < ProjectileEntity.PHYSICS.MAX_DOWN_ANGLE) {
-        console.log('Cannot shoot: looking too far down');
         return null;
     }
 
@@ -92,14 +89,10 @@ export class PlayerProjectileManager {
         z: position.z + (spawnOffset.z / offsetMag) * SPAWN_DISTANCE
     };
 
-    // Add debug logging for final spawn position
-    console.log(`Spawning projectile at:`, spawnPos);
-
     projectile.spawn(this.world, spawnPos);
     
     // Validate trajectory after spawn
     if (!projectile.validateTrajectory(normalizedDir)) {
-        console.log('Cannot shoot: invalid trajectory');
         projectile.despawn();
         return null;
     }

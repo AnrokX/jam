@@ -31,18 +31,6 @@ export class RaycastHandler {
             return null;
         }
 
-        // Add origin point validation logging
-        if (Math.abs(origin.x) < 1 && 
-            Math.abs(origin.y) < 1 && 
-            Math.abs(origin.z) < 1) {
-            console.warn('Raycast performed near origin:', {
-                origin,
-                direction,
-                length,
-                stack: new Error().stack
-            });
-        }
-
         // Check for zero vector
         const magnitude = Math.sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z);
         if (magnitude === 0) {

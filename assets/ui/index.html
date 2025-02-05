@@ -721,106 +721,182 @@
       letter-spacing: 2px;
     }
 
+    /* Updated HUD Guide Styles */
     .scoring-guide-hud {
       position: fixed;
       left: 40px;
-      top: 250px;
+      top: 300px; /* Moved down further */
       background: linear-gradient(135deg, var(--matrix-dark) 0%, rgba(13, 2, 8, 0.85) 100%);
-      padding: 12px;
-      border-radius: 8px;
+      padding: 15px;
+      border-radius: 10px;
       color: #ffffff;
       font-family: var(--text-font);
       border: 1px solid var(--blood-red);
-      box-shadow: 0 0 10px rgba(255, 0, 0, 0.1);
-      max-width: 280px;
+      box-shadow: 0 0 15px rgba(255, 0, 0, 0.15);
+      max-width: 320px; /* Increased width */
       opacity: 0.85;
       transition: opacity 0.3s;
     }
 
-    .scoring-guide-hud:hover {
-      opacity: 1;
-    }
-
-    .guide-header {
+    .scoring-guide-hud .guide-header {
       font-family: var(--title-font);
-      font-size: 12px;
+      font-size: 16px; /* Bigger header */
       color: var(--blood-red);
-      margin-bottom: 8px;
-      letter-spacing: 1px;
+      margin-bottom: 10px;
+      letter-spacing: 1.5px;
       text-align: center;
     }
 
-    .guide-items {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .guide-item {
+    .scoring-guide-hud .guide-item {
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 13px;
+      gap: 10px;
+      font-size: 15px; /* Bigger text */
       letter-spacing: 0.5px;
+      padding: 4px 0;
     }
 
-    .guide-icon {
-      font-size: 14px;
-      min-width: 20px;
+    .scoring-guide-hud .guide-icon {
+      font-size: 18px; /* Bigger icons */
+      min-width: 25px;
       text-align: center;
     }
 
-    .guide-text {
-      color: rgba(255, 255, 255, 0.9);
-    }
-
+    /* Countdown Guide Styles (made even bigger) */
     .round-scoring-guide {
       position: fixed;
       left: 50%;
-      top: 65%;
+      top: 60%;
       transform: translateX(-50%);
       background: linear-gradient(135deg, var(--matrix-dark) 0%, rgba(13, 2, 8, 0.95) 100%);
-      padding: 25px;
-      border-radius: 15px;
+      padding: 35px; /* More padding */
+      border-radius: 20px;
       color: #ffffff;
       font-family: var(--text-font);
-      border: 2px solid var(--blood-red);
-      box-shadow: 0 0 30px rgba(255, 0, 0, 0.2);
-      min-width: 400px;
-      opacity: 0;
-      animation: fadeInGuide 0.5s ease-out 1s forwards;
-    }
-
-    @keyframes fadeInGuide {
-      from { opacity: 0; transform: translateX(-50%) translateY(20px); }
-      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+      border: 3px solid var(--blood-red);
+      box-shadow: 0 0 40px rgba(255, 0, 0, 0.25);
+      min-width: 500px; /* Even wider */
     }
 
     .round-scoring-guide .guide-header {
       font-family: var(--title-font);
-      font-size: 24px;
+      font-size: 32px; /* Much bigger header */
       color: var(--blood-red);
-      margin-bottom: 20px;
-      letter-spacing: 2px;
+      margin-bottom: 25px;
+      letter-spacing: 3px;
       text-align: center;
-      text-shadow: 0 0 10px rgba(255, 0, 0, 0.3);
+      text-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
+      font-weight: bold;
     }
 
     .round-scoring-guide .guide-items {
       display: flex;
       flex-direction: column;
-      gap: 15px;
+      gap: 20px; /* More spacing between items */
     }
 
     .round-scoring-guide .guide-item {
       display: flex;
       align-items: center;
-      gap: 15px;
-      font-size: 20px;
-      letter-spacing: 1px;
+      gap: 20px;
+      font-size: 26px; /* Much bigger text */
+      letter-spacing: 1.5px;
+      font-weight: 500; /* Slightly bolder */
     }
 
     .round-scoring-guide .guide-icon {
+      font-size: 32px; /* Much bigger icons */
+      min-width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 0, 0, 0.15);
+      border-radius: 50%;
+      text-shadow: 0 0 15px rgba(255, 255, 255, 0.6);
+    }
+
+    .round-scoring-guide .guide-text {
+      color: rgba(255, 255, 255, 0.95); /* Slightly more opaque */
+      text-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+      font-weight: 500; /* Slightly bolder */
+    }
+
+    .help-menu {
+      position: fixed;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: linear-gradient(135deg, var(--matrix-dark) 0%, rgba(13, 2, 8, 0.95) 100%);
+      border: 2px solid var(--blood-red);
+      border-radius: 15px;
+      color: #ffffff;
+      padding: 25px;
+      display: none;
+      z-index: 1000;
+      min-width: 400px;
+      box-shadow: 0 0 30px rgba(255, 0, 0, 0.2);
+    }
+
+    .help-menu.visible {
+      display: block;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateY(-50%) translateX(50px); opacity: 0; }
+      to { transform: translateY(-50%) translateX(0); opacity: 1; }
+    }
+
+    .help-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--blood-red);
+    }
+
+    .help-title {
+      font-family: var(--title-font);
+      font-size: 28px;
+      color: var(--blood-red);
+      letter-spacing: 2px;
+    }
+
+    .help-key {
+      background: rgba(255, 0, 0, 0.2);
+      padding: 5px 10px;
+      border-radius: 5px;
+      font-size: 16px;
+      color: var(--blood-red);
+    }
+
+    .help-section {
+      margin-bottom: 25px;
+    }
+
+    .help-section h3 {
+      font-size: 20px;
+      color: var(--blood-red);
+      margin-bottom: 15px;
+      letter-spacing: 1px;
+    }
+
+    .guide-items {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .guide-item {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      font-size: 18px;
+    }
+
+    .guide-icon {
       font-size: 24px;
       min-width: 40px;
       height: 40px;
@@ -829,12 +905,27 @@
       justify-content: center;
       background: rgba(255, 0, 0, 0.1);
       border-radius: 50%;
-      text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
     }
 
-    .round-scoring-guide .guide-text {
+    .control-item {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 10px;
+    }
+
+    .control-item .key {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 5px 10px;
+      border-radius: 5px;
+      font-size: 16px;
+      min-width: 60px;
+      text-align: center;
+    }
+
+    .control-item .action {
+      font-size: 16px;
       color: rgba(255, 255, 255, 0.9);
-      text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
     }
   </style>
 </head>
@@ -936,7 +1027,7 @@
   </div>
 </div>
 
-<!-- Add this after the scoreboard but before the leaderboard -->
+<!-- Regular HUD Guide (top left) -->
 <div class="scoring-guide-hud">
     <div class="guide-header">SCORING GUIDE</div>
     <div class="guide-items">
@@ -1056,6 +1147,51 @@
   <div class="settings-option">
     <button class="settings-button" id="resume-button">Resume Game</button>
   </div>
+</div>
+
+<div class="help-menu">
+    <div class="help-header">
+        <span class="help-title">GAME GUIDE</span>
+        <span class="help-key">[H]</span>
+    </div>
+    <div class="help-content">
+        <div class="help-section scoring">
+            <h3>🎯 SCORING SYSTEM</h3>
+            <div class="guide-items">
+                <div class="guide-item">
+                    <span class="guide-icon">🎯</span>
+                    <span class="guide-text">DISTANCE = MORE POINTS</span>
+                </div>
+                <div class="guide-item">
+                    <span class="guide-icon">⚡</span>
+                    <span class="guide-text">FASTER BLOCKS = BIGGER SCORE</span>
+                </div>
+                <div class="guide-item">
+                    <span class="guide-icon">⏱️</span>
+                    <span class="guide-text">QUICK SHOTS COUNT</span>
+                </div>
+                <div class="guide-item">
+                    <span class="guide-icon">🔥</span>
+                    <span class="guide-text">CHAIN HITS FOR COMBOS</span>
+                </div>
+            </div>
+        </div>
+        <div class="help-section controls">
+            <h3>🎮 CONTROLS</h3>
+            <div class="control-item">
+                <span class="key">[ESC]</span>
+                <span class="action">Pause Game</span>
+            </div>
+            <div class="control-item">
+                <span class="key">[P]</span>
+                <span class="action">Settings Menu</span>
+            </div>
+            <div class="control-item">
+                <span class="key">[H]</span>
+                <span class="action">Help Guide</span>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -1479,6 +1615,32 @@ document.getElementById('dot-size-slider').addEventListener('input', updateCross
 // Visibility checkbox handlers
 document.getElementById('show-ring').addEventListener('change', updateCrosshairVisibility);
 document.getElementById('show-dot').addEventListener('change', updateCrosshairVisibility);
+
+// Add this to your existing script section
+let isHelpOpen = false;
+
+document.addEventListener('keydown', (e) => {
+    if (e.key.toLowerCase() === 'h') {
+        e.preventDefault();
+        toggleHelp(!isHelpOpen);
+    }
+});
+
+function toggleHelp(show) {
+    const menu = document.querySelector('.help-menu');
+    isHelpOpen = show;
+    
+    if (show) {
+        menu.classList.add('visible');
+    } else {
+        menu.classList.remove('visible');
+    }
+}
+
+// Add help toggle to pause menu
+document.getElementById('settings-menu').addEventListener('click', () => {
+    toggleHelp(false); // Close help when opening settings
+});
 </script>
 
 </body>

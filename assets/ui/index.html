@@ -1613,6 +1613,25 @@ function updateRoundInfo(roundData) {
   const roundNumber = document.querySelector('.round-number');
   roundNumber.textContent = `Round ${roundData.round}`;
   
+  // Clear any active combo notification
+  const comboNotification = document.querySelector('.combo-notification');
+  if (comboNotification) {
+    comboNotification.classList.remove('active');
+    if (comboTimeout) {
+      clearTimeout(comboTimeout);
+      comboTimeout = null;
+    }
+  }
+
+  // Reset round scores in the scoreboard
+  const scores = document.querySelectorAll('.player-score');
+  scores.forEach(score => {
+    const roundScore = score.querySelector('.round-score');
+    if (roundScore) {
+      roundScore.textContent = '(+0)';
+    }
+  });
+  
   // Start or update timer with the full duration
   if (roundData.timeRemaining > 0) {
     startLocalTimer(roundData.timeRemaining);
@@ -1631,8 +1650,17 @@ function handleRoundEnd(data) {
   statusMessage.style.animation = 'pulse 0.5s ease-out infinite';
   
   roundInfo.appendChild(statusMessage);
+
+  // Reset round scores to 0 but keep total scores
+  const scores = document.querySelectorAll('.player-score');
+  scores.forEach(score => {
+    const roundScore = score.querySelector('.round-score');
+    if (roundScore) {
+      roundScore.textContent = '(+0)';
+    }
+  });
   
-  // Remove after transition to next round
+  // Remove status message after transition to next round
   setTimeout(() => {
     statusMessage.remove();
   }, data.nextRoundIn);
@@ -1643,12 +1671,19 @@ function updateScoreboard(scores) {
   scores.forEach((score, index) => {
     const playerDiv = document.createElement('div');
     playerDiv.className = 'player-score';
+    
+    // Ensure we're using numbers and not accidentally concatenating strings
+    const totalScore = Number(score.totalScore);
+    const roundScore = Number(score.roundScore);
+    
     playerDiv.innerHTML = `
       <span class="player-label">P${index + 1}</span>
-      <span class="score-value">${score.totalScore}</span>
-      <span class="round-score">(+${score.roundScore})</span>
+      <span class="score-value">${totalScore}</span>
+      <span class="round-score">(+${roundScore})</span>
     `;
     scoresContainer.appendChild(playerDiv);
+    
+    console.log(`Player ${index + 1} scores - Total: ${totalScore}, Round: ${roundScore}`); // Debug log
   });
 }
 

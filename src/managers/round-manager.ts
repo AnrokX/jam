@@ -238,10 +238,10 @@ export class RoundManager {
                 const safetyMargin = MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.PLATFORM_SAFETY_MARGIN;
 
                 do {
-                    // Generate position within game bounds with more vertical variance
+                    // Generate position within game bounds with full vertical variance
                     spawnPosition = {
                         x: Math.random() * 16 - 8,  // Random x between -8 and 8
-                        y: 2 + Math.random() * 6,   // Random y between 2 and 8 (higher variance)
+                        y: 1 + Math.random() * 7,   // Random y between 1 and 8 (full range)
                         z: Math.random() * 24 - 12  // Random z between -12 and 12
                     };
 

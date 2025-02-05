@@ -61,13 +61,15 @@ export class SceneUIManager {
       const dz = worldPosition.z - spawnOrigin.z;
       const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
       
-      // More aggressive exponential scaling based on distance (starts at 1x, caps at 4x)
-      distanceMultiplier = 1 + Math.min(Math.pow(distance / 8, 1.8), 3);
+      // Very subtle distance scaling (starts at 1x, caps at 1.3x)
+      distanceMultiplier = 1 + Math.min(Math.pow(distance / 20, 1.2), 0.3);
     }
     
     // Apply distance multiplier to duration and scale
     const duration = 1000 + Math.min(Math.pow(roundedScore, 1.5) * 10 * distanceMultiplier, 3000); 
-    const scale = 1 + Math.min(Math.pow(roundedScore / 20, 1.8) * distanceMultiplier, 3); 
+    
+    // More conservative base scaling for lower scores
+    const scale = 1 + Math.min(Math.pow(roundedScore / 35, 2) * distanceMultiplier, 2); 
     const verticalOffset = 1.5 + Math.min(Math.pow(roundedScore / 25, 1.6), 2.5);
 
     // Dynamic color calculation based on score

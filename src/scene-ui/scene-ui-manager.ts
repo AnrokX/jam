@@ -46,12 +46,29 @@ export class SceneUIManager {
     }, 1000);
   }
 
-  public showBlockDestroyedNotification(worldPosition: Vector3Like, score: number, player: Player): void {
+  public showBlockDestroyedNotification(worldPosition: Vector3Like, score: number, player: Player, spawnOrigin?: Vector3Like): void {
     console.log('Showing block destroyed notification with score:', score);
     
     // Ensure score is rounded and positive
     const roundedScore = Math.max(0, Math.round(score));
     
+    // Get distance multiplier if spawn origin is available
+    let distanceMultiplier = 1;
+    if (this.world && worldPosition && spawnOrigin) {
+      const dx = worldPosition.x - spawnOrigin.x;
+      const dy = worldPosition.y - spawnOrigin.y;
+      const dz = worldPosition.z - spawnOrigin.z;
+      const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      
+      // More aggressive exponential scaling based on distance (starts at 1x, caps at 4x)
+      distanceMultiplier = 1 + Math.min(Math.pow(distance / 8, 1.8), 3);
+    }
+    
+    // Apply distance multiplier to duration and scale
+    const duration = 1000 + Math.min(Math.pow(roundedScore, 1.5) * 10 * distanceMultiplier, 3000); 
+    const scale = 1 + Math.min(Math.pow(roundedScore / 20, 1.8) * distanceMultiplier, 3); 
+    const verticalOffset = 1.5 + Math.min(Math.pow(roundedScore / 25, 1.6), 2.5);
+
     // Dynamic color calculation based on score
     const getScoreColor = (score: number): { main: string, glow: string, intensity: number } => {
       // Base colors for spectrum
@@ -106,23 +123,6 @@ export class SceneUIManager {
     // Calculate dynamic properties based on score and distance
     const colorInfo = getScoreColor(roundedScore);
     
-    // Get distance multiplier if spawn origin is available
-    let distanceMultiplier = 1;
-    if (this.world && worldPosition && this.world.spawnOrigin) {
-      const dx = worldPosition.x - this.world.spawnOrigin.x;
-      const dy = worldPosition.y - this.world.spawnOrigin.y;
-      const dz = worldPosition.z - this.world.spawnOrigin.z;
-      const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-      
-      // Exponential scaling based on distance (starts at 1x, caps at 3x)
-      distanceMultiplier = 1 + Math.min(Math.pow(distance / 10, 1.5), 2);
-    }
-    
-    // Apply distance multiplier to duration and scale
-    const duration = 1000 + Math.min(Math.pow(roundedScore, 1.5) * 10 * distanceMultiplier, 3000); 
-    const scale = 1 + Math.min(Math.pow(roundedScore / 20, 1.8) * distanceMultiplier, 2); 
-    const verticalOffset = 1.5 + Math.min(Math.pow(roundedScore / 25, 1.6), 2.5);
-
     // Log feedback details for debugging
     console.log('Block destroyed feedback -', {
       score: roundedScore,

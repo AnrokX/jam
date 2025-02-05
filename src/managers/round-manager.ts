@@ -320,7 +320,7 @@ export class RoundManager {
 
         // Initial spawn - spawn minimum blocks more quickly
         for (let i = 0; i < config.minBlockCount; i++) {
-            setTimeout(() => spawnBlock(), i * 500); // Faster initial spawn (0.5s between)
+            setTimeout(() => spawnBlock(), i * 1000);
         }
 
         // Regular spawn interval

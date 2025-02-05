@@ -87,8 +87,8 @@ export class SceneUIManager {
         { score: 0, color: '#FFFFFF', glow: '#CCCCCC', intensity: 0.3 },    // White
         { score: 15, color: '#FFFF00', glow: '#CCCC00', intensity: 0.6 },   // Yellow
         { score: 25, color: '#FFA500', glow: '#CC8400', intensity: 0.9 },   // Orange
-        { score: 50, color: '#FF0000', glow: '#CC0000', intensity: 1.2 }    // Red
-        { score: 100, color: '#FF0000', glow: '#CC0000', intensity: 1.2 }    // Purple
+        { score: 50, color: '#FF0000', glow: '#CC0000', intensity: 1.2 },   // Red
+        { score: 150, color: '#FF00FF', glow: '#FFFFFF', intensity: 1.5 }    // Purple with white glow
       ];
 
       // Find the two colors to interpolate between

@@ -28,11 +28,11 @@ export class ScoreManager extends Entity {
     // Movement multipliers adjusted for progression
     BASE_MOVEMENT_MULTIPLIER: 1.0,   // Base for static targets
     Z_AXIS_MULTIPLIER: 1.5,         // New multiplier for Z-Axis blocks
-    SINE_WAVE_MULTIPLIER: 2.0,      // Reduced from 2.5 for better scaling
-    VERTICAL_WAVE_MULTIPLIER: 2.5,   // Reduced from 3.0
-    POPUP_MULTIPLIER: 2.0,          // Reduced from 3.5
-    RISING_MULTIPLIER: 2.5,         // Reduced from 4.0
-    PARABOLIC_MULTIPLIER: 3.0,      // Reduced from 4.5
+    SINE_WAVE_MULTIPLIER: 3.0,      // Reduced from 2.5 for better scaling
+    VERTICAL_WAVE_MULTIPLIER: 3.0,   // Reduced from 3.0
+    POPUP_MULTIPLIER: 4.0,          // Reduced from 3.5
+    RISING_MULTIPLIER: 5.5,         // Reduced from 4.0
+    PARABOLIC_MULTIPLIER: 6.0,      // Reduced from 4.5
     
     // Combo system adjusted for early game
     MAX_COMBO_BONUS: 0.5,           // Slightly reduced max combo

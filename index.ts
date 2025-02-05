@@ -16,10 +16,12 @@ import { RoundManager } from './src/managers/round-manager';
 import { BlockParticleEffects } from './src/effects/block-particle-effects';
 import { TestBlockSpawner } from './src/utils/test-spawner';
 import { SceneUIManager } from './src/scene-ui/scene-ui-manager';
+import { AudioManager } from './src/managers/audio-manager';
 
 // Configuration flags
-const IS_TEST_MODE = true;  // Set this to true to enable test mode, false for normal game
+const IS_TEST_MODE = false;  // Set this to true to enable test mode, false for normal game
 const DEBUG_ENABLED = false;  // Development debug flag
+
 
 startServer(world => {
   console.log('Starting server and initializing debug settings...');
@@ -139,6 +141,10 @@ startServer(world => {
   }
 
   world.loadMap(worldMap);
+
+  // Initialize AudioManager and start background music
+  const audioManager = AudioManager.getInstance(world);
+  audioManager.playBackgroundMusic();
 
   /**
    * Handles the event when a player joins the game.
@@ -307,13 +313,8 @@ startServer(world => {
     world.entityManager.getPlayerEntitiesByPlayer(player).forEach(entity => entity.despawn());
   };
 
-  new Audio({
-    uri: 'audio/music/hytopia-main.mp3',
-    loop: true,
-    volume: 0.1,
-  }).play(world);
-
-  // Cleanup particle effects and UI when the scene changes or the game shuts down
+  // Cleanup particle effects, UI, and audio when the scene changes or the game shuts down
   BlockParticleEffects.getInstance(world).cleanup();
   sceneUIManager.cleanup();
+  audioManager.cleanup();
 });

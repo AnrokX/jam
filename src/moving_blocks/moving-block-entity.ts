@@ -143,6 +143,7 @@ export interface MovingBlockOptions extends EntityOptions {
   isBreakable?: boolean;     // Whether the block can be broken
   onBlockBroken?: () => void; // Optional callback to be triggered when the block is broken
   movementBehavior?: BlockMovementBehavior; // New: inject block-specific movement logic
+  despawnTime?: number;      // Optional: Time in milliseconds after which the block should despawn
 }
 
 export class MovingBlockEntity extends Entity {
@@ -160,6 +161,7 @@ export class MovingBlockEntity extends Entity {
   private particles: Entity[] = [];
   private particleEffects: BlockParticleEffects | null;
   private spawnTime: number;  // Add spawn time tracking
+  private despawnTimer: NodeJS.Timeout | null = null;  // Add despawn timer
 
   constructor(options: MovingBlockOptions) {
     super({
@@ -196,7 +198,16 @@ export class MovingBlockEntity extends Entity {
     this.onBlockBroken = options.onBlockBroken;
     this.movementBehavior = options.movementBehavior || new DefaultBlockMovement();
     this.particleEffects = null;
-    this.spawnTime = Date.now();  // Initialize spawn time
+    this.spawnTime = Date.now();
+
+    // Set up despawn timer if specified
+    if (options.despawnTime) {
+      this.despawnTimer = setTimeout(() => {
+        if (this.isSpawned) {
+          this.despawn();
+        }
+      }, options.despawnTime);
+    }
   }
 
   private normalizeDirection(dir: Vector3Like): Vector3Like {
@@ -848,6 +859,15 @@ export class MovingBlockEntity extends Entity {
   public getMovementBehaviorType(): string {
     return this.movementBehavior.constructor.name;
   }
+
+  override despawn(): void {
+    // Clear despawn timer if it exists
+    if (this.despawnTimer) {
+      clearTimeout(this.despawnTimer);
+      this.despawnTimer = null;
+    }
+    super.despawn();
+  }
 }
 
 export class MovingBlockManager {
@@ -954,14 +974,24 @@ export class MovingBlockManager {
     return block;
   }
 
-  public createStaticTarget(spawnPosition?: Vector3Like): MovingBlockEntity {
+  public createStaticTarget(options: {
+    x?: number;
+    y?: number;
+    z?: number;
+    despawnTime?: number;
+  } = {}): MovingBlockEntity {
     // Clean up any despawned blocks first
     this.blocks = this.blocks.filter(block => block.isSpawned);
 
-    const finalSpawnPosition = spawnPosition || MovingBlockEntity.generateRandomTargetPosition();
+    const spawnPosition = {
+      x: options.x ?? (Math.random() * 16 - 8),
+      y: options.y ?? (2 + Math.random() * 4),
+      z: options.z ?? (Math.random() * 24 - 12)
+    };
 
     // Create block with default target configuration
     const block = new MovingBlockEntity(MovingBlockEntity.createTargetConfiguration({
+      despawnTime: options.despawnTime,
       onBlockBroken: () => {
         if (this.scoreManager && (block as any).playerId) {
           const playerId = (block as any).playerId;
@@ -974,7 +1004,7 @@ export class MovingBlockManager {
       }
     }));
     
-    block.spawn(this.world, finalSpawnPosition);
+    block.spawn(this.world, spawnPosition);
     this.blocks.push(block);
 
     return block;

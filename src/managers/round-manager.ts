@@ -1,6 +1,7 @@
 import { World, Vector3Like } from 'hytopia';
 import { MovingBlockManager, MOVING_BLOCK_CONFIG } from '../moving_blocks/moving-block-entity';
 import { ScoreManager } from './score-manager';
+import { StatsScene } from '../scene-ui/stats-scene';
 
 export interface RoundConfig {
     duration: number;  // Duration in milliseconds
@@ -30,12 +31,15 @@ export class RoundManager {
     private waitingForPlayers: boolean = false;
     private readonly REQUIRED_PLAYERS = 1;
     private checkPlayersInterval: NodeJS.Timeout | null = null;
+    private statsScene: StatsScene;
 
     constructor(
         private world: World,
         private blockManager: MovingBlockManager,
         private scoreManager: ScoreManager
-    ) {}
+    ) {
+        this.statsScene = StatsScene.getInstance(world, () => this.startNextRound());
+    }
 
     private getPlayerCount(): number {
         return this.world.entityManager.getAllPlayerEntities().length;
@@ -361,41 +365,62 @@ export class RoundManager {
     }
 
     public endRound(): void {
-        console.log('Ending round:', this.currentRound);
-        
         if (!this.isRoundActive) return;
-
+        
         this.isRoundActive = false;
+        console.log('Ending round...');
+
+        // Clear timers
         if (this.roundTimer) {
             clearTimeout(this.roundTimer);
             this.roundTimer = null;
         }
         if (this.blockSpawnTimer) {
-            clearInterval(this.blockSpawnTimer);
+            clearTimeout(this.blockSpawnTimer);
             this.blockSpawnTimer = null;
         }
 
-        // Check if we still have enough players
-        if (this.getPlayerCount() < this.REQUIRED_PLAYERS) {
-            this.resetGame();
-            this.waitingForPlayers = true;
-            this.broadcastWaitingForPlayers(this.getPlayerCount());
-            return;
-        }
-
-        // Determine the winner of the round
+        // Get winner and update scores
         const winnerId = this.scoreManager.handleRoundEnd();
         
-        // Broadcast updated scores and leaderboard
-        this.scoreManager.broadcastScores(this.world);
+        // Prepare round summary
+        const players = Array.from(this.world.entityManager.getAllPlayerEntities()).map(playerEntity => {
+            const playerId = playerEntity.player.id;
+            return {
+                playerId,
+                playerNumber: this.scoreManager.getPlayerNumber(playerId),
+                roundScore: this.scoreManager.getRoundScore(playerId),
+                totalScore: this.scoreManager.getScore(playerId),
+                consecutiveHits: this.scoreManager.getConsecutiveHits(playerId),
+                multiHitCount: this.scoreManager.getMultiHitCount(playerId),
+                wins: this.scoreManager.getWins(playerId)
+            };
+        });
 
-        // Broadcast round end results with winner info
+        const roundSummary = {
+            roundNumber: this.currentRound,
+            duration: Date.now() - this.roundStartTime,
+            players,
+            highestScore: Math.max(...players.map(p => p.roundScore)),
+            mostConsecutiveHits: Math.max(...players.map(p => p.consecutiveHits)),
+            mostMultiHits: Math.max(...players.map(p => p.multiHitCount))
+        };
+
+        // Show stats scene for each player
+        this.world.entityManager.getAllPlayerEntities().forEach(playerEntity => {
+            this.statsScene.show(playerEntity, roundSummary);
+        });
+
+        // Broadcast round end
         this.broadcastRoundEnd(winnerId);
+    }
 
-        // Start next round after a delay
-        setTimeout(() => {
-            this.startRound();
-        }, 5000);  // 5 second delay between rounds
+    private startNextRound(): void {
+        // Reset scores for new round
+        this.scoreManager.startNewRound();
+        
+        // Start countdown for next round
+        this.startCountdown();
     }
 
     public handlePlayerLeave(): void {
@@ -494,17 +519,18 @@ export class RoundManager {
     }
 
     public cleanup(): void {
-        if (this.checkPlayersInterval) {
-            clearInterval(this.checkPlayersInterval);
-            this.checkPlayersInterval = null;
-        }
         if (this.roundTimer) {
             clearTimeout(this.roundTimer);
             this.roundTimer = null;
         }
         if (this.blockSpawnTimer) {
-            clearInterval(this.blockSpawnTimer);
+            clearTimeout(this.blockSpawnTimer);
             this.blockSpawnTimer = null;
         }
+        if (this.checkPlayersInterval) {
+            clearInterval(this.checkPlayersInterval);
+            this.checkPlayersInterval = null;
+        }
+        this.statsScene.cleanup();
     }
 } 

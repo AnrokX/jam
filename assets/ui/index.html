@@ -1219,6 +1219,54 @@
     
     return clone;
   });
+
+  hytopia.registerSceneUITemplate('stats-scene', (id, onState) => {
+    const template = document.getElementById('statsScene');
+    const clone = template.cloneNode(true);
+    
+    onState(state => {
+      if (state) {
+        // Update round info
+        clone.querySelector('#roundNumber').textContent = state.roundNumber;
+
+        // Update player stats
+        const playerStats = state.playerStats;
+        clone.querySelector('#playerRank').textContent = playerStats.rank;
+        clone.querySelector('#playerScore').textContent = playerStats.roundScore;
+        clone.querySelector('#playerConsecutiveHits').textContent = playerStats.consecutiveHits;
+        clone.querySelector('#playerMultiHits').textContent = playerStats.multiHitCount;
+        clone.querySelector('#playerTotalScore').textContent = playerStats.totalScore;
+        clone.querySelector('#playerWins').textContent = playerStats.wins;
+
+        // Update leaderboard
+        const leaderboardBody = clone.querySelector('#leaderboardBody');
+        leaderboardBody.innerHTML = '';
+        state.leaderboard.forEach(player => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>Player ${player.playerNumber}</td>
+            <td>${player.roundScore}</td>
+            <td>${player.totalScore}</td>
+            <td>${player.wins}</td>
+          `;
+          leaderboardBody.appendChild(row);
+        });
+
+        // Update highlights
+        clone.querySelector('#highestScore').textContent = state.roundHighlights.highestScore;
+        clone.querySelector('#mostConsecutiveHits').textContent = state.roundHighlights.mostConsecutiveHits;
+        clone.querySelector('#mostMultiHits').textContent = state.roundHighlights.mostMultiHits;
+
+        // Update timer
+        clone.querySelector('#timeLeft').textContent = state.timeUntilNextRound;
+        
+        // Show the scene
+        clone.style.display = 'flex';
+      }
+    });
+    
+    return clone;
+  });
 </script>
 
 <div class="countdown-overlay">

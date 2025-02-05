@@ -408,4 +408,19 @@ export class ScoreManager extends Entity {
 
     return finalScore;
   }
+
+  // Get player number
+  public getPlayerNumber(playerId: string): number {
+    return this.playerStats.get(playerId)?.playerNumber ?? 0;
+  }
+
+  // Get consecutive hits
+  public getConsecutiveHits(playerId: string): number {
+    return this.playerStats.get(playerId)?.consecutiveHits ?? 0;
+  }
+
+  // Get multi-hit count
+  public getMultiHitCount(playerId: string): number {
+    return this.playerStats.get(playerId)?.multiHitCount ?? 0;
+  }
 } 

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .stats-scene {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .stats-container {
+            width: 80%;
+            max-width: 1200px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .section {
+            padding: 1.5rem;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 0.5rem;
+        }
+
+        .section h2 {
+            margin-top: 0;
+            color: #4CAF50;
+            font-size: 1.5rem;
+        }
+
+        .player-stats {
+            grid-column: 1 / -1;
+            text-align: center;
+        }
+
+        .player-stats .rank {
+            font-size: 3rem;
+            color: #FFD700;
+            margin: 0;
+        }
+
+        .player-stats .score {
+            font-size: 2rem;
+            margin: 0.5rem 0;
+        }
+
+        .leaderboard {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .leaderboard th,
+        .leaderboard td {
+            padding: 0.5rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .highlights {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .highlight-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 0.25rem;
+        }
+
+        .timer {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.5rem;
+            color: #4CAF50;
+        }
+
+        .round-info {
+            position: fixed;
+            top: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 2rem;
+            color: #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div id="statsScene" class="stats-scene" style="display: none;">
+        <div class="round-info">Round <span id="roundNumber">1</span></div>
+        
+        <div class="stats-container">
+            <div class="section player-stats">
+                <h2>Your Performance</h2>
+                <p class="rank">Rank #<span id="playerRank">1</span></p>
+                <p class="score">Score: <span id="playerScore">0</span></p>
+                <div>
+                    <p>Consecutive Hits: <span id="playerConsecutiveHits">0</span></p>
+                    <p>Multi-Hits: <span id="playerMultiHits">0</span></p>
+                    <p>Total Score: <span id="playerTotalScore">0</span></p>
+                    <p>Wins: <span id="playerWins">0</span></p>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>Leaderboard</h2>
+                <table class="leaderboard">
+                    <thead>
+                        <tr>
+                            <th>Player</th>
+                            <th>Score</th>
+                            <th>Total</th>
+                            <th>Wins</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboardBody">
+                        <!-- Filled dynamically -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="section highlights">
+                <h2>Round Highlights</h2>
+                <div class="highlight-item">
+                    <span>Highest Score</span>
+                    <span id="highestScore">0</span>
+                </div>
+                <div class="highlight-item">
+                    <span>Most Consecutive Hits</span>
+                    <span id="mostConsecutiveHits">0</span>
+                </div>
+                <div class="highlight-item">
+                    <span>Most Multi-Hits</span>
+                    <span id="mostMultiHits">0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="timer">
+            Next Round in <span id="timeLeft">10</span>s
+        </div>
+    </div>
+
+    <script>
+        function updateStatsScene(data) {
+            const scene = document.getElementById('statsScene');
+            scene.style.display = 'flex';
+
+            // Update round info
+            document.getElementById('roundNumber').textContent = data.roundNumber;
+
+            // Update player stats
+            const playerStats = data.playerStats;
+            document.getElementById('playerRank').textContent = playerStats.rank;
+            document.getElementById('playerScore').textContent = playerStats.roundScore;
+            document.getElementById('playerConsecutiveHits').textContent = playerStats.consecutiveHits;
+            document.getElementById('playerMultiHits').textContent = playerStats.multiHitCount;
+            document.getElementById('playerTotalScore').textContent = playerStats.totalScore;
+            document.getElementById('playerWins').textContent = playerStats.wins;
+
+            // Update leaderboard
+            const leaderboardBody = document.getElementById('leaderboardBody');
+            leaderboardBody.innerHTML = '';
+            data.leaderboard.forEach(player => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>Player ${player.playerNumber}</td>
+                    <td>${player.roundScore}</td>
+                    <td>${player.totalScore}</td>
+                    <td>${player.wins}</td>
+                `;
+                leaderboardBody.appendChild(row);
+            });
+
+            // Update highlights
+            document.getElementById('highestScore').textContent = data.roundHighlights.highestScore;
+            document.getElementById('mostConsecutiveHits').textContent = data.roundHighlights.mostConsecutiveHits;
+            document.getElementById('mostMultiHits').textContent = data.roundHighlights.mostMultiHits;
+
+            // Update timer
+            document.getElementById('timeLeft').textContent = data.timeUntilNextRound;
+        }
+
+        function updateTimer(timeLeft) {
+            document.getElementById('timeLeft').textContent = timeLeft;
+        }
+
+        // Listen for messages from the game
+        window.addEventListener('message', (event) => {
+            const message = event.data;
+            
+            switch (message.type) {
+                case 'showStatsScene':
+                    updateStatsScene(message.data);
+                    break;
+                case 'updateStatsTimer':
+                    updateTimer(message.timeLeft);
+                    break;
+            }
+        });
+    </script>
+</body>
+</html> 

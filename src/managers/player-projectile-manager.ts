@@ -6,7 +6,6 @@ import { BlockParticleEffects } from '../effects/block-particle-effects';
 import { AudioManager } from './audio-manager';
 
 export interface PlayerProjectileState {
-  previewProjectile: ProjectileEntity | null;
   lastInputState: { mr: boolean };
   projectilesRemaining: number;
   lastShotTime: number;
@@ -33,7 +32,6 @@ export class PlayerProjectileManager {
 
   initializePlayer(playerId: string): void {
     this.playerStates.set(playerId, {
-      previewProjectile: null,
       lastInputState: { mr: false },
       projectilesRemaining: PlayerProjectileManager.INITIAL_AMMO_COUNT,
       lastShotTime: 0
@@ -41,10 +39,6 @@ export class PlayerProjectileManager {
   }
 
   removePlayer(playerId: string): void {
-    const state = this.playerStates.get(playerId);
-    if (state?.previewProjectile) {
-      state.previewProjectile.despawn();
-    }
     this.playerStates.delete(playerId);
   }
 
@@ -52,34 +46,64 @@ export class PlayerProjectileManager {
     return this.playerStates.get(playerId)?.projectilesRemaining ?? 0;
   }
 
-  private createProjectile(playerId: string, position: Vector3Like, direction: Vector3Like): ProjectileEntity {
+  private createProjectile(playerId: string, position: Vector3Like, direction: Vector3Like): ProjectileEntity | null {
+    console.log(`Creating projectile for player ${playerId} at position:`, position);
+    
+    // Normalize direction for validation
+    const magnitude = Math.sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z);
+    if (magnitude === 0) return null;
+
+    const normalizedDir = {
+        x: direction.x / magnitude,
+        y: direction.y / magnitude,
+        z: direction.z / magnitude
+    };
+
+    // Check if looking too far down
+    if (normalizedDir.y < ProjectileEntity.PHYSICS.MAX_DOWN_ANGLE) {
+        console.log('Cannot shoot: looking too far down');
+        return null;
+    }
+
     const projectile = new ProjectileEntity({
-      modelScale: 1,
-      raycastHandler: this.raycastHandler,
-      playerId
+        modelScale: 1,
+        raycastHandler: this.raycastHandler,
+        playerId,
+        modelUri: 'models/projectiles/bomb.gltf'
     });
 
     // Calculate spawn position
     const spawnOffset = {
-      x: direction.x,
-      y: Math.max(direction.y, -0.5),
-      z: direction.z
+        x: direction.x,
+        y: Math.max(direction.y, -0.5),
+        z: direction.z
     };
 
     const offsetMag = Math.sqrt(
-      spawnOffset.x * spawnOffset.x + 
-      spawnOffset.y * spawnOffset.y + 
-      spawnOffset.z * spawnOffset.z
+        spawnOffset.x * spawnOffset.x + 
+        spawnOffset.y * spawnOffset.y + 
+        spawnOffset.z * spawnOffset.z
     );
 
     const SPAWN_DISTANCE = 2.0;
     const spawnPos = {
-      x: position.x + (spawnOffset.x / offsetMag) * SPAWN_DISTANCE,
-      y: position.y + (spawnOffset.y / offsetMag) * SPAWN_DISTANCE + 1.5,
-      z: position.z + (spawnOffset.z / offsetMag) * SPAWN_DISTANCE
+        x: position.x + (spawnOffset.x / offsetMag) * SPAWN_DISTANCE,
+        y: position.y + (spawnOffset.y / offsetMag) * SPAWN_DISTANCE + 1.5,
+        z: position.z + (spawnOffset.z / offsetMag) * SPAWN_DISTANCE
     };
 
+    // Add debug logging for final spawn position
+    console.log(`Spawning projectile at:`, spawnPos);
+
     projectile.spawn(this.world, spawnPos);
+    
+    // Validate trajectory after spawn
+    if (!projectile.validateTrajectory(normalizedDir)) {
+        console.log('Cannot shoot: invalid trajectory');
+        projectile.despawn();
+        return null;
+    }
+
     this.handleProjectileSpawn(projectile);
     return projectile;
   }
@@ -102,7 +126,6 @@ export class PlayerProjectileManager {
 
     const currentMrState = input.mr ?? false;
     const mrJustPressed = currentMrState && !state.lastInputState.mr;
-    const mrJustReleased = !currentMrState && state.lastInputState.mr;
 
     // Right mouse button just pressed
     if (mrJustPressed) {
@@ -129,29 +152,18 @@ export class PlayerProjectileManager {
         return;
       }
 
-      if (!state.previewProjectile) {
-        state.previewProjectile = this.createProjectile(playerId, position, direction);
+      // Create and throw projectile immediately
+      const projectile = this.createProjectile(playerId, position, direction);
+      if (projectile) {  // Only throw if creation was successful
+          projectile.throw(direction);
+          
+          // Play random grenade launcher sound
+          this.audioManager.playRandomSoundEffect(PlayerProjectileManager.PROJECTILE_SOUNDS, 0.4);
+          
+          // Decrease projectile count and update last shot time
+          state.projectilesRemaining--;
+          state.lastShotTime = currentTime;
       }
-    }
-    
-    // Update trajectory while held
-    if (currentMrState && state.previewProjectile) {
-      state.previewProjectile.showTrajectoryPreview(direction);
-    }
-
-    // Right mouse button just released
-    if (mrJustReleased && state.previewProjectile) {
-      // Play random grenade launcher sound
-      this.audioManager.playRandomSoundEffect(PlayerProjectileManager.PROJECTILE_SOUNDS, 0.4);
-      
-      // Throw the projectile and clean up preview
-      state.previewProjectile.throw(direction);
-      state.previewProjectile.clearTrajectoryMarkers();
-      state.previewProjectile = null;
-      
-      // Decrease projectile count and update last shot time
-      state.projectilesRemaining--;
-      state.lastShotTime = Date.now();
     }
 
     // Update last input state

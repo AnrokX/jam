@@ -28,6 +28,23 @@ startServer(world => {
   console.log('Starting server and initializing debug settings...');
   console.log(`Test mode: ${IS_TEST_MODE ? 'enabled' : 'disabled'}`);
   
+  // Add periodic entity position checking
+  setInterval(() => {
+    world.entityManager.getAllEntities().forEach(entity => {
+      if (entity.position && 
+          Math.abs(entity.position.x) < 1 && 
+          Math.abs(entity.position.y) < 1 && 
+          Math.abs(entity.position.z) < 1) {
+          console.warn('Entity detected near origin:', {
+              name: entity.name,
+              type: entity.constructor.name,
+              position: entity.position,
+              modelUri: (entity as any).modelUri
+          });
+      }
+    });
+  }, 1000); // Check every second
+  
   // Initialize managers
   const sceneUIManager = SceneUIManager.getInstance(world);
   const settingsManager = PlayerSettingsManager.getInstance(world);

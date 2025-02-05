@@ -7,19 +7,12 @@ export interface ProjectileOptions extends EntityOptions {
     lifetime?: number;
     damage?: number;
     raycastHandler?: RaycastHandler;
-    enablePreview?: boolean;
     playerId?: string;
-}
-
-interface TrajectoryPoint {
-    position: Vector3Like;
-    isCollision: boolean;
-    hitDistance?: number;
 }
 
 export class ProjectileEntity extends Entity {
     // Physics constants adjusted to match TF2 grenade launcher
-    private static readonly PHYSICS = {
+    public static readonly PHYSICS = {
         GRAVITY: 15.24,           // TF2's 800 HU/s² converted to m/s²
         DEFAULT_SPEED: 20.00,     // TF2's 1216 HU/s converted to m/s
         DEFAULT_LIFETIME: 2300,    // 2.3 seconds fuse timer
@@ -36,11 +29,6 @@ export class ProjectileEntity extends Entity {
         SPEED_LOSS_PER_BOUNCE: 0.35,  // 35% speed loss per bounce
         SPAWN_HEIGHT_OFFSET: -1.0,  // Meters below eye level (adjust as needed)
         SPAWN_FORWARD_OFFSET: -0.5,  // Meters forward from player (adjust as needed)
-        // Adding trajectory-related constants
-        MARKER_URI: 'models/projectiles/bomb.gltf',
-        MARKER_SCALE: 0.3,
-        TRAJECTORY_STEPS: 10,
-        TIME_STEP: 0.1
     } as const;
 
     private speed: number;
@@ -48,7 +36,6 @@ export class ProjectileEntity extends Entity {
     private damage: number;
     private spawnTime: number;
     private raycastHandler?: RaycastHandler;
-    private enablePreview: boolean;
     private static readonly SPAWN_CHECK_DIRECTIONS = [
         { x: 0, y: -1, z: 0 },  // Down
         { x: 0, y: 1, z: 0 },   // Up
@@ -57,7 +44,6 @@ export class ProjectileEntity extends Entity {
         { x: 0, y: 0, z: 1 },   // Forward
         { x: 0, y: 0, z: -1 },  // Back
     ];
-    private trajectoryMarkers: Entity[] = [];
     public readonly playerId?: string;
     public onCollision?: (position: Vector3Like, blockTextureUri: string) => void;
     private spawnOrigin?: Vector3Like;
@@ -66,7 +52,7 @@ export class ProjectileEntity extends Entity {
         super({
             ...options,
             name: options.name || 'Projectile',
-            modelUri: options.modelUri || ProjectileEntity.PHYSICS.MARKER_URI,
+            modelUri: options.modelUri || 'models/projectiles/bomb.gltf',
             modelScale: options.modelScale || 0.5
         });
 
@@ -75,11 +61,10 @@ export class ProjectileEntity extends Entity {
         this.damage = options.damage ?? ProjectileEntity.PHYSICS.DEFAULT_DAMAGE;
         this.spawnTime = Date.now();
         this.raycastHandler = options.raycastHandler;
-        this.enablePreview = options.enablePreview ?? true;
         this.playerId = options.playerId;
     }
 
-    private validateTrajectory(direction: Vector3Like): boolean {
+    public validateTrajectory(direction: Vector3Like): boolean {
         if (!this.raycastHandler || !this.isSpawned) return true;
 
         // Normalize direction for accurate distance checking
@@ -251,148 +236,7 @@ export class ProjectileEntity extends Entity {
         this.rawRigidBody.applyTorqueImpulse(torque);
     }
 
-    /**
-     * Predicts the trajectory of the projectile and returns an array of points
-     * along with collision information.
-     */
-    predictTrajectory(direction: Vector3Like): TrajectoryPoint[] {
-        if (!this.raycastHandler || !this.isSpawned) return [];
-
-        const points: TrajectoryPoint[] = [];
-        let currentPos = { ...this.position };
-        
-        // Calculate initial velocity based on direction and speed
-        const magnitude = Math.sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z);
-        if (magnitude === 0) return points;
-
-        const normalizedDir = {
-            x: direction.x / magnitude,
-            y: direction.y / magnitude,
-            z: direction.z / magnitude
-        };
-
-        // Initial velocity including the upward arc
-        let velocity = {
-            x: normalizedDir.x * this.speed,
-            y: normalizedDir.y * this.speed + 1.0, // Same upward arc as in throw()
-            z: normalizedDir.z * this.speed
-        };
-
-        // Predict trajectory points
-        for (let i = 0; i < ProjectileEntity.PHYSICS.TRAJECTORY_STEPS; i++) {
-            // Calculate next position based on current velocity
-            const nextPos = {
-                x: currentPos.x + velocity.x * ProjectileEntity.PHYSICS.TIME_STEP,
-                y: currentPos.y + velocity.y * ProjectileEntity.PHYSICS.TIME_STEP,
-                z: currentPos.z + velocity.z * ProjectileEntity.PHYSICS.TIME_STEP
-            };
-
-            // Calculate direction to next point
-            const dirToNext = {
-                x: nextPos.x - currentPos.x,
-                y: nextPos.y - currentPos.y,
-                z: nextPos.z - currentPos.z
-            };
-
-            // Get the distance to the next point
-            const distance = Math.sqrt(
-                dirToNext.x * dirToNext.x +
-                dirToNext.y * dirToNext.y +
-                dirToNext.z * dirToNext.z
-            );
-
-            // Normalize direction
-            if (distance > 0) {
-                dirToNext.x /= distance;
-                dirToNext.y /= distance;
-                dirToNext.z /= distance;
-            }
-
-            // Check for collisions along the path
-            const raycastResult = this.raycastHandler.raycast(
-                currentPos,
-                dirToNext,
-                distance,
-                { filterExcludeRigidBody: this.rawRigidBody }
-            );
-
-            if (raycastResult) {
-                // Collision detected
-                points.push({
-                    position: raycastResult.hitPoint,
-                    isCollision: true,
-                    hitDistance: raycastResult.hitDistance
-                });
-                break;
-            } else {
-                // No collision, add the point
-                points.push({
-                    position: { ...currentPos },
-                    isCollision: false
-                });
-            }
-
-            // Update position and velocity for next iteration
-            currentPos = nextPos;
-            // Apply gravity to Y velocity
-            velocity.y -= ProjectileEntity.PHYSICS.GRAVITY * ProjectileEntity.PHYSICS.TIME_STEP;
-        }
-
-        return points;
-    }
-
-    /**
-     * Cleans up all trajectory markers
-     */
-    public clearTrajectoryMarkers(): void {
-        this.trajectoryMarkers.forEach(marker => {
-            if (marker.isSpawned) {
-                marker.despawn();
-            }
-        });
-        this.trajectoryMarkers = [];
-    }
-
-    /**
-     * Shows visual preview of the predicted trajectory if enabled
-     */
-    showTrajectoryPreview(direction: Vector3Like): void {
-        if (!this.enablePreview || !this.world || !this.raycastHandler) return;
-
-        // Clear any existing trajectory markers
-        this.clearTrajectoryMarkers();
-
-        const points = this.predictTrajectory(direction);
-        
-        // Find the collision point
-        const collisionPoint = points.find(point => point.isCollision);
-        if (collisionPoint) {
-            // Only create/update a single marker at the predicted impact point
-            if (this.trajectoryMarkers.length === 0) {
-                const marker = new Entity({
-                    name: 'ImpactMarker',
-                    modelUri: ProjectileEntity.PHYSICS.MARKER_URI,
-                    modelScale: ProjectileEntity.PHYSICS.MARKER_SCALE,
-                    
-                });
-                this.trajectoryMarkers.push(marker);
-                marker.spawn(this.world, collisionPoint.position);
-            } else {
-                // Update existing marker position
-                const marker = this.trajectoryMarkers[0];
-                if (marker.isSpawned) {
-                    marker.setPosition(collisionPoint.position);
-                }
-            }
-        } else {
-            // No collision point found, clear any existing markers
-            this.clearTrajectoryMarkers();
-        }
-    }
-
-    // Override despawn to ensure we clean up trajectory markers
     override despawn(): void {
-        this.clearTrajectoryMarkers();
         super.despawn();
     }
 
@@ -417,18 +261,13 @@ export class ProjectileEntity extends Entity {
     }
 
     protected handleCollision(other: Entity): void {
-        // ... existing collision code ...
-        
         if (this.onCollision && this.position && this.blockTextureUri) {
             this.onCollision(this.position, this.blockTextureUri);
         }
         
-        this.onImpact(); // Call onImpact when collision occurs
-        
-        // ... rest of collision handling
+        this.onImpact();
     }
 
-    // Add getter for spawn origin
     public getSpawnOrigin(): Vector3Like | undefined {
         return this.spawnOrigin ? { ...this.spawnOrigin } : undefined;
     }

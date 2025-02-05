@@ -1042,94 +1042,104 @@
     /* Add combo notification styles directly here */
     .combo-notification {
       position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
+      right: 40px;  /* Position on the right side */
+      top: 200px;   /* Position below the leaderboard */
+      transform: none; /* Remove center transform */
       pointer-events: none;
       animation: comboSlideIn 0.3s ease-out;
       font-family: var(--display-font);
-      text-align: center;
+      text-align: right;
       z-index: 1000;
     }
 
     .combo-counter {
-      background: rgba(0, 0, 0, 0.85);
-      padding: 15px 25px;
-      border-radius: 12px;
-      border: 2px solid var(--blood-red);
-      box-shadow: 0 0 20px rgba(255, 0, 0, 0.3),
-                  inset 0 0 15px rgba(255, 0, 0, 0.2);
+      background: rgba(0, 0, 0, 0.6); /* More transparent background */
+      padding: 8px 15px;  /* Smaller padding */
+      border-radius: 8px;
+      border: 1px solid var(--blood-red);
+      box-shadow: 0 0 10px rgba(255, 0, 0, 0.2),
+                  inset 0 0 8px rgba(255, 0, 0, 0.1);
       animation: glowPulse 1.5s infinite;
-      transform: scale(1.5);
+      transform: scale(1);  /* Remove extra scaling */
+      backdrop-filter: blur(4px);
     }
 
     .combo-hits {
-      font-size: 48px;
+      font-size: 32px;  /* Smaller font */
       font-weight: bold;
       color: var(--blood-red);
-      text-shadow: 0 0 15px var(--glow-red);
+      text-shadow: 0 0 8px var(--glow-red);
       display: block;
-      margin-bottom: 8px;
+      margin-bottom: 4px;
       animation: scalePulse 0.5s infinite;
     }
 
     .combo-text {
-      font-size: 32px;
+      font-size: 24px;  /* Smaller font */
       color: var(--matrix-green);
-      text-shadow: 0 0 12px var(--terminal-green);
+      text-shadow: 0 0 8px var(--terminal-green);
       display: block;
-      margin-bottom: 8px;
-      letter-spacing: 2px;
+      margin-bottom: 4px;
+      letter-spacing: 1px;
     }
 
     .combo-bonus {
-      font-size: 28px;
+      font-size: 20px;  /* Smaller font */
       color: #ffff00;
-      text-shadow: 0 0 12px rgba(255, 255, 0, 0.8);
+      text-shadow: 0 0 8px rgba(255, 255, 0, 0.6);
       display: block;
       letter-spacing: 1px;
     }
 
-    /* Combo tiers with different colors */
-    .combo .combo-hits { color: var(--matrix-green); }
-    .super-combo .combo-hits { color: #00ffff; }
+    /* Combo tiers with different colors - more subtle glows */
+    .combo .combo-hits { 
+      color: var(--matrix-green);
+      text-shadow: 0 0 6px var(--terminal-green);
+    }
+    .super-combo .combo-hits { 
+      color: #00ffff;
+      text-shadow: 0 0 6px #00ffff;
+    }
     .ultra-combo .combo-hits { 
       color: #ff00ff;
+      text-shadow: 0 0 6px #ff00ff;
       animation: scalePulse 0.5s infinite;
     }
     .mega-combo .combo-hits { 
       color: var(--blood-red);
+      text-shadow: 0 0 6px var(--glow-red);
       animation: scalePulse 0.5s infinite;
     }
 
     @keyframes comboSlideIn {
       from {
-        transform: translateX(-50%) translateY(-50px) scale(1.5);
+        transform: translateX(50px);
         opacity: 0;
       }
       to {
-        transform: translateX(-50%) translateY(0) scale(1.5);
+        transform: translateX(0);
         opacity: 1;
       }
     }
 
     @keyframes scalePulse {
       0% { transform: scale(1); }
-      50% { transform: scale(1.1); }
+      50% { transform: scale(1.05); }  /* Smaller scale effect */
       100% { transform: scale(1); }
     }
 
     @keyframes glowPulse {
       0% { 
-        box-shadow: 0 0 20px rgba(255, 0, 0, 0.5), 
-                    inset 0 0 15px rgba(255, 0, 0, 0.4);
+        box-shadow: 0 0 10px rgba(255, 0, 0, 0.2), 
+                    inset 0 0 8px rgba(255, 0, 0, 0.1);
       }
       50% { 
-        box-shadow: 0 0 30px rgba(255, 0, 0, 0.7), 
-                    inset 0 0 25px rgba(255, 0, 0, 0.6);
+        box-shadow: 0 0 15px rgba(255, 0, 0, 0.3), 
+                    inset 0 0 12px rgba(255, 0, 0, 0.2);
       }
       100% { 
-        box-shadow: 0 0 20px rgba(255, 0, 0, 0.5), 
-                    inset 0 0 15px rgba(255, 0, 0, 0.4);
+        box-shadow: 0 0 10px rgba(255, 0, 0, 0.2), 
+                    inset 0 0 8px rgba(255, 0, 0, 0.1);
       }
     }
   </style>

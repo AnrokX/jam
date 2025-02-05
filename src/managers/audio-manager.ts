@@ -35,6 +35,11 @@ export class AudioManager {
         sfx.play(this.world);
     }
 
+    public playRandomSoundEffect(sfxPaths: string[], volume: number = this.sfxVolume): void {
+        const randomIndex = Math.floor(Math.random() * sfxPaths.length);
+        this.playSoundEffect(sfxPaths[randomIndex], volume);
+    }
+
     public setSfxVolume(volume: number): void {
         this.sfxVolume = Math.max(0, Math.min(1, volume));
     }

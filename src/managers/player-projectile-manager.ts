@@ -15,6 +15,11 @@ export interface PlayerProjectileState {
 export class PlayerProjectileManager {
   private static readonly INITIAL_AMMO_COUNT = 1000;
   private static readonly SHOT_COOLDOWN = 400; // 400ms cooldown (~150 shots per minute)
+  private static readonly PROJECTILE_SOUNDS = [
+    'audio/sfx/projectile/grenade-launcher.mp3',
+    'audio/sfx/projectile/grenade-launcher2.mp3',
+    'audio/sfx/projectile/grenade-launcher3.mp3'
+  ];
   private playerStates = new Map<string, PlayerProjectileState>();
   private readonly world: World;
   private readonly raycastHandler: RaycastHandler;
@@ -139,8 +144,8 @@ export class PlayerProjectileManager {
 
     // Right mouse button just released
     if (mrJustReleased && state.previewProjectile) {
-      // Play grenade launcher sound
-      this.audioManager.playSoundEffect('audio/sfx/projectile/grenade-launcher.mp3', 0.4);
+      // Play random grenade launcher sound
+      this.audioManager.playRandomSoundEffect(PlayerProjectileManager.PROJECTILE_SOUNDS, 0.4);
       
       // Throw the projectile and clean up preview
       state.previewProjectile.throw(direction);

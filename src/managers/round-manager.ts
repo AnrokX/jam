@@ -200,20 +200,29 @@ export class RoundManager {
     }
 
     private startBlockSpawning(config: RoundConfig): void {
+        // Calculate player scaling factor
+        const playerCount = this.world.entityManager.getAllPlayerEntities().length;
+        const additionalPlayers = Math.max(0, playerCount - 2); // Count players above 2
+        const playerScaling = Math.min(1.0, additionalPlayers * 0.2); // 20% per player, max 100%
+        
+        // Scale block counts
+        const scaledMaxBlocks = Math.floor(config.maxBlockCount * (1 + playerScaling));
+        const scaledMinBlocks = Math.floor(config.minBlockCount * (1 + playerScaling));
+
         const spawnBlock = () => {
             if (!this.isRoundActive) return;
 
             const currentBlocks = this.blockManager.getBlockCount();
             
-            // Determine how many blocks to spawn
+            // Determine how many blocks to spawn using scaled values
             const blocksNeeded = Math.min(
-                config.maxBlockCount - currentBlocks,
+                scaledMaxBlocks - currentBlocks,
                 // If 0-1 blocks left, spawn up to 4 at once
                 // If below minimum, spawn up to 2 at once
                 // If below 25% of max, spawn up to 3 at once
                 currentBlocks <= 1 ? 4 :
-                currentBlocks < config.minBlockCount ? 2 : 
-                currentBlocks < (config.maxBlockCount * 0.25) ? 3 : 1
+                currentBlocks < scaledMinBlocks ? 2 : 
+                currentBlocks < (scaledMaxBlocks * 0.25) ? 3 : 1
             );
 
             // Try to spawn multiple blocks if needed
@@ -229,11 +238,11 @@ export class RoundManager {
                 const safetyMargin = MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.PLATFORM_SAFETY_MARGIN;
 
                 do {
-                    // Generate position within game bounds
+                    // Generate position within game bounds with more vertical variance
                     spawnPosition = {
-                        x: Math.random() * 16 - 8,  // Random x between -8 and 8 (wider spread)
-                        y: 2 + Math.random() * 3,   // Random y between 2 and 5 (slightly higher)
-                        z: Math.random() * 24 - 12  // Random z between -12 and 12 (wider spread)
+                        x: Math.random() * 16 - 8,  // Random x between -8 and 8
+                        y: 2 + Math.random() * 6,   // Random y between 2 and 8 (higher variance)
+                        z: Math.random() * 24 - 12  // Random z between -12 and 12
                     };
 
                     // Check distance from platforms
@@ -319,7 +328,7 @@ export class RoundManager {
         }
 
         // Initial spawn - spawn minimum blocks more quickly
-        for (let i = 0; i < config.minBlockCount; i++) {
+        for (let i = 0; i < scaledMinBlocks; i++) {
             setTimeout(() => spawnBlock(), i * 1000);
         }
 

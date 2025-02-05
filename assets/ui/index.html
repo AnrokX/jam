@@ -425,48 +425,9 @@
       border-radius: 50%;
       box-shadow: 0 0 4px var(--crosshair-glow, #ffff00),
                   0 0 2px rgba(0, 0, 0, 0.8);
-    }
-
-    /* Diagonal lines */
-    .crosshair .diagonal {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-    }
-
-    .crosshair .diagonal::before,
-    .crosshair .diagonal::after {
-      content: '';
-      position: absolute;
-      width: 8px;
-      height: 2px;
-      background: rgba(255, 255, 0, 0.8);
-      box-shadow: 0 0 3px #ffff00,
-                  0 0 1px rgba(0, 0, 0, 0.8);
-    }
-
-    .crosshair .diagonal:nth-child(1)::before {
-      top: 9px;
-      left: -8px;
-      transform: rotate(45deg);
-    }
-
-    .crosshair .diagonal:nth-child(1)::after {
-      bottom: 9px;
-      right: -8px;
-      transform: rotate(45deg);
-    }
-
-    .crosshair .diagonal:nth-child(2)::before {
-      top: 9px;
-      right: -8px;
-      transform: rotate(-45deg);
-    }
-
-    .crosshair .diagonal:nth-child(2)::after {
-      bottom: 9px;
-      left: -8px;
-      transform: rotate(-45deg);
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
     }
 
     /* Scene UI Container and Notifications */
@@ -670,6 +631,29 @@
       opacity: 1;
       visibility: visible;
     }
+
+    .color-dropdown {
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid var(--blood-red);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-family: var(--text-font);
+      cursor: pointer;
+      margin-right: 10px;
+    }
+
+    .color-dropdown option {
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 5px;
+    }
+
+    .color-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
   </style>
 </head>
 <body>
@@ -777,7 +761,20 @@
     </div>
     <div class="settings-option">
       <span class="settings-label">Crosshair Color</span>
-      <div class="settings-value">
+      <div class="settings-value color-controls">
+        <select id="color-preset" class="color-dropdown">
+          <option value="">Custom</option>
+          <option value="#ffff00">Yellow</option>
+          <option value="#00ff00">Green</option>
+          <option value="#ff0000">Red</option>
+          <option value="#00ffff">Cyan</option>
+          <option value="#ff00ff">Magenta</option>
+          <option value="#ffffff">White</option>
+          <option value="#ff8c00">Orange</option>
+          <option value="#00ff8c">Mint</option>
+          <option value="#8c00ff">Purple</option>
+          <option value="#ff0088">Pink</option>
+        </select>
         <input type="color" value="#ffff00" id="crosshair-color">
       </div>
     </div>
@@ -1120,9 +1117,13 @@ document.getElementById('sensitivity-slider').addEventListener('input', (e) => {
   });
 });
 
-document.getElementById('crosshair-color').addEventListener('input', (e) => {
-  const color = e.target.value;
+// Function to update crosshair color
+function updateCrosshairColor(color) {
   const root = document.documentElement;
+  const colorPicker = document.getElementById('crosshair-color');
+  
+  // Update color picker value
+  colorPicker.value = color;
   
   // Convert hex to rgba for main color
   const r = parseInt(color.slice(1,3), 16);
@@ -1139,6 +1140,20 @@ document.getElementById('crosshair-color').addEventListener('input', (e) => {
     setting: 'crosshairColor',
     value: color
   });
+}
+
+// Color picker handler
+document.getElementById('crosshair-color').addEventListener('input', (e) => {
+  updateCrosshairColor(e.target.value);
+  // Reset dropdown to "Custom" when using color picker
+  document.getElementById('color-preset').value = '';
+});
+
+// Dropdown handler
+document.getElementById('color-preset').addEventListener('change', (e) => {
+  if (e.target.value) {
+    updateCrosshairColor(e.target.value);
+  }
 });
 </script>
 

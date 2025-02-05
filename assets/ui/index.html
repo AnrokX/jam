@@ -562,6 +562,22 @@
 
     .settings-section {
       margin-bottom: 40px;
+      padding: 30px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 15px;
+      border: 1px solid rgba(255, 0, 0, 0.2);
+    }
+
+    .settings-section-title {
+      font-family: var(--title-font);
+      font-size: 36px;
+      color: var(--blood-red);
+      margin-bottom: 30px;
+      text-shadow: 0 0 8px rgba(255, 0, 0, 0.4);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      border-bottom: 2px solid rgba(255, 0, 0, 0.3);
+      padding-bottom: 15px;
     }
 
     .settings-option {
@@ -792,7 +808,10 @@
 <div class="settings-overlay"></div>
 <div class="settings-menu">
   <div class="settings-title">Settings</div>
+  
+  <!-- Game Settings Section -->
   <div class="settings-section">
+    <div class="settings-section-title">Game Settings</div>
     <div class="settings-option">
       <span class="settings-label">Mouse Sensitivity</span>
       <div class="settings-value">
@@ -800,6 +819,11 @@
         <span id="sensitivity-value">50</span>
       </div>
     </div>
+  </div>
+
+  <!-- Crosshair Settings Section -->
+  <div class="settings-section">
+    <div class="settings-section-title">Crosshair Settings</div>
     <div class="settings-option">
       <span class="settings-label">Crosshair Color</span>
       <div class="settings-value color-controls">
@@ -819,6 +843,7 @@
         <input type="color" value="#ffff00" id="crosshair-color">
       </div>
     </div>
+
     <div class="settings-option">
       <span class="settings-label">Crosshair Elements</span>
       <div class="settings-value">
@@ -832,6 +857,7 @@
         </label>
       </div>
     </div>
+
     <div class="settings-option">
       <span class="settings-label">Global Size</span>
       <div class="settings-value">
@@ -839,6 +865,7 @@
         <span id="global-size-value">24px</span>
       </div>
     </div>
+
     <div class="settings-option">
       <span class="settings-label">Ring Size</span>
       <div class="settings-value">
@@ -846,6 +873,7 @@
         <span id="ring-size-value">20px</span>
       </div>
     </div>
+
     <div class="settings-option">
       <span class="settings-label">Dot Size</span>
       <div class="settings-value">
@@ -854,6 +882,8 @@
       </div>
     </div>
   </div>
+
+  <!-- Resume Button -->
   <div class="settings-option">
     <button class="settings-button" id="resume-button">Resume Game</button>
   </div>

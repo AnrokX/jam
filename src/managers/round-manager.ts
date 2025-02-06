@@ -1,6 +1,7 @@
 import { World, Vector3Like } from 'hytopia';
 import { MovingBlockManager, MOVING_BLOCK_CONFIG } from '../moving_blocks/moving-block-entity';
 import { ScoreManager } from './score-manager';
+import { AudioManager } from './audio-manager';
 
 export interface RoundConfig {
     duration: number;  // Duration in milliseconds
@@ -401,6 +402,12 @@ export class RoundManager {
 
         // Get round results with placements
         const { winnerId, placements } = this.scoreManager.handleRoundEnd();
+        
+        // Play victory sound if there's a winner
+        if (winnerId && this.world) {
+            const audioManager = AudioManager.getInstance(this.world);
+            audioManager.playSoundEffect('audio/sfx/damage/blop1.mp3', 0.6);  // Slightly louder for round victory
+        }
         
         // Broadcast updated scores and leaderboard
         this.scoreManager.broadcastScores(this.world);

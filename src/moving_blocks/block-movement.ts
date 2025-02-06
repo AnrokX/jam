@@ -26,20 +26,27 @@ export class DefaultBlockMovement implements BlockMovementBehavior {
     // Update phase
     this.heightPhase += deltaSeconds;
 
-    // Calculate new position with all components
+    // Get normalized direction and calculate movement
+    const direction = block.getDirection();
+    const speed = block.getMoveSpeed() * deltaSeconds;
+    
+    // Calculate new position with normalized movement
     let newPosition = {
-      x: block.position.x + block.getDirection().x * block.getMoveSpeed() * deltaSeconds,
+      x: block.position.x + direction.x * speed,
       y: this.initialY + heightOffset,
-      z: block.position.z + block.getDirection().z * block.getMoveSpeed() * deltaSeconds,
+      z: block.position.z + direction.z * speed,
     };
 
+    // Check bounds and handle oscillation
     if (!block.isWithinMovementBounds(newPosition)) {
       if (block.shouldOscillate()) {
         block.reverseMovementDirection();
+        // Recalculate with reversed direction
+        const newDirection = block.getDirection();
         newPosition = {
-          x: block.position.x + block.getDirection().x * block.getMoveSpeed() * deltaSeconds,
+          x: block.position.x + newDirection.x * speed,
           y: this.initialY + heightOffset,
-          z: block.position.z + block.getDirection().z * block.getMoveSpeed() * deltaSeconds,
+          z: block.position.z + newDirection.z * speed,
         };
       } else {
         block.resetToInitialPosition();

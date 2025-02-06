@@ -5,7 +5,8 @@ import {
   RaycastOptions,
   PlayerCameraMode,
   PlayerUI,
-  Vector3Like
+  Vector3Like,
+  Entity
 } from 'hytopia';
 
 import worldMap from './assets/map.json';
@@ -19,6 +20,7 @@ import { TestBlockSpawner } from './src/utils/test-spawner';
 import { SceneUIManager } from './src/scene-ui/scene-ui-manager';
 import { AudioManager } from './src/managers/audio-manager';
 import { PlayerSettingsManager, UISettingsData } from './src/managers/player-settings-manager';
+import { PredictiveCharacterController } from './src/controllers/predictive-character-controller';
 
 // Platform spawn configuration
 const PLATFORM_SPAWNS = {
@@ -308,98 +310,49 @@ startServer(world => {
     // Set a comfortable FOV for first-person gameplay (70 degrees is a common value)
     playerEntity.player.camera.setFov(70);
   
-    // Wire up raycast handler and projectile system to the SDK's input system
-    playerEntity.controller!.onTickWithPlayerInput = (entity, input, cameraOrientation, deltaTimeMs) => {
-      // Apply sensitivity to camera orientation
-      const adjustedOrientation = settingsManager.applyCameraSensitivity(player.id, cameraOrientation);
-      
-      // Create a clean copy of the input state to avoid recursive references
-      const cleanInput = {
-        ml: input.ml || false,
-        mr: input.mr || false,
-      };
-
-      // Right click for raycast
-      if (cleanInput.mr) {
-        const result = raycastHandler.raycast(
-          entity.position,
-          entity.player.camera.facingDirection,
-          5
-        );
-        
-        if (result) {
-          console.log(`Raycast hit at distance: ${result.hitDistance}`);
-          if (result.hitBlock) {
-            const coord = result.hitBlock.globalCoordinate;
-            console.log(`Hit block at (${coord.x}, ${coord.y}, ${coord.z})`);
-          }
-        } else {
-          console.log('Raycast missed');
-        }
-        
-        cleanInput.mr = false;
-      }
-
-      // Handle projectile input through the manager with left click
-      if (cleanInput.ml) {
-        cleanInput.mr = true;
-        cleanInput.ml = false;
-      }
-      
-      projectileManager.handleProjectileInput(
-        player.id,
-        entity.position,
-        entity.player.camera.facingDirection,
-        cleanInput,
-        player
-      );
-
-      // Update UI with current projectile count after input handling
-      player.ui.sendData({
-        type: 'updateProjectileCount',
-        count: projectileManager.getProjectilesRemaining(player.id)
-      });
-
-      // Return the adjusted orientation to apply the sensitivity
-      return adjustedOrientation;
+    // Create predictive controller
+    const predictiveController = new PredictiveCharacterController(player, playerEntity);
+    
+    // Wire up input handling
+    playerEntity.onTick = (entity: Entity, deltaTimeMs: number) => {
+      const input = player.input;
+      predictiveController.tickWithPlayerInput(entity, input, deltaTimeMs);
     };
 
-    // Handle settings updates from UI
-    player.ui.onData = (_playerUI: PlayerUI, data: any) => {
-      if (data && data.type === 'updateSettings') {
-        settingsManager.updateSetting(player.id, data.setting, data.value);
-        
-        // Handle background music volume changes
-        if (data.setting === 'bgmVolume') {
-          const volume = data.value / 100; // Convert from percentage to decimal
-          audioManager.setBgmVolume(volume);
-        }
-      }
-      
-      // Handle projectile shots from clients
-      if (data && data.type === 'projectileShot') {
-        const { position, direction, timestamp, predictionId } = data.data;
-        
-        // Validate the shot
+    // Handle UI messages
+    player.ui.onData = (ui: PlayerUI, message: any) => {
+      if (message.type === 'playerMovement') {
+        const { input, timestamp, position } = message.data;
         const currentTime = Date.now();
-        const timeSinceShot = currentTime - timestamp;
-        
-        // If the shot is too old, reject it
-        if (timeSinceShot > 1000) {
+        const timeDiff = currentTime - timestamp;
+
+        // Validate timestamp (allow up to 1000ms of lag)
+        if (timeDiff > 1000) {
+          console.log(`Rejected movement from ${player.id} - too old (${timeDiff}ms)`);
           return;
         }
 
-        // Send confirmation back to the client
+        // Send confirmation back to client
         player.ui.sendData({
-          type: 'projectileConfirm',
+          type: 'movementConfirm',
           data: {
-            predictionId,
-            position,
-            timestamp: currentTime
+            timestamp,
+            position: playerEntity.position
           }
         });
+      } else if (message.type === 'projectileShot') {
+        // Handle projectile shots
+        const { position, direction, timestamp, predictionId } = message.data;
+        const currentTime = Date.now();
+        const timeDiff = currentTime - timestamp;
 
-        // Create server-side projectile
+        // Validate timestamp (allow up to 1000ms of lag)
+        if (timeDiff > 1000) {
+          console.log(`Rejected shot from ${player.id} - too old (${timeDiff}ms)`);
+          return;
+        }
+
+        // Create server-side projectile and handle prediction
         projectileManager.handleProjectileInput(
           player.id,
           position,
@@ -407,6 +360,16 @@ startServer(world => {
           { mr: true },
           player
         );
+        
+        // Send confirmation back to client
+        player.ui.sendData({
+          type: 'shotConfirm',
+          data: {
+            timestamp,
+            position: playerEntity.position,
+            predictionId
+          }
+        });
       }
     };
 

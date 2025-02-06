@@ -163,61 +163,30 @@ export class PlayerProjectileManager {
       const predictedProjectile = this.createProjectile(playerId, position, direction, true);
       const predictionId = predictedProjectile.getPredictionId();
       
-      if (predictionId) {
-        state.predictedProjectiles.set(predictionId, predictedProjectile);
-        
-        // Set timeout to clean up prediction if not confirmed
-        setTimeout(() => {
-          if (!predictedProjectile.isConfirmed()) {
-            predictedProjectile.despawn();
-            state.predictedProjectiles.delete(predictionId);
-          }
-        }, PlayerProjectileManager.PREDICTION_TIMEOUT);
-      }
-
-      // Throw the predicted projectile immediately
-      predictedProjectile.throw(direction);
-
-      // Update state
+      // Update state immediately for responsiveness
       state.lastShotTime = currentTime;
       state.projectilesRemaining--;
-
-      // Send the shot to the server for validation
-      if (player) {
-        player.ui.sendData({
-          type: 'projectileShot',
-          data: {
-            position,
-            direction,
-            timestamp: currentTime,
-            predictionId
-          }
-        });
-      }
-    }
-    
-    // Update trajectory while held
-    if (currentMrState && state.previewProjectile) {
-      state.previewProjectile.showTrajectoryPreview(direction);
-    }
-
-    // Right mouse button just released
-    if (mrJustReleased && state.previewProjectile) {
-      // Play random grenade launcher sound
-      this.audioManager.playRandomSoundEffect(PlayerProjectileManager.PROJECTILE_SOUNDS, 0.4);
       
-      // Throw the projectile and clean up preview
-      state.previewProjectile.throw(direction);
-      state.previewProjectile.clearTrajectoryMarkers();
-      state.previewProjectile = null;
-      
-      // Decrease projectile count and update last shot time
-      state.projectilesRemaining--;
-      state.lastShotTime = Date.now();
+      // Send shot data to server for validation
+      player.ui.sendData({
+        type: 'projectileShot',
+        data: {
+          position,
+          direction,
+          timestamp: currentTime,
+          predictionId
+        }
+      });
+
+      // Update UI with new projectile count
+      player.ui.sendData({
+        type: 'updateProjectileCount',
+        count: state.projectilesRemaining
+      });
     }
 
     // Update last input state
-    state.lastInputState.mr = currentMrState;
+    state.lastInputState = { ...input };
   }
 
   // Optional: Method to refill projectiles (could be used for pickups or respawn)
@@ -237,26 +206,28 @@ export class PlayerProjectileManager {
     }
   }
 
-  // New method to handle server confirmation
-  public handleServerConfirmation(playerId: string, predictionId: string, serverPosition: Vector3Like): void {
+  public handleServerConfirmation(playerId: string, data: { predictionId: string, position: Vector3Like, timestamp: number }): void {
     const state = this.playerStates.get(playerId);
     if (!state) return;
 
-    const predictedProjectile = state.predictedProjectiles.get(predictionId);
-    if (predictedProjectile) {
-      // Compare predicted position with server position
-      const predictedPos = predictedProjectile.position;
-      const positionError = Math.sqrt(
-        Math.pow(predictedPos.x - serverPosition.x, 2) +
-        Math.pow(predictedPos.y - serverPosition.y, 2) +
-        Math.pow(predictedPos.z - serverPosition.z, 2)
-      );
+    const predictedProjectile = state.predictedProjectiles.get(data.predictionId);
+    if (!predictedProjectile) return;
 
-      if (positionError > 0.5) { // If error is too large, correct the position
-        predictedProjectile.setPosition(serverPosition);
-      }
+    // Mark projectile as confirmed
+    predictedProjectile.confirmPrediction();
 
-      predictedProjectile.confirmPrediction();
+    // If server position differs significantly, correct it
+    const positionDiff = {
+      x: Math.abs(predictedProjectile.position.x - data.position.x),
+      y: Math.abs(predictedProjectile.position.y - data.position.y),
+      z: Math.abs(predictedProjectile.position.z - data.position.z)
+    };
+
+    const POSITION_THRESHOLD = 0.5; // Threshold for position correction
+    if (positionDiff.x > POSITION_THRESHOLD || 
+        positionDiff.y > POSITION_THRESHOLD || 
+        positionDiff.z > POSITION_THRESHOLD) {
+      predictedProjectile.setPosition(data.position);
     }
   }
 } 

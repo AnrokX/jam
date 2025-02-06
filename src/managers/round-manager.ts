@@ -84,12 +84,12 @@ export class RoundManager {
                 speedMultiplier: 0.5,
                 blockTypes: {
                     normal: 0,
-                    sineWave: 0,
+                    sineWave: 1.0,
                     static: 0.0,    // 100% static targets for learning
                     verticalWave: 0,
                     popup: 0,
                     rising: 0,
-                    parabolic: 1.0,
+                    parabolic: 0.0,
                     pendulum: 0
                 }
             };
@@ -147,7 +147,7 @@ export class RoundManager {
                 speedMultiplier: 0.7,
                 blockTypes: {
                     normal: 0,
-                    sineWave: 0,
+                    sineWave: 0.0,
                     static: 0,
                     verticalWave: 1.0,  // 100% vertical wave
                     popup: 0,
@@ -502,7 +502,12 @@ export class RoundManager {
                         break;
                     case 'sineWave':
                         // For sine wave blocks, we need to account for the amplitude in spawn position
-                        const sineWaveAmplitude = 8; // Match the amplitude in MovingBlockEntity
+                        const sineWaveAmplitude = this.getRandomY(6, 10); // Random amplitude between 6-10 units
+                        const sineWaveFrequency = this.getRandomY(0.15, 0.25); // Varied frequency for different wave patterns
+                        
+                        // Create variety by spawning at different points in the wave cycle
+                        const initialOffset = this.getRandomY(-sineWaveAmplitude, sineWaveAmplitude);
+                        
                         const sineWaveSpawnPosition = {
                             ...spawnPosition,
                             // Restrict X spawn position to account for sine wave amplitude
@@ -512,14 +517,16 @@ export class RoundManager {
                                     MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.max.x - sineWaveAmplitude - safetyMargin
                                 ),
                                 MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.min.x + sineWaveAmplitude + safetyMargin
-                            )
+                            ),
+                            // Vary the Y position for initial offset
+                            y: spawnPosition.y + initialOffset
                         };
                         
                         this.blockManager.createSineWaveBlock({
                             spawnPosition: sineWaveSpawnPosition,
                             moveSpeed: baseSpeed * 0.6,
                             amplitude: sineWaveAmplitude,
-                            frequency: 0.2
+                            frequency: sineWaveFrequency
                         });
                         break;
                     case 'verticalWave':
@@ -569,8 +576,8 @@ export class RoundManager {
                                 z: spawnPosition.z + throwDistance * Math.sin(throwAngle * Math.PI / 180)
                             },
                             maxHeight: throwHeight,
-                            duration: 3000,  // Slightly slower for more hang time
-                            moveSpeed: baseSpeed * 0.7  // Slower for more hang time
+                            duration: 4500,  // Much slower for more hang time (was 3000)
+                            moveSpeed: baseSpeed * 0.5  // Even slower speed (was 0.7)
                         });
                         break;
                     case 'pendulum':

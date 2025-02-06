@@ -1847,19 +1847,6 @@ function updateRoundInfo(roundData) {
       clearTimeout(window.comboTimeout);
     }
   }
-
-  // Reset scores in the scoreboard
-  const scores = document.querySelectorAll('.player-score');
-  scores.forEach(score => {
-    const totalScore = score.querySelector('.score-value');
-    const roundScore = score.querySelector('.round-score');
-    if (totalScore) {
-      totalScore.textContent = '0';
-    }
-    if (roundScore) {
-      roundScore.textContent = '(+0)';
-    }
-  });
   
   // Start or update timer with the full duration
   if (roundData.timeRemaining > 0) {

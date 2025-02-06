@@ -151,6 +151,9 @@ export class RoundManager {
             .filter(entity => entity.name.toLowerCase().includes('block'))
             .forEach(entity => entity.despawn());
 
+        // Reset scores for the new round
+        this.scoreManager.startNewRound();
+        
         // Broadcast round start with full duration
         this.broadcastRoundInfo();
 

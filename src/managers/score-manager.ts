@@ -4,6 +4,7 @@ import { World, Vector3Like, Entity } from 'hytopia';
 import { MovingBlockEntity } from '../moving_blocks/moving-block-entity';
 import { ProjectileEntity } from '../entities/projectile-entity';
 import { SceneUIManager } from '../scene-ui/scene-ui-manager';
+import { AudioManager } from './audio-manager';
 
 export interface ScoreOptions {
   score: number;
@@ -113,17 +114,19 @@ export class ScoreManager extends Entity {
   }
 
   // Increment (or decrement) player's score
-  public addScore(playerId: string, points: number): void {
-    if (!this.playerStats.has(playerId)) {
-      this.initializePlayer(playerId);
+  public addScore(playerId: string, score: number): void {
+    const stats = this.playerStats.get(playerId);
+    if (stats) {
+      stats.totalScore += score;
+      stats.roundScore += score;
+      this.playerStats.set(playerId, stats);
+
+      // Play the score sound effect
+      if (this.world && score > 0) {
+        const audioManager = AudioManager.getInstance(this.world);
+        audioManager.playSoundEffect('audio/sfx/damage/blop1.mp3', 0.4);  // 0.4 volume for less intrusive feedback
+      }
     }
-    
-    const stats = this.playerStats.get(playerId)!;
-    stats.totalScore += points;
-    stats.roundScore += points;
-    this.playerStats.set(playerId, stats);
-    
-    console.log(`Player ${playerId} scores updated - Total: ${stats.totalScore}, Round: ${stats.roundScore}, Wins: ${stats.wins}`);
   }
 
   // Get the current total score for a player

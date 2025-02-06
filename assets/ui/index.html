@@ -1976,10 +1976,7 @@ function toggleHelp(show) {
     }
 }
 
-// Add help toggle to pause menu
-document.getElementById('settings-menu').addEventListener('click', () => {
-    toggleHelp(false); // Close help when opening settings
-});
+
 
 // Add this to your existing script
 function updateHotkeysVisibility(show) {
@@ -2033,6 +2030,21 @@ function showComboNotification(data) {
     container.classList.remove('active');
   }, 2000);
 }
+
+// Add help toggle to settings menu
+document.querySelector('.settings-menu').addEventListener('click', () => {
+    toggleHelp(false); // Close help when opening settings
+});
+
+// Add this instead
+document.addEventListener('DOMContentLoaded', () => {
+    const settingsMenu = document.querySelector('.settings-menu');
+    if (settingsMenu) {
+        settingsMenu.addEventListener('click', () => {
+            toggleHelp(false); // Close help when opening settings
+        });
+    }
+});
 </script>
 
 </body>

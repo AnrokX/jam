@@ -53,6 +53,11 @@ export class RoundManager {
     private roundTransitionPending: boolean = false;
     private readonly TRANSITION_DURATION: number = 5000; // Default 5 seconds
 
+    // Helper function to get a random Y position within a range
+    private getRandomY(min: number, max: number): number {
+        return min + Math.random() * (max - min);
+    }
+
     constructor(
         private world: World,
         private blockManager: MovingBlockManager,
@@ -410,12 +415,31 @@ export class RoundManager {
                                    Math.random() * (movementBounds.max.x - movementBounds.min.x - 2 * safetyMargin);
                         })(),
                         y: (() => {
-                            if (isStaticBlock) return 1 + Math.random() * 7;  // Static: 1 to 8
-                            if (isVerticalWave) return Math.min(MOVING_BLOCK_CONFIG.VERTICAL_WAVE.HEIGHT_OFFSET, 7);
-                            // Moving blocks: Use movement bounds with safety margin
-                            const movementBounds = MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS;
-                            return movementBounds.min.y + safetyMargin + 
-                                   Math.random() * (movementBounds.max.y - movementBounds.min.y - 2 * safetyMargin);
+                            switch(chosenType) {
+                                case 'static':
+                                    return this.getRandomY(1, 8);  // Static: 1 to 8 units high
+                                case 'normal':
+                                    return this.getRandomY(2, 7);  // Normal: 2 to 7 units high
+                                case 'sineWave':
+                                    return this.getRandomY(3, 8);  // Sine wave: 3 to 8 units high
+                                case 'verticalWave':
+                                    // Start lower since they move up
+                                    return this.getRandomY(2, 5);
+                                case 'popup':
+                                    // Start at ground level
+                                    return 1;
+                                case 'rising':
+                                    // Always start at ground
+                                    return 1;
+                                case 'parabolic':
+                                    // Start at medium height
+                                    return this.getRandomY(3, 6);
+                                case 'pendulum':
+                                    // Start higher since they swing down
+                                    return this.getRandomY(6, 9);
+                                default:
+                                    return this.getRandomY(2, 6);
+                            }
                         })(),
                         z: (() => {
                             if (isStaticBlock) return Math.random() * 24 - 12; // Static: -12 to 12
@@ -441,8 +465,9 @@ export class RoundManager {
                     // Check distance from all existing blocks
                     const isTooCloseToBlocks = existingBlocks.some(block => {
                         const dx = block.position.x - spawnPosition.x;
+                        const dy = block.position.y - spawnPosition.y;
                         const dz = block.position.z - spawnPosition.z;
-                        return Math.sqrt(dx * dx + dz * dz) < minSpacing;
+                        return Math.sqrt(dx * dx + dy * dy + dz * dz) < minSpacing;
                     });
 
                     // Break if position is safe from both platforms and other blocks
@@ -480,16 +505,14 @@ export class RoundManager {
                                     MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.max.x - sineWaveAmplitude - safetyMargin
                                 ),
                                 MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.min.x + sineWaveAmplitude + safetyMargin
-                            ),
-                            // Fixed Y position for sine wave blocks
-                            y: 4
+                            )
                         };
                         
                         this.blockManager.createSineWaveBlock({
                             spawnPosition: sineWaveSpawnPosition,
-                            moveSpeed: baseSpeed * 0.6, // Slower base speed for sine wave blocks
-                            amplitude: sineWaveAmplitude, // Fixed amplitude to match MovingBlockEntity
-                            frequency: 0.2 // Fixed frequency to match MovingBlockEntity
+                            moveSpeed: baseSpeed * 0.6,
+                            amplitude: sineWaveAmplitude,
+                            frequency: 0.2
                         });
                         break;
                     case 'static':
@@ -502,8 +525,7 @@ export class RoundManager {
                     case 'verticalWave':
                         this.blockManager.createVerticalWaveBlock({
                             spawnPosition: {
-                                ...spawnPosition,
-                                y: Math.min(MOVING_BLOCK_CONFIG.VERTICAL_WAVE.HEIGHT_OFFSET, 7)
+                                ...spawnPosition
                             },
                             moveSpeed: baseSpeed * 0.75
                         });
@@ -512,20 +534,22 @@ export class RoundManager {
                         this.blockManager.createPopUpTarget({
                             spawnPosition: spawnPosition,
                             startY: spawnPosition.y,
-                            topY: spawnPosition.y + 3,
+                            topY: spawnPosition.y + this.getRandomY(3, 5), // Random popup height between 3-5 units
                             moveSpeed: baseSpeed * 0.8
                         });
                         break;
                     case 'rising':
+                        const riseHeight = this.getRandomY(5, 8); // Random rise height between 5-8 units
                         this.blockManager.createRisingTarget({
-                            startY: 1,  // Start at ground level
-                            firstStopY: 4, // First stop height
-                            finalY: 7,  // Final height
+                            startY: spawnPosition.y,
+                            firstStopY: spawnPosition.y + (riseHeight * 0.6), // Stop at 60% of total height
+                            finalY: spawnPosition.y + riseHeight,
                             moveSpeed: baseSpeed * 0.7,
-                            pauseDuration: 500 // Pause for half second at first stop
+                            pauseDuration: 500
                         });
                         break;
                     case 'parabolic':
+                        const parabolicHeight = this.getRandomY(4, 7); // Random max height between 4-7 units
                         this.blockManager.createParabolicTarget({
                             startPoint: {
                                 x: spawnPosition.x,
@@ -537,19 +561,20 @@ export class RoundManager {
                                 y: spawnPosition.y,
                                 z: spawnPosition.z
                             },
-                            maxHeight: 5,
+                            maxHeight: parabolicHeight,
                             duration: 3000,
                             moveSpeed: baseSpeed * 0.65
                         });
                         break;
                     case 'pendulum':
+                        const pendulumHeight = this.getRandomY(4, 6); // Random swing height between 4-6 units
                         this.blockManager.createPendulumTarget({
                             pivotPoint: {
                                 x: spawnPosition.x,
-                                y: spawnPosition.y + 5,
+                                y: spawnPosition.y + pendulumHeight,
                                 z: spawnPosition.z
                             },
-                            length: 4,
+                            length: pendulumHeight * 0.8, // Length proportional to height
                             amplitude: 1,
                             frequency: 0.5,
                             moveSpeed: baseSpeed * 0.5

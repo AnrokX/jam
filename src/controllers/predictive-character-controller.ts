@@ -1,7 +1,7 @@
 import { Entity, Player, Vector3Like, World, PlayerEntity } from 'hytopia';
 
 export class PredictiveCharacterController {
-  private static readonly MOVEMENT_SPEED = 12;
+  private static readonly MOVEMENT_SPEED = 8;
   private static readonly PREDICTION_THRESHOLD = 0.8;
   private static readonly PREDICTION_STEPS = 2;
   private static readonly LERP_FACTOR = 0.15;

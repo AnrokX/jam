@@ -1876,18 +1876,21 @@ function handleRoundEnd(data) {
   // Add to body instead of roundInfo
   document.body.appendChild(statusMessage);
 
-  // Reset scores for next round
-  const scores = document.querySelectorAll('.player-score');
-  scores.forEach(score => {
-    const totalScore = score.querySelector('.score-value');
-    const roundScore = score.querySelector('.round-score');
-    if (totalScore) {
-      totalScore.textContent = '0';
-    }
-    if (roundScore) {
-      roundScore.textContent = '(+0)';
-    }
-  });
+  // Reset scores just before the next round starts
+  setTimeout(() => {
+    // Reset scores for next round
+    const scores = document.querySelectorAll('.player-score');
+    scores.forEach(score => {
+      const totalScore = score.querySelector('.score-value');
+      const roundScore = score.querySelector('.round-score');
+      if (totalScore) {
+        totalScore.textContent = '0';
+      }
+      if (roundScore) {
+        roundScore.textContent = '(+0)';
+      }
+    });
+  }, data.nextRoundIn - 100); // Reset 100ms before next round starts
   
   // Remove status message after transition to next round
   setTimeout(() => {

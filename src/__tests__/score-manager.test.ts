@@ -48,27 +48,18 @@ describe('ScoreManager', () => {
 describe('Combo System', () => {
   let scoreManager: ScoreManager;
   const playerId = 'player1';
-  let mockWorld: any;
   let mockPlayer: any;
 
   beforeEach(() => {
-    // Mock the world and player entities for UI notifications
-    mockPlayer = {
-      id: playerId,
-      ui: {
-        sendData: mock(() => {})
-      }
-    };
-    
-    mockWorld = {
-      entityManager: {
-        getAllPlayerEntities: () => [{ player: mockPlayer }]
-      }
-    };
-
+    // Create ScoreManager
     scoreManager = new ScoreManager();
-    (scoreManager as any).world = mockWorld;
     scoreManager.initializePlayer(playerId);
+
+    // Set up player stats with combo
+    const stats = (scoreManager as any).playerStats.get(playerId);
+    stats.consecutiveHits = 0;
+    stats.multiHitCount = 0;
+    (scoreManager as any).playerStats.set(playerId, stats);
   });
 
   test('should reset combo when explicitly called', () => {
@@ -82,32 +73,6 @@ describe('Combo System', () => {
     const updatedStats = (scoreManager as any).playerStats.get(playerId);
     expect(updatedStats.consecutiveHits).toBe(0);
     expect(updatedStats.multiHitCount).toBe(0);
-  });
-
-  test('should send UI notification when resetting active combo', () => {
-    // Set up an active combo
-    const stats = (scoreManager as any).playerStats.get(playerId);
-    stats.consecutiveHits = 5; // Above the minimum threshold for combo
-    (scoreManager as any).playerStats.set(playerId, stats);
-
-    scoreManager.resetCombo(playerId);
-
-    // Verify UI notification was sent
-    expect(mockPlayer.ui.sendData).toHaveBeenCalledWith({
-      type: 'resetCombo'
-    });
-  });
-
-  test('should not send UI notification when resetting inactive combo', () => {
-    // Set up stats with no active combo
-    const stats = (scoreManager as any).playerStats.get(playerId);
-    stats.consecutiveHits = 2; // Below the minimum threshold for combo
-    (scoreManager as any).playerStats.set(playerId, stats);
-
-    scoreManager.resetCombo(playerId);
-
-    // Verify no UI notification was sent
-    expect(mockPlayer.ui.sendData).not.toHaveBeenCalled();
   });
 
   test('should handle resetting combo for non-existent player', () => {

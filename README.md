@@ -63,3 +63,5 @@ Install dependencies:
 ```bash
 bun install
 ```
+
+credits for blop1 sound effects: https://kronbits.itch.io/freesfx?download#google_vignette

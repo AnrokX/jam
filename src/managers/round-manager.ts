@@ -576,6 +576,15 @@ export class RoundManager {
                             moveSpeed: baseSpeed * 0.6,
                             amplitude: sineWaveAmplitude,
                             frequency: sineWaveFrequency
+                            frequency: 0.2, // Fixed frequency to match MovingBlockEntity
+                            blockTextureUri: 'blocks/nuit.png' // Changed to nuit texture for sine wave (mystical flowing pattern)
+                        });
+                        break;
+                    case 'static':
+                        this.blockManager.createStaticTarget({
+                            x: spawnPosition.x,
+                            y: spawnPosition.y,
+                            z: spawnPosition.z
                         });
                         break;
                     case 'verticalWave':

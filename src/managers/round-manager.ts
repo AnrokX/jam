@@ -49,7 +49,7 @@ export class RoundManager {
                 minBlockCount: 8,  // Start with fewer blocks
                 maxBlockCount: 12, // Keep it manageable
                 blockSpawnInterval: 1800, // Slower spawning (2 seconds)
-                speedMultiplier: 0.7,  // Slower speed for learning
+                speedMultiplier: 0.5,  // Reduced from 0.7 for even slower tutorial speed
                 blockTypes: {
                     normal: 0,      // No normal blocks in tutorial
                     sineWave: 0,    // No sine waves in tutorial
@@ -64,8 +64,8 @@ export class RoundManager {
                 duration: 20000,  // 75 seconds
                 minBlockCount: 10,  // Slight increase from round 1
                 maxBlockCount: 15,  // Slight increase from round 1
-                blockSpawnInterval: 1800, // 1.8 seconds between spawns (slightly faster than round 1)
-                speedMultiplier: 0.7,  // Keep the same speed as round 1
+                blockSpawnInterval: 1800, // 1.8 seconds between spawns
+                speedMultiplier: 0.6,  // Reduced from 0.7 for smoother progression
                 blockTypes: {
                     normal: 0.1,      // Still no normal blocks
                     sineWave: 0,    // Still no sine waves
@@ -82,12 +82,12 @@ export class RoundManager {
                 minBlockCount: 12 + Math.floor(round * 2),
                 maxBlockCount: 18 + Math.floor(round * 3),
                 blockSpawnInterval: 1500,  // 1.5 seconds between spawns
-                speedMultiplier: 0.8 + (round * 0.1),
+                speedMultiplier: 0.7 + (round * 0.05),  // Reduced multiplier increase per round
                 blockTypes: {
-                    normal: Math.min(0.25, (round - 2) * 0.15),    // Slightly reduced to make room for sine waves
-                    sineWave: 0.05,                                // 5% sine waves
-                    static: Math.max(0.7, 1 - (round * 0.15)),     // Decrease static targets gradually
-                    verticalWave: 0                                // No vertical waves yet
+                    normal: Math.min(0.25, (round - 2) * 0.15),
+                    sineWave: 0.05,
+                    static: Math.max(0.7, 1 - (round * 0.15)),
+                    verticalWave: 0
                 }
             };
         }
@@ -98,12 +98,12 @@ export class RoundManager {
             minBlockCount: 15 + Math.floor(round * 2),
             maxBlockCount: 25 + Math.floor(round * 3),
             blockSpawnInterval: 1000,  // 1 second between spawns
-            speedMultiplier: 1 + ((round - 3) * 0.1),  // Speed starts increasing from round 4
+            speedMultiplier: 0.8 + ((round - 3) * 0.05),  // Reduced from 0.1 to 0.05 increase per round
             blockTypes: {
-                normal: Math.min(0.2, 0.3 + (round - 3) * 0.05), 
-                sineWave: Math.min(0.1, 0.2 + (round - 3) * 0.05),   
-                static: Math.max(0.6, 0.4 - (round - 3) * 0.05),     
-                verticalWave: Math.min(0.1, (round - 3) * 0.05)      
+                normal: Math.min(0.2, 0.3 + (round - 3) * 0.05),
+                sineWave: Math.min(0.1, 0.2 + (round - 3) * 0.05),
+                static: Math.max(0.6, 0.4 - (round - 3) * 0.05),
+                verticalWave: Math.min(0.1, (round - 3) * 0.05)
             }
         };
     }

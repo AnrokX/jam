@@ -9,7 +9,7 @@ import { ProjectileEntity } from '../entities/projectile-entity';
 
 // Configuration for our Z-axis moving block
 export const MOVING_BLOCK_CONFIG = {
-  DEFAULT_SPEED: 10,
+  DEFAULT_SPEED: 6,
   DEFAULT_HEALTH: 5,
   DEFAULT_TEXTURE: 'blocks/void-sand.png',
   DEFAULT_HALF_EXTENTS: { x: 0.5, y: 2, z: 2 },

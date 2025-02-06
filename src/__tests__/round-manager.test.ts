@@ -20,6 +20,29 @@ const mockBlockManager = {
     createVerticalWaveBlock: jest.fn()
 } as unknown as MovingBlockManager;
 
+// Mock round config for faster tests
+const TEST_ROUND_DURATION = 100; // 100ms for tests
+const TEST_TRANSITION_DURATION = 100; // 100ms for transition
+
+// Override getRoundConfig for tests
+const createTestRoundManager = (world: World, blockManager: MovingBlockManager, scoreManager: ScoreManager) => {
+    const manager = new RoundManager(world, blockManager, scoreManager);
+    (manager as any).getRoundConfig = () => ({
+        duration: TEST_ROUND_DURATION,
+        minBlockCount: 8,
+        maxBlockCount: 12,
+        blockSpawnInterval: 50,
+        speedMultiplier: 0.5,
+        blockTypes: {
+            normal: 0,
+            sineWave: 0,
+            static: 1,
+            verticalWave: 0
+        }
+    });
+    return manager;
+};
+
 describe('RoundManager - Game Lifecycle', () => {
     let roundManager: RoundManager;
     let scoreManager: ScoreManager;
@@ -31,7 +54,7 @@ describe('RoundManager - Game Lifecycle', () => {
         
         // Create fresh instances
         scoreManager = new ScoreManager();
-        roundManager = new RoundManager(mockWorld, mockBlockManager, scoreManager);
+        roundManager = createTestRoundManager(mockWorld, mockBlockManager, scoreManager);
         
         // Setup default mock players
         mockPlayers = [
@@ -254,9 +277,9 @@ describe('RoundManager - Round Continuity', () => {
             createVerticalWaveBlock: jest.fn()
         } as unknown as jest.Mocked<MovingBlockManager>;
 
-        // Create fresh instances
+        // Create fresh instances with test config
         scoreManager = new ScoreManager();
-        roundManager = new RoundManager(mockWorld, mockBlockManager, scoreManager);
+        roundManager = createTestRoundManager(mockWorld, mockBlockManager, scoreManager);
     });
 
     const addMockPlayer = (id: string) => {
@@ -404,8 +427,6 @@ describe('RoundManager - Round Continuity', () => {
     });
 
     test('should prevent double round starts during transition period', async () => {
-        jest.useFakeTimers();
-        
         // Add initial player and start game
         addMockPlayer('player1');
         
@@ -426,8 +447,8 @@ describe('RoundManager - Round Continuity', () => {
         addMockPlayer('player1');
         roundManager.startRound(); // This should not trigger a new round
         
-        // Fast forward 2.5 seconds (half of transition time)
-        jest.advanceTimersByTime(2500);
+        // Wait for half the transition time
+        await new Promise(resolve => setTimeout(resolve, 2500));
         
         // Add another player during transition
         addMockPlayer('player2');
@@ -437,17 +458,13 @@ describe('RoundManager - Round Continuity', () => {
         expect(roundManager.getCurrentRound()).toBe(1);
         
         // Complete the transition period
-        jest.advanceTimersByTime(2500);
+        await new Promise(resolve => setTimeout(resolve, 2500));
         
         // Verify only one round increment occurred
         expect(roundManager.getCurrentRound()).toBe(2);
-        
-        jest.useRealTimers();
     });
 
     test('should properly handle rapid player joins/leaves', async () => {
-        jest.useFakeTimers();
-        
         // Start game with player1
         addMockPlayer('player1');
         roundManager.startRound();
@@ -461,16 +478,14 @@ describe('RoundManager - Round Continuity', () => {
             mockPlayers = [];
             addMockPlayer(`player${i}`);
             roundManager.startRound();
-            jest.advanceTimersByTime(500);
+            await new Promise(resolve => setTimeout(resolve, 500));
         }
         
         // Verify we're still waiting for the original transition
         expect(roundManager.getCurrentRound()).toBe(1);
         
         // Complete transition
-        jest.advanceTimersByTime(5000);
+        await new Promise(resolve => setTimeout(resolve, 2500));
         expect(roundManager.getCurrentRound()).toBe(2);
-        
-        jest.useRealTimers();
     });
 }); 

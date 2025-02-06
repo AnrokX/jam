@@ -1192,6 +1192,11 @@
   // Update the combo notification template registration
   hytopia.registerSceneUITemplate('combo-notification', (id, onState) => {
     const template = document.getElementById('combo-notification-template');
+    if (!template) {
+      console.error('Could not find combo-notification-template');
+      return document.createElement('div');
+    }
+    
     const clone = template.content.cloneNode(true);
     
     // Get all the elements we need to update
@@ -1213,6 +1218,16 @@
         if (hitsElement) hitsElement.textContent = `${state.hits}x`;
         if (textElement) textElement.textContent = state.text;
         if (bonusElement) bonusElement.textContent = `+${state.bonus}%`;
+
+        // Clear any existing timeout
+        if (comboTimeout) {
+          clearTimeout(comboTimeout);
+        }
+
+        // Set new timeout to remove active class
+        comboTimeout = setTimeout(() => {
+          container.classList.remove('active');
+        }, 2000);
       }
     });
     
@@ -1623,9 +1638,8 @@ function updateRoundInfo(roundData) {
   const comboNotification = document.querySelector('.combo-notification');
   if (comboNotification) {
     comboNotification.classList.remove('active');
-    if (comboTimeout) {
-      clearTimeout(comboTimeout);
-      comboTimeout = null;
+    if (window.comboTimeout) {
+      clearTimeout(window.comboTimeout);
     }
   }
 
@@ -1642,6 +1656,11 @@ function updateRoundInfo(roundData) {
   if (roundData.timeRemaining > 0) {
     startLocalTimer(roundData.timeRemaining);
   }
+  
+  // When setting new timeout, use window.comboTimeout
+  window.comboTimeout = setTimeout(() => {
+    // Your timeout logic here
+  }, 2000);
 }
 
 function handleRoundEnd(data) {
@@ -1957,10 +1976,7 @@ function toggleHelp(show) {
     }
 }
 
-// Add help toggle to pause menu
-document.getElementById('settings-menu').addEventListener('click', () => {
-    toggleHelp(false); // Close help when opening settings
-});
+
 
 // Add this to your existing script
 function updateHotkeysVisibility(show) {
@@ -2014,6 +2030,21 @@ function showComboNotification(data) {
     container.classList.remove('active');
   }, 2000);
 }
+
+// Add help toggle to settings menu
+document.querySelector('.settings-menu').addEventListener('click', () => {
+    toggleHelp(false); // Close help when opening settings
+});
+
+// Add this instead
+document.addEventListener('DOMContentLoaded', () => {
+    const settingsMenu = document.querySelector('.settings-menu');
+    if (settingsMenu) {
+        settingsMenu.addEventListener('click', () => {
+            toggleHelp(false); // Close help when opening settings
+        });
+    }
+});
 </script>
 
 </body>

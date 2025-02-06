@@ -5,7 +5,7 @@ export class AudioManager {
     private world: World;
     private backgroundMusic?: Audio;
     private sfxVolume: number = 0.5;
-    private bgmVolume: number = 0.1; // Default background music volume
+    private bgmVolume: number = 0.08; // Slightly lower default volume for Battle Maggots
 
     private constructor(world: World) {
         this.world = world;
@@ -30,7 +30,7 @@ export class AudioManager {
 
             // Create new background music instance
             this.backgroundMusic = new Audio({
-                uri: 'audio/music/hytopia-main.mp3',
+                uri: 'audio/music/Battle Maggots loop.mp3',
                 loop: true,
                 volume: this.bgmVolume,
             });

@@ -8,7 +8,8 @@ export class PredictiveCharacterController {
   private pendingInputs: Array<{
     input: any,
     timestamp: number,
-    position: Vector3Like
+    position: Vector3Like,
+    movement?: Vector3Like
   }> = [];
   private readonly player: Player;
   private readonly playerEntity: PlayerEntity;
@@ -24,20 +25,23 @@ export class PredictiveCharacterController {
     // Apply movement immediately for responsiveness
     const movement = this.calculateMovement(input, deltaTimeMs);
     if (movement) {
+      // Predict multiple steps ahead for smoother movement
+      const PREDICTION_STEPS = 3;  // Predict 3 frames ahead
       const predictedPosition = {
-        x: this.playerEntity.position.x + movement.x,
-        y: this.playerEntity.position.y + movement.y,
-        z: this.playerEntity.position.z + movement.z
+        x: this.playerEntity.position.x + (movement.x * PREDICTION_STEPS),
+        y: this.playerEntity.position.y + (movement.y * PREDICTION_STEPS),
+        z: this.playerEntity.position.z + (movement.z * PREDICTION_STEPS)
       };
 
       // Store input for reconciliation
       this.pendingInputs.push({
         input: { ...input },
         timestamp: currentTime,
-        position: predictedPosition
+        position: predictedPosition,
+        movement: movement  // Store original movement for reconciliation
       });
 
-      // Apply predicted movement
+      // Apply predicted movement immediately
       this.playerEntity.setPosition(predictedPosition);
       
       // Send movement to server
@@ -46,7 +50,8 @@ export class PredictiveCharacterController {
         data: {
           input: { ...input },
           timestamp: currentTime,
-          position: predictedPosition
+          position: predictedPosition,
+          movement: movement
         }
       });
     }
@@ -61,19 +66,46 @@ export class PredictiveCharacterController {
     let dx = 0;
     let dz = 0;
 
-    if (input.w) dz -= speed;
-    if (input.s) dz += speed;
-    if (input.a) dx -= speed;
-    if (input.d) dx += speed;
+    // Get camera direction
+    const cameraDirection = this.player.camera.facingDirection;
+    const cameraAngle = Math.atan2(cameraDirection.x, cameraDirection.z);
+    
+    // Calculate forward and right vectors based on camera angle
+    const forward = {
+      x: Math.sin(cameraAngle),
+      z: Math.cos(cameraAngle)
+    };
+    const right = {
+      x: Math.cos(cameraAngle),
+      z: -Math.sin(cameraAngle)
+    };
+
+    // Apply movement relative to camera direction
+    if (input.w) {
+      dx += forward.x;
+      dz += forward.z;
+    }
+    if (input.s) {
+      dx -= forward.x;
+      dz -= forward.z;
+    }
+    if (input.a) {
+      dx -= right.x;
+      dz -= right.z;
+    }
+    if (input.d) {
+      dx += right.x;
+      dz += right.z;
+    }
 
     // No movement
     if (dx === 0 && dz === 0) return null;
 
-    // Normalize diagonal movement
-    if (dx !== 0 && dz !== 0) {
-      const normalizer = 1 / Math.sqrt(2);
-      dx *= normalizer;
-      dz *= normalizer;
+    // Normalize and apply speed
+    const magnitude = Math.sqrt(dx * dx + dz * dz);
+    if (magnitude !== 0) {
+      dx = (dx / magnitude) * speed;
+      dz = (dz / magnitude) * speed;
     }
 
     return { x: dx, y: 0, z: dz };
@@ -86,20 +118,29 @@ export class PredictiveCharacterController {
     // Check if we need to correct position
     const positionError = this.calculatePositionError(serverPosition);
     if (positionError > PredictiveCharacterController.PREDICTION_THRESHOLD) {
-      // Position diverged too much, reset to server position
-      this.playerEntity.setPosition(serverPosition);
+      // Smoothly interpolate to server position instead of snapping
+      const LERP_FACTOR = 0.3;  // Adjust this for smoother or faster correction
+      const currentPos = this.playerEntity.position;
+      
+      const interpolatedPosition = {
+        x: currentPos.x + (serverPosition.x - currentPos.x) * LERP_FACTOR,
+        y: currentPos.y + (serverPosition.y - currentPos.y) * LERP_FACTOR,
+        z: currentPos.z + (serverPosition.z - currentPos.z) * LERP_FACTOR
+      };
+
+      this.playerEntity.setPosition(interpolatedPosition);
       this.lastServerPosition = serverPosition;
 
-      // Reapply remaining inputs
+      // Reapply pending inputs from the interpolated position
+      let currentPosition = { ...interpolatedPosition };
       this.pendingInputs.forEach(input => {
-        const movement = this.calculateMovement(input.input, 16); // Assume 60fps
-        if (movement) {
-          const newPos = {
-            x: this.playerEntity.position.x + movement.x,
-            y: this.playerEntity.position.y + movement.y,
-            z: this.playerEntity.position.z + movement.z
+        if (input.movement) {
+          currentPosition = {
+            x: currentPosition.x + input.movement.x,
+            y: currentPosition.y + input.movement.y,
+            z: currentPosition.z + input.movement.z
           };
-          this.playerEntity.setPosition(newPos);
+          this.playerEntity.setPosition(currentPosition);
         }
       });
     }

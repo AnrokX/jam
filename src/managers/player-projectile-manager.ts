@@ -122,7 +122,6 @@ export class PlayerProjectileManager {
 
     // Check if shooting is allowed based on round state
     if (this.roundManager && !this.roundManager.isShootingAllowed()) {
-      // Clear any existing preview if shooting is not allowed
       if (state.previewProjectile) {
         state.previewProjectile.despawn();
         state.previewProjectile = null;
@@ -132,15 +131,12 @@ export class PlayerProjectileManager {
 
     const currentMrState = input.mr ?? false;
     const mrJustPressed = currentMrState && !state.lastInputState.mr;
-    const mrJustReleased = !currentMrState && state.lastInputState.mr;
 
-    // Right mouse button just pressed
     if (mrJustPressed) {
       const currentTime = Date.now();
       const timeSinceLastShot = currentTime - state.lastShotTime;
 
       if (timeSinceLastShot < PlayerProjectileManager.SHOT_COOLDOWN) {
-        // Still on cooldown - provide feedback about remaining cooldown
         if (player) {
           const remainingCooldown = Math.ceil((PlayerProjectileManager.SHOT_COOLDOWN - timeSinceLastShot) / 100) / 10;
           player.ui.sendData({ 
@@ -152,7 +148,6 @@ export class PlayerProjectileManager {
       }
 
       if (state.projectilesRemaining <= 0) {
-        // Send UI event when trying to shoot with no ammo
         if (player) {
           player.ui.sendData({ type: 'attemptShootNoAmmo' });
         }
@@ -163,26 +158,39 @@ export class PlayerProjectileManager {
       const predictedProjectile = this.createProjectile(playerId, position, direction, true);
       const predictionId = predictedProjectile.getPredictionId();
       
-      // Update state immediately for responsiveness
-      state.lastShotTime = currentTime;
-      state.projectilesRemaining--;
-      
-      // Send shot data to server for validation
-      player.ui.sendData({
-        type: 'projectileShot',
-        data: {
-          position,
-          direction,
-          timestamp: currentTime,
-          predictionId
-        }
-      });
+      if (predictionId) {
+        // Store predicted projectile
+        state.predictedProjectiles.set(predictionId, predictedProjectile);
+        
+        // Throw the projectile immediately
+        predictedProjectile.throw(direction);
+        
+        // Update state immediately for responsiveness
+        state.lastShotTime = currentTime;
+        state.projectilesRemaining--;
+        
+        // Send shot data to server for validation
+        player.ui.sendData({
+          type: 'projectileShot',
+          data: {
+            position,
+            direction,
+            timestamp: currentTime,
+            predictionId
+          }
+        });
 
-      // Update UI with new projectile count
-      player.ui.sendData({
-        type: 'updateProjectileCount',
-        count: state.projectilesRemaining
-      });
+        // Set timeout to clean up prediction if not confirmed
+        setTimeout(() => {
+          if (!predictedProjectile.isConfirmed()) {
+            predictedProjectile.despawn();
+            state.predictedProjectiles.delete(predictionId);
+          }
+        }, PlayerProjectileManager.PREDICTION_TIMEOUT);
+
+        // Play sound effect immediately for responsiveness
+        this.audioManager.playRandomSoundEffect(PlayerProjectileManager.PROJECTILE_SOUNDS, 0.4);
+      }
     }
 
     // Update last input state
@@ -227,7 +235,15 @@ export class PlayerProjectileManager {
     if (positionDiff.x > POSITION_THRESHOLD || 
         positionDiff.y > POSITION_THRESHOLD || 
         positionDiff.z > POSITION_THRESHOLD) {
-      predictedProjectile.setPosition(data.position);
+      // Smoothly interpolate to correct position
+      const LERP_FACTOR = 0.3;
+      const currentPos = predictedProjectile.position;
+      const interpolatedPosition = {
+        x: currentPos.x + (data.position.x - currentPos.x) * LERP_FACTOR,
+        y: currentPos.y + (data.position.y - currentPos.y) * LERP_FACTOR,
+        z: currentPos.z + (data.position.z - currentPos.z) * LERP_FACTOR
+      };
+      predictedProjectile.setPosition(interpolatedPosition);
     }
   }
 } 

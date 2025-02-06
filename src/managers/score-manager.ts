@@ -48,8 +48,8 @@ export class ScoreManager extends Entity {
   constructor() {
     super({
       name: 'ScoreManager',
-      blockTextureUri: 'blocks/air.png',  // Use an invisible block texture
-      blockHalfExtents: { x: 0.001, y: 0.001, z: 0.001 }  // Make it tiny
+      blockTextureUri: 'blocks/stone.png',  // Use a basic block texture that definitely exists
+      blockHalfExtents: { x: 0.5, y: 0.5, z: 0.5 }  // Normal scale, will be positioned out of view anyway
     });
   }
 

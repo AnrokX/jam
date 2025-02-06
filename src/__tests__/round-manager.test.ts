@@ -55,6 +55,18 @@ describe('RoundManager - Game Lifecycle', () => {
     let scoreManager: ScoreManager;
     let mockPlayers: any[];
 
+    // Helper function to add mock players
+    const addMockPlayer = (playerId: string) => {
+        const mockPlayer = { 
+            player: { 
+                id: playerId,
+                ui: { sendData: jest.fn() }
+            }
+        };
+        mockPlayers.push(mockPlayer);
+        (mockWorld.entityManager.getAllPlayerEntities as jest.Mock).mockReturnValue(mockPlayers);
+    };
+
     beforeEach(() => {
         // Reset mocks
         jest.clearAllMocks();
@@ -596,6 +608,18 @@ describe('RoundManager - Round Timing', () => {
     let roundManager: RoundManager;
     let scoreManager: ScoreManager;
     let mockPlayers: any[];
+
+    // Helper function to add mock players
+    const addMockPlayer = (playerId: string) => {
+        const mockPlayer = { 
+            player: { 
+                id: playerId,
+                ui: { sendData: jest.fn() }
+            }
+        };
+        mockPlayers.push(mockPlayer);
+        (mockWorld.entityManager.getAllPlayerEntities as jest.Mock).mockReturnValue(mockPlayers);
+    };
 
     beforeEach(() => {
         jest.clearAllMocks();

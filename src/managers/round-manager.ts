@@ -152,6 +152,9 @@ export class RoundManager {
             .filter(entity => entity.name.toLowerCase().includes('block'))
             .forEach(entity => entity.despawn());
 
+        // Reset scores for the new round
+        this.scoreManager.startNewRound();
+        
         // Broadcast round start with full duration
         this.broadcastRoundInfo();
 
@@ -397,8 +400,8 @@ export class RoundManager {
             return;
         }
 
-        // Determine the winner of the round
-        const winnerId = this.scoreManager.handleRoundEnd();
+        // Get round results with placements
+        const { winnerId, placements } = this.scoreManager.handleRoundEnd();
         
         // Play victory sound if there's a winner
         if (winnerId && this.world) {
@@ -409,13 +412,13 @@ export class RoundManager {
         // Broadcast updated scores and leaderboard
         this.scoreManager.broadcastScores(this.world);
 
-        // Broadcast round end results with winner info
-        this.broadcastRoundEnd(winnerId);
+        // Broadcast round end results with placement info
+        this.broadcastRoundEnd(winnerId, placements);
 
         // Start next round after a delay
         setTimeout(() => {
             this.startRound();
-        }, 5000);  // 5 second delay between rounds
+        }, 5000);
     }
 
     public handlePlayerLeave(): void {
@@ -471,13 +474,14 @@ export class RoundManager {
         }
     }
 
-    private broadcastRoundEnd(winnerId: string | null): void {
+    private broadcastRoundEnd(winnerId: string | null, placements: Array<{ playerId: string, points: number }>): void {
         const message = {
             type: 'roundEnd',
             data: {
                 round: this.currentRound,
                 nextRoundIn: 5000,
-                winnerId: winnerId
+                winnerId: winnerId,
+                placements: placements
             }
         };
 

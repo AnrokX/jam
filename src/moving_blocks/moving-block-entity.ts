@@ -229,22 +229,25 @@ export class MovingBlockEntity extends Entity {
   private isWithinBounds(position: Vector3Like): boolean {
     if (!this.movementBounds) return true;
 
-    // Add small epsilon to handle floating point precision
-    const epsilon = 0.001;
+    // Use a larger epsilon for boundary checks to prevent jittering
+    const epsilon = 0.05;
     
-    // Only check axes where we have movement bounds defined
-    const checkX = Math.abs(this.movementBounds.max.x - this.movementBounds.min.x) > epsilon;
-    const checkY = Math.abs(this.movementBounds.max.y - this.movementBounds.min.y) > epsilon;
-    const checkZ = Math.abs(this.movementBounds.max.z - this.movementBounds.min.z) > epsilon;
+    // Check each axis independently and apply epsilon consistently
+    const withinX = position.x >= (this.movementBounds.min.x + epsilon) && 
+                    position.x <= (this.movementBounds.max.x - epsilon);
+    const withinY = position.y >= (this.movementBounds.min.y + epsilon) && 
+                    position.y <= (this.movementBounds.max.y - epsilon);
+    const withinZ = position.z >= (this.movementBounds.min.z + epsilon) && 
+                    position.z <= (this.movementBounds.max.z - epsilon);
 
-    return (
-      (!checkX || (position.x >= this.movementBounds.min.x - epsilon && 
-                  position.x <= this.movementBounds.max.x + epsilon)) &&
-      (!checkY || (position.y >= this.movementBounds.min.y - epsilon && 
-                  position.y <= this.movementBounds.max.y + epsilon)) &&
-      (!checkZ || (position.z >= this.movementBounds.min.z - epsilon && 
-                  position.z <= this.movementBounds.max.z + epsilon))
-    );
+    // Only enforce bounds on axes that have different min/max values
+    const needsXCheck = Math.abs(this.movementBounds.max.x - this.movementBounds.min.x) > epsilon;
+    const needsYCheck = Math.abs(this.movementBounds.max.y - this.movementBounds.min.y) > epsilon;
+    const needsZCheck = Math.abs(this.movementBounds.max.z - this.movementBounds.min.z) > epsilon;
+
+    return (!needsXCheck || withinX) && 
+           (!needsYCheck || withinY) && 
+           (!needsZCheck || withinZ);
   }
 
   private reverseDirection(): void {

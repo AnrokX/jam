@@ -256,29 +256,25 @@ export class RoundManager {
                     spawnPosition = {
                         x: (() => {
                             if (isStaticBlock) return Math.random() * 16 - 8; // Static: -8 to 8
-                            // Moving blocks: Much wider range, with platform proximity
-                            const nearPlatform = Math.random() < 0.3;  // 30% chance to spawn near platform
-                            if (nearPlatform) {
-                                return Math.random() < 0.5 ? -20 - Math.random() * 8 : 20 + Math.random() * 8;
-                            }
-                            return Math.random() * 48 - 24;  // Much wider range: -24 to 24
+                            // Moving blocks: Use movement bounds with safety margin
+                            const movementBounds = MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS;
+                            return movementBounds.min.x + safetyMargin + 
+                                   Math.random() * (movementBounds.max.x - movementBounds.min.x - 2 * safetyMargin);
                         })(),
                         y: (() => {
                             if (isStaticBlock) return 1 + Math.random() * 7;  // Static: 1 to 8
                             if (isVerticalWave) return Math.min(MOVING_BLOCK_CONFIG.VERTICAL_WAVE.HEIGHT_OFFSET, 7);
-                            // Moving blocks: Much more extreme height variance
-                            const heightType = Math.random();
-                            if (heightType < 0.3) return 1 + Math.random() * 4;    // 30% low (1-5)
-                            if (heightType < 0.7) return 6 + Math.random() * 8;    // 40% mid (6-14)
-                            return 15 + Math.random() * 10;  // 30% very high (15-25)
+                            // Moving blocks: Use movement bounds with safety margin
+                            const movementBounds = MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS;
+                            return movementBounds.min.y + safetyMargin + 
+                                   Math.random() * (movementBounds.max.y - movementBounds.min.y - 2 * safetyMargin);
                         })(),
                         z: (() => {
                             if (isStaticBlock) return Math.random() * 24 - 12; // Static: -12 to 12
-                            // Moving blocks: Much more extreme depth variance
-                            const depthType = Math.random();
-                            if (depthType < 0.3) return Math.random() * 20 - 10;   // 30% middle (-10 to 10)
-                            if (depthType < 0.6) return -30 + Math.random() * 10;  // 30% very far back (-30 to -20)
-                            return 20 + Math.random() * 10;  // 40% much closer (20 to 30)
+                            // Moving blocks: Use movement bounds with safety margin
+                            const movementBounds = MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS;
+                            return movementBounds.min.z + safetyMargin + 
+                                   Math.random() * (movementBounds.max.z - movementBounds.min.z - 2 * safetyMargin);
                         })()
                     };
 

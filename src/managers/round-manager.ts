@@ -68,7 +68,7 @@ export class RoundManager {
         // Tutorial round (Round 1)
         if (round === 1) {
             return {
-                duration: 90000,  // 90 seconds for first round to give more time
+                duration: 10000,  // 90 seconds for first round to give more time
                 minBlockCount: 8,  // Start with fewer blocks
                 maxBlockCount: 12, // Keep it manageable
                 blockSpawnInterval: 1800, // Slower spawning (2 seconds)

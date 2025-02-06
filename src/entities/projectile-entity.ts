@@ -1,4 +1,4 @@
-import { Entity, EntityOptions, Vector3Like, ColliderShape, CollisionGroup, BlockType, World } from 'hytopia';
+import { Entity, EntityOptions, Vector3Like, ColliderShape, CollisionGroup, BlockType, World, PlayerEntity } from 'hytopia';
 import { RaycastHandler } from '../raycast/raycast-handler';
 import { BlockParticleEffects } from '../effects/block-particle-effects';
 import { ScoreManager } from '../managers/score-manager';
@@ -179,6 +179,9 @@ export class ProjectileEntity extends Entity {
                         this.rawRigidBody.setLinearDamping(0.3);
                         other.rawRigidBody.setLinearDamping(0.3);
                     }
+                } else if (other instanceof PlayerEntity) {
+                    // Player collision - just despawn without applying physics
+                    this.despawn();
                 }
             }
         });

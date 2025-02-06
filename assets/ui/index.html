@@ -275,16 +275,16 @@
       left: 50%;
       transform: translateX(-50%);
       font-family: var(--display-font);
-      font-size: 32px;  /* Increased font size */
+      font-size: 32px;
       color: var(--matrix-green);
       text-shadow: 0 0 10px var(--terminal-green);
       background: rgba(13, 2, 8, 0.9);
-      padding: 15px 30px;  /* Increased padding */
+      padding: 15px 30px;
       border-radius: 8px;
       border: 1px solid var(--matrix-green);
       z-index: 100;
       text-align: center;
-      min-width: 200px;  /* Added minimum width */
+      min-width: 200px;
     }
 
     .round-timer.warning {
@@ -1237,26 +1237,26 @@
 
     .round-complete-message {
       position: fixed;
-      top: 100px;  /* Position below timer */
+      top: 50%;
       left: 50%;
-      transform: translateX(-50%);
+      transform: translate(-50%, -50%);  /* Changed to center both vertically and horizontally */
       font-family: var(--display-font);
-      font-size: 36px;  /* Larger font size */
+      font-size: 48px;  /* Made even larger */
       color: var(--matrix-green);
-      text-shadow: 0 0 15px var(--terminal-green);
+      text-shadow: 0 0 20px var(--terminal-green);  /* Increased glow */
       background: rgba(13, 2, 8, 0.9);
-      padding: 15px 30px;
+      padding: 20px 40px;  /* Increased padding */
       border-radius: 8px;
-      border: 1px solid var(--matrix-green);
-      z-index: 100;
+      border: 2px solid var(--matrix-green);  /* Made border thicker */
+      z-index: 1000;  /* Increased z-index to ensure it's on top */
       text-align: center;
-      animation: pulse 0.5s ease-out infinite;
+      animation: pulseCenter 0.5s ease-out infinite;
     }
 
-    @keyframes pulse {
-      0% { transform: translateX(-50%) scale(1); }
-      50% { transform: translateX(-50%) scale(1.05); }
-      100% { transform: translateX(-50%) scale(1); }
+    @keyframes pulseCenter {
+      0% { transform: translate(-50%, -50%) scale(1); }
+      50% { transform: translate(-50%, -50%) scale(1.1); }  /* Increased scale effect */
+      100% { transform: translate(-50%, -50%) scale(1); }
     }
   </style>
 </head>

@@ -5,11 +5,23 @@ import { Vector3Like } from 'hytopia';
 import { BlockParticleEffects } from '../effects/block-particle-effects';
 import { AudioManager } from './audio-manager';
 
+const DEBUG_PREFIX = '[ProjectileManager]';
+
+// Add debug interface
+interface DebugProjectileInfo {
+  id: string;
+  spawnTime: number;
+  lastKnownPosition?: Vector3Like;
+  isPreview: boolean;
+}
+
 export interface PlayerProjectileState {
   previewProjectile: ProjectileEntity | null;
   lastInputState: { mr: boolean };
   projectilesRemaining: number;
   lastShotTime: number;
+  // Add debug tracking
+  activeProjectiles: Map<string, DebugProjectileInfo>;
 }
 
 export class PlayerProjectileManager {
@@ -31,21 +43,33 @@ export class PlayerProjectileManager {
     this.raycastHandler = raycastHandler;
     this.enablePreview = enablePreview;
     this.audioManager = AudioManager.getInstance(world);
+    
+    // Add periodic debug check
+    setInterval(() => this.debugCheckProjectiles(), 10000); // Check every 10 seconds
   }
 
   initializePlayer(playerId: string): void {
+    console.log(`${DEBUG_PREFIX} Initializing player ${playerId}`);
     this.playerStates.set(playerId, {
       previewProjectile: null,
       lastInputState: { mr: false },
       projectilesRemaining: PlayerProjectileManager.INITIAL_AMMO_COUNT,
-      lastShotTime: 0
+      lastShotTime: 0,
+      activeProjectiles: new Map()
     });
   }
 
   removePlayer(playerId: string): void {
+    console.log(`${DEBUG_PREFIX} Removing player ${playerId}`);
     const state = this.playerStates.get(playerId);
-    if (state?.previewProjectile) {
-      state.previewProjectile.despawn();
+    if (state) {
+      // Clean up all active projectiles
+      state.activeProjectiles.forEach((info, id) => {
+        console.log(`${DEBUG_PREFIX} Cleaning up projectile ${id} for player ${playerId}`);
+        if (state.previewProjectile) {
+          state.previewProjectile.despawn();
+        }
+      });
     }
     this.playerStates.delete(playerId);
   }
@@ -55,12 +79,34 @@ export class PlayerProjectileManager {
   }
 
   private createProjectile(playerId: string, position: Vector3Like, direction: Vector3Like): ProjectileEntity {
+    console.log(`${DEBUG_PREFIX} Creating new projectile for player ${playerId}`);
+    
     const projectile = new ProjectileEntity({
       modelScale: 1,
       raycastHandler: this.raycastHandler,
       enablePreview: this.enablePreview,
       playerId
     });
+
+    // Add to debug tracking
+    const state = this.playerStates.get(playerId);
+    if (state) {
+      const debugInfo: DebugProjectileInfo = {
+        id: `proj_${Math.random().toString(36).substr(2, 9)}`,
+        spawnTime: Date.now(),
+        lastKnownPosition: position,
+        isPreview: false
+      };
+      state.activeProjectiles.set(debugInfo.id, debugInfo);
+      
+      // Set up position tracking
+      const originalDespawn = projectile.despawn.bind(projectile);
+      projectile.despawn = () => {
+        console.log(`${DEBUG_PREFIX} Projectile ${debugInfo.id} despawning`);
+        state.activeProjectiles.delete(debugInfo.id);
+        originalDespawn();
+      };
+    }
 
     // Calculate spawn position
     const spawnOffset = {
@@ -176,5 +222,19 @@ export class PlayerProjectileManager {
     } catch (error) {
       console.error('Failed to create particle effect:', error);
     }
+  }
+
+  private debugCheckProjectiles(): void {
+    this.playerStates.forEach((state, playerId) => {
+      state.activeProjectiles.forEach((info, id) => {
+        const lifetime = Date.now() - info.spawnTime;
+        if (lifetime > 10000) { // If projectile exists for more than 10 seconds
+          console.warn(`${DEBUG_PREFIX} WARN: Projectile ${id} for player ${playerId} has been alive for ${lifetime}ms`);
+          if (info.lastKnownPosition) {
+            console.warn(`Last known position:`, info.lastKnownPosition);
+          }
+        }
+      });
+    });
   }
 } 

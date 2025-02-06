@@ -2,6 +2,9 @@ import { Entity, EntityOptions, Vector3Like, ColliderShape, CollisionGroup, Bloc
 import { RaycastHandler } from '../raycast/raycast-handler';
 import { BlockParticleEffects } from '../effects/block-particle-effects';
 
+// Add debug logging prefix
+const DEBUG_PREFIX = '[ProjectileEntity]';
+
 export interface ProjectileOptions extends EntityOptions {
     speed?: number;
     lifetime?: number;
@@ -66,6 +69,12 @@ export class ProjectileEntity extends Entity {
     public onCollision?: (position: Vector3Like, blockTextureUri: string) => void;
     private spawnOrigin?: Vector3Like;
 
+    // Add debug state tracking
+    private debugId: string;
+    private debugSpawnTime: number;
+    private debugLastPosition?: Vector3Like;
+    private debugLastScale?: number;
+
     constructor(options: ProjectileOptions) {
         super({
             ...options,
@@ -74,6 +83,11 @@ export class ProjectileEntity extends Entity {
             modelScale: options.modelScale || 0.5
         });
 
+        // Initialize debug tracking
+        this.debugId = `proj_${Math.random().toString(36).substr(2, 9)}`;
+        this.debugSpawnTime = Date.now();
+        console.log(`${DEBUG_PREFIX} Created projectile ${this.debugId} for player ${this.playerId}`);
+        
         this.speed = options.speed ?? ProjectileEntity.PHYSICS.DEFAULT_SPEED;
         this.lifetime = options.lifetime ?? ProjectileEntity.PHYSICS.DEFAULT_LIFETIME;
         this.damage = options.damage ?? ProjectileEntity.PHYSICS.DEFAULT_DAMAGE;
@@ -115,6 +129,12 @@ export class ProjectileEntity extends Entity {
     }
 
     spawn(world: World, position: Vector3Like): void {
+        console.log(`${DEBUG_PREFIX} Spawning projectile ${this.debugId} at`, position);
+        
+        // Track initial state
+        this.debugLastPosition = { ...position };
+        this.debugLastScale = this.modelScale;
+
         // Store spawn origin before any position adjustments
         this.spawnOrigin = { ...position };
 
@@ -197,10 +217,75 @@ export class ProjectileEntity extends Entity {
             };
             this.rawRigidBody.setRotation(initialRotation);
         }
+
+        // After spawn, verify entity state
+        if (this.isSpawned) {
+            const currentPos = this.position;
+            const currentScale = this.modelScale;
+            
+            // Check for anomalies
+            if (currentPos && this.debugLastPosition) {
+                const distance = Math.sqrt(
+                    Math.pow(currentPos.x - this.debugLastPosition.x, 2) +
+                    Math.pow(currentPos.y - this.debugLastPosition.y, 2) +
+                    Math.pow(currentPos.z - this.debugLastPosition.z, 2)
+                );
+                
+                if (distance > 100) { // If teleported more than 100 units
+                    console.error(`${DEBUG_PREFIX} CRITICAL: Projectile ${this.debugId} had anomalous spawn position!`);
+                    console.error(`Expected: `, this.debugLastPosition);
+                    console.error(`Actual: `, currentPos);
+                    this.despawn();
+                    return;
+                }
+            }
+
+            if (currentScale && this.debugLastScale && 
+                (currentScale > this.debugLastScale * 2 || currentScale < this.debugLastScale * 0.5)) {
+                console.error(`${DEBUG_PREFIX} CRITICAL: Projectile ${this.debugId} had anomalous scale!`);
+                console.error(`Expected: ${this.debugLastScale}, Actual: ${currentScale}`);
+                this.despawn();
+                return;
+            }
+        }
     }
 
     override onTick = (entity: Entity, deltaTimeMs: number): void => {
+        // Track position changes
+        if (this.position) {
+            if (this.debugLastPosition) {
+                const distance = Math.sqrt(
+                    Math.pow(this.position.x - this.debugLastPosition.x, 2) +
+                    Math.pow(this.position.y - this.debugLastPosition.y, 2) +
+                    Math.pow(this.position.z - this.debugLastPosition.z, 2)
+                );
+                
+                // Check for sudden teleports
+                if (distance > 50) { // If moved more than 50 units in one tick
+                    console.error(`${DEBUG_PREFIX} CRITICAL: Projectile ${this.debugId} teleported!`);
+                    console.error(`From:`, this.debugLastPosition);
+                    console.error(`To:`, this.position);
+                    this.despawn();
+                    return;
+                }
+            }
+            this.debugLastPosition = { ...this.position };
+        }
+
+        // Check for scale anomalies
+        if (this.modelScale && this.debugLastScale) {
+            if (this.modelScale > this.debugLastScale * 2 || this.modelScale < this.debugLastScale * 0.5) {
+                console.error(`${DEBUG_PREFIX} CRITICAL: Projectile ${this.debugId} scale anomaly!`);
+                console.error(`Previous: ${this.debugLastScale}, Current: ${this.modelScale}`);
+                this.despawn();
+                return;
+            }
+            this.debugLastScale = this.modelScale;
+        }
+
+        // Check lifetime
         if (Date.now() - this.spawnTime > this.lifetime) {
+            console.log(`${DEBUG_PREFIX} Projectile ${this.debugId} reached end of lifetime`);
             this.explode();
             this.despawn();
         }
@@ -396,6 +481,14 @@ export class ProjectileEntity extends Entity {
 
     // Override despawn to ensure we clean up trajectory markers
     override despawn(): void {
+        console.log(`${DEBUG_PREFIX} Despawning projectile ${this.debugId}`);
+        
+        // Log if taking too long to despawn
+        const despawnTime = Date.now() - this.debugSpawnTime;
+        if (despawnTime > this.lifetime + 1000) { // If lived 1s longer than should
+            console.warn(`${DEBUG_PREFIX} Projectile ${this.debugId} lived ${despawnTime}ms (${despawnTime - this.lifetime}ms too long)`);
+        }
+
         this.clearTrajectoryMarkers();
         super.despawn();
     }

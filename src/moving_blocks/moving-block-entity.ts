@@ -11,7 +11,7 @@ import { ProjectileEntity } from '../entities/projectile-entity';
 export const MOVING_BLOCK_CONFIG = {
   DEFAULT_SPEED: 6,
   DEFAULT_HEALTH: 5,
-  DEFAULT_TEXTURE: 'blocks/void-sand.png',
+  DEFAULT_TEXTURE: 'blocks/creep.png',
   DEFAULT_HALF_EXTENTS: { x: 0.5, y: 2, z: 2 },
   MOVEMENT_BOUNDS: {
     min: { x: -15, y: 2, z: -15 },  // Wider X range, higher minimum Y
@@ -41,7 +41,7 @@ export const MOVING_BLOCK_CONFIG = {
     MIN_DISTANCE_BETWEEN_TARGETS: 7  // Increased minimum distance between targets
   },
   PENDULUM_TARGET: {
-    TEXTURE: 'blocks/obsidian.png',
+    TEXTURE: 'blocks/nuit-leaves.png',
     HALF_EXTENTS: { x: 0.8, y: 0.8, z: 0.8 },
     PIVOT_HEIGHT: 15,
     LENGTH: 10,
@@ -66,7 +66,7 @@ export const MOVING_BLOCK_CONFIG = {
     }
   },
   VERTICAL_WAVE: {  // New configuration for vertical sine wave blocks
-    TEXTURE: 'blocks/emerald-ore.png',
+    TEXTURE: 'blocks/infected-shadowrock.png',
     HALF_EXTENTS: { x: 1, y: 1, z: 1 },
     DEFAULT_AMPLITUDE: 4,  // Reduced amplitude to prevent floor collision
     DEFAULT_FREQUENCY: 0.5,  // Slightly faster than horizontal sine wave
@@ -97,7 +97,7 @@ export const MOVING_BLOCK_CONFIG = {
     PAUSE_DURATION: 2000   // 2 seconds at first stop
   },
   PARABOLIC_TARGET: {
-    TEXTURE: 'blocks/amethyst-block.png',
+    TEXTURE: 'blocks/swirl-rune.png',
     HALF_EXTENTS: { x: 0.8, y: 0.8, z: 0.8 },
     START_Y: -20,
     MAX_HEIGHT: 20,        // Increased height for more dramatic arc

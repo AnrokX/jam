@@ -289,6 +289,7 @@ export class TestBlockSpawner {
             // Remove debug log
         }
 
+        // Create static target with position
         this.blockManager.createStaticTarget(pos);
     }
 
@@ -302,7 +303,8 @@ export class TestBlockSpawner {
         this.blockManager.createSineWaveBlock({
             spawnPosition: pos,
             moveSpeed: MOVING_BLOCK_CONFIG.DEFAULT_SPEED * speedMultiplier,
-            amplitude: 2 + Math.random() * 2
+            amplitude: 2 + Math.random() * 2,
+            blockTextureUri: 'blocks/nuit.png' // Keep the mystical pattern for sine wave
         });
     }
 
@@ -319,7 +321,8 @@ export class TestBlockSpawner {
 
         this.blockManager.createVerticalWaveBlock({
             spawnPosition,
-            moveSpeed: MOVING_BLOCK_CONFIG.DEFAULT_SPEED * speedMultiplier * MOVING_BLOCK_CONFIG.VERTICAL_WAVE.SPEED_MULTIPLIER
+            moveSpeed: MOVING_BLOCK_CONFIG.DEFAULT_SPEED * speedMultiplier * MOVING_BLOCK_CONFIG.VERTICAL_WAVE.SPEED_MULTIPLIER,
+            blockTextureUri: MOVING_BLOCK_CONFIG.VERTICAL_WAVE.TEXTURE // Using infected-shadowrock (red pattern)
         });
     }
 
@@ -330,6 +333,7 @@ export class TestBlockSpawner {
             // Remove debug log
         }
 
+        // Create regular block with default texture
         this.blockManager.createZAxisBlock(pos);
     }
 
@@ -344,7 +348,8 @@ export class TestBlockSpawner {
             spawnPosition: pos,
             startY: MOVING_BLOCK_CONFIG.POPUP_TARGET.START_Y,
             topY: MOVING_BLOCK_CONFIG.POPUP_TARGET.TOP_Y,
-            moveSpeed: MOVING_BLOCK_CONFIG.DEFAULT_SPEED * speedMultiplier * MOVING_BLOCK_CONFIG.POPUP_TARGET.SPEED_MULTIPLIER
+            moveSpeed: MOVING_BLOCK_CONFIG.DEFAULT_SPEED * speedMultiplier * MOVING_BLOCK_CONFIG.POPUP_TARGET.SPEED_MULTIPLIER,
+            blockTextureUri: MOVING_BLOCK_CONFIG.POPUP_TARGET.TEXTURE // Using diamond-ore
         });
     }
 
@@ -361,7 +366,8 @@ export class TestBlockSpawner {
             firstStopY: MOVING_BLOCK_CONFIG.RISING_TARGET.FIRST_STOP_Y,
             finalY: MOVING_BLOCK_CONFIG.RISING_TARGET.FINAL_Y,
             moveSpeed: MOVING_BLOCK_CONFIG.DEFAULT_SPEED * speedMultiplier * MOVING_BLOCK_CONFIG.RISING_TARGET.SPEED_MULTIPLIER,
-            pauseDuration: MOVING_BLOCK_CONFIG.RISING_TARGET.PAUSE_DURATION
+            pauseDuration: MOVING_BLOCK_CONFIG.RISING_TARGET.PAUSE_DURATION,
+            blockTextureUri: MOVING_BLOCK_CONFIG.RISING_TARGET.TEXTURE // Using emerald-ore
         });
     }
 
@@ -372,7 +378,6 @@ export class TestBlockSpawner {
         // Ensure minimum forward distance and proper direction
         const forwardDistance = endPos.z - startPos.z;
         if (forwardDistance < MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.MIN_TRAVEL_DISTANCE) {
-            // Adjust end position to ensure minimum distance while staying in bounds
             endPos.z = Math.min(
                 startPos.z + MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.MIN_TRAVEL_DISTANCE,
                 MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.SPAWN_BOUNDS.FORWARD.MAX
@@ -387,7 +392,8 @@ export class TestBlockSpawner {
             startPoint: startPos,
             endPoint: endPos,
             maxHeight: MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.MAX_HEIGHT,
-            duration: MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.DURATION / speedMultiplier
+            duration: MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.DURATION / speedMultiplier,
+            blockTextureUri: MOVING_BLOCK_CONFIG.PARABOLIC_TARGET.TEXTURE // Using swirl-rune
         });
     }
 
@@ -409,7 +415,8 @@ export class TestBlockSpawner {
             pivotPoint,
             length: MOVING_BLOCK_CONFIG.PENDULUM_TARGET.LENGTH,
             amplitude: MOVING_BLOCK_CONFIG.PENDULUM_TARGET.AMPLITUDE,
-            frequency: MOVING_BLOCK_CONFIG.PENDULUM_TARGET.FREQUENCY * speedMultiplier
+            frequency: MOVING_BLOCK_CONFIG.PENDULUM_TARGET.FREQUENCY * speedMultiplier,
+            blockTextureUri: MOVING_BLOCK_CONFIG.PENDULUM_TARGET.TEXTURE // Using nuit-leaves (green pattern)
         });
     }
 

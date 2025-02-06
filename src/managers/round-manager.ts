@@ -85,11 +85,11 @@ export class RoundManager {
                 blockTypes: {
                     normal: 0,
                     sineWave: 0,
-                    static: 1.0,    // 100% static targets for learning
+                    static: 0.0,    // 100% static targets for learning
                     verticalWave: 0,
                     popup: 0,
                     rising: 0,
-                    parabolic: 0,
+                    parabolic: 1.0,
                     pendulum: 0
                 }
             };
@@ -549,21 +549,28 @@ export class RoundManager {
                         });
                         break;
                     case 'parabolic':
-                        const parabolicHeight = this.getRandomY(4, 7); // Random max height between 4-7 units
+                        // Calculate a natural throwing arc
+                        const throwDistance = this.getRandomY(15, 25); // Random throw distance
+                        const throwAngle = this.getRandomY(45, 75);    // Steeper angle between 45-75 degrees for more upward arc
+                        const throwHeight = this.getRandomY(10, 15);   // Higher maximum height
+                        
+                        // Start much lower and throw upward
+                        const throwStartY = this.getRandomY(-8, -4);   // Start well below ground level
+                        
                         this.blockManager.createParabolicTarget({
                             startPoint: {
                                 x: spawnPosition.x,
-                                y: spawnPosition.y,
+                                y: throwStartY,
                                 z: spawnPosition.z
                             },
                             endPoint: {
-                                x: spawnPosition.x + 10,
-                                y: spawnPosition.y,
-                                z: spawnPosition.z
+                                x: spawnPosition.x + throwDistance * Math.cos(throwAngle * Math.PI / 180),
+                                y: throwStartY - 2,  // End slightly lower than start for more dramatic fall
+                                z: spawnPosition.z + throwDistance * Math.sin(throwAngle * Math.PI / 180)
                             },
-                            maxHeight: parabolicHeight,
-                            duration: 3000,
-                            moveSpeed: baseSpeed * 0.65
+                            maxHeight: throwHeight,
+                            duration: 3000,  // Slightly slower for more hang time
+                            moveSpeed: baseSpeed * 0.7  // Slower for more hang time
                         });
                         break;
                     case 'pendulum':

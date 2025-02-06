@@ -59,7 +59,7 @@ export class RoundManager {
         // Tutorial round (Round 1)
         if (round === 1) {
             return {
-                duration: 10000,  // 90 seconds for first round to give more time
+                duration: 5000,  // 90 seconds for first round to give more time
                 minBlockCount: 8,  // Start with fewer blocks
                 maxBlockCount: 12, // Keep it manageable
                 blockSpawnInterval: 1800, // Slower spawning (2 seconds)
@@ -75,7 +75,7 @@ export class RoundManager {
         
         if (round === 2) {
             return {
-                duration: 20000,  // 75 seconds
+                duration: 5000,  // 75 seconds
                 minBlockCount: 10,  // Slight increase from round 1
                 maxBlockCount: 15,  // Slight increase from round 1
                 blockSpawnInterval: 1800, // 1.8 seconds between spawns
@@ -92,7 +92,7 @@ export class RoundManager {
         // Early rounds (3)
         if (round === 3) {
             return {
-                duration: 20000,  // 75 seconds
+                duration: 5000,  // 75 seconds
                 minBlockCount: 12 + Math.floor(round * 2),
                 maxBlockCount: 18 + Math.floor(round * 3),
                 blockSpawnInterval: 1500,  // 1.5 seconds between spawns
@@ -108,7 +108,7 @@ export class RoundManager {
         
         // Regular rounds (4+)
         return {
-            duration: 20000,  // Back to 60 seconds
+            duration: 5000,  // Back to 60 seconds
             minBlockCount: 15 + Math.floor(round * 2),
             maxBlockCount: 25 + Math.floor(round * 3),
             blockSpawnInterval: 1000,  // 1 second between spawns
@@ -558,15 +558,13 @@ export class RoundManager {
     }
 
     private endGame(): void {
-        // Get final standings based on placement points
         const finalStandings: GameEndStanding[] = [];
         
-        // Get all players and their stats
         this.world.entityManager.getAllPlayerEntities().forEach(playerEntity => {
             const playerId = playerEntity.player.id;
             finalStandings.push({
                 playerId,
-                placementPoints: this.scoreManager.getScore(playerId),
+                placementPoints: this.scoreManager.getLeaderboardPoints(playerId),
                 wins: this.scoreManager.getWins(playerId),
                 totalScore: this.scoreManager.getScore(playerId)
             });

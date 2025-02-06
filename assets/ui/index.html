@@ -2016,14 +2016,14 @@ function updateScoreboard(scores) {
     const playerDiv = document.createElement('div');
     playerDiv.className = 'player-score';
     
-    // Ensure we're using numbers and not accidentally concatenating strings
-    const totalPoints = Number(score.totalPoints || 0);
+    // Use leaderboardPoints for game end, otherwise use round scoring
+    const points = score.isGameEnd ? score.leaderboardPoints : score.totalPoints;
     const roundScore = Number(score.roundScore || 0);
     
     playerDiv.innerHTML = `
       <span class="player-label">P${index + 1}</span>
-      <span class="score-value">${totalPoints}</span>
-      <span class="round-score">(+${roundScore})</span>
+      <span class="score-value">${points}</span>
+      ${!score.isGameEnd ? `<span class="round-score">(+${roundScore})</span>` : ''}
     `;
     scoresContainer.appendChild(playerDiv);
   });
@@ -2385,14 +2385,6 @@ function showGameEnd(data) {
                 <div class="standing-stat">
                     <div class="stat-label">POINTS</div>
                     <div class="stat-value">${standing.placementPoints}</div>
-                </div>
-                <div class="standing-stat">
-                    <div class="stat-label">WINS</div>
-                    <div class="stat-value">${standing.wins}</div>
-                </div>
-                <div class="standing-stat">
-                    <div class="stat-label">TOTAL SCORE</div>
-                    <div class="stat-value">${standing.totalScore}</div>
                 </div>
             </div>
         `;

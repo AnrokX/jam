@@ -460,4 +460,9 @@ export class ScoreManager extends Entity {
       }
     }
   }
+
+  // Add this new method to get placement points
+  public getLeaderboardPoints(playerId: string): number {
+    return this.playerStats.get(playerId)?.placementPoints ?? 0;
+  }
 } 

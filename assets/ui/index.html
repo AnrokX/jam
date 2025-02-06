@@ -270,14 +270,21 @@
     }
 
     .round-timer {
-      font-family: var(--number-font);
-      font-size: 36px;
+      position: fixed;
+      top: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: var(--display-font);
+      font-size: 32px;  /* Increased font size */
       color: var(--matrix-green);
       text-shadow: 0 0 10px var(--terminal-green);
-      background: linear-gradient(90deg, rgba(0, 255, 65, 0.1) 0%, transparent 100%);
-      border-radius: 5px;
-      padding: 5px 10px;
-      letter-spacing: 2px;
+      background: rgba(13, 2, 8, 0.9);
+      padding: 15px 30px;  /* Increased padding */
+      border-radius: 8px;
+      border: 1px solid var(--matrix-green);
+      z-index: 100;
+      text-align: center;
+      min-width: 200px;  /* Added minimum width */
     }
 
     .round-timer.warning {
@@ -1228,30 +1235,28 @@
       opacity: 0.8;
     }
 
-    .round-timer {
+    .round-complete-message {
       position: fixed;
-      top: 40px;
+      top: 100px;  /* Position below timer */
       left: 50%;
       transform: translateX(-50%);
       font-family: var(--display-font);
-      font-size: 24px;
+      font-size: 36px;  /* Larger font size */
       color: var(--matrix-green);
-      text-shadow: 0 0 10px var(--terminal-green);
+      text-shadow: 0 0 15px var(--terminal-green);
       background: rgba(13, 2, 8, 0.9);
-      padding: 10px 25px;
+      padding: 15px 30px;
       border-radius: 8px;
       border: 1px solid var(--matrix-green);
       z-index: 100;
+      text-align: center;
+      animation: pulse 0.5s ease-out infinite;
     }
 
-    .round-number {
-      position: fixed;
-      top: 40px;
-      left: 40px;
-      font-family: var(--title-font);
-      font-size: 16px;
-      color: var(--blood-red);
-      text-shadow: 0 0 10px var(--glow-red);
+    @keyframes pulse {
+      0% { transform: translateX(-50%) scale(1); }
+      50% { transform: translateX(-50%) scale(1.05); }
+      100% { transform: translateX(-50%) scale(1); }
     }
   </style>
 </head>
@@ -1803,17 +1808,13 @@ function updateRoundInfo(roundData) {
 }
 
 function handleRoundEnd(data) {
-  const roundInfo = document.querySelector('.round-info');
-  
-  // Add temporary status message
+  // Create round complete message with new styling
   const statusMessage = document.createElement('div');
-  statusMessage.style.color = '#4CAF50';
+  statusMessage.className = 'round-complete-message';
   statusMessage.textContent = 'Round Complete!';
-  statusMessage.style.fontSize = '24px';
-  statusMessage.style.fontWeight = 'bold';
-  statusMessage.style.animation = 'pulse 0.5s ease-out infinite';
   
-  roundInfo.appendChild(statusMessage);
+  // Add to body instead of roundInfo
+  document.body.appendChild(statusMessage);
 
   // Reset scores for next round
   const scores = document.querySelectorAll('.player-score');

@@ -13,6 +13,8 @@ interface DebugProjectileInfo {
   spawnTime: number;
   lastKnownPosition?: Vector3Like;
   isPreview: boolean;
+  scale: number;
+  lastUpdateTime: number;
 }
 
 export interface PlayerProjectileState {
@@ -38,6 +40,12 @@ export class PlayerProjectileManager {
   private readonly enablePreview: boolean;
   private readonly audioManager: AudioManager;
 
+  private static readonly MANAGER_LIMITS = {
+    MAX_ACTIVE_PROJECTILES: 20,    // Maximum projectiles per player
+    MIN_SPAWN_INTERVAL: 100,       // Minimum ms between spawns
+    CLEANUP_INTERVAL: 5000,        // How often to check for orphaned projectiles
+  } as const;
+
   constructor(world: World, raycastHandler: RaycastHandler, enablePreview: boolean = false) {
     this.world = world;
     this.raycastHandler = raycastHandler;
@@ -45,7 +53,10 @@ export class PlayerProjectileManager {
     this.audioManager = AudioManager.getInstance(world);
     
     // Add periodic debug check
-    setInterval(() => this.debugCheckProjectiles(), 10000); // Check every 10 seconds
+    setInterval(() => this.debugCheckProjectiles(), 10000);
+    
+    // Add cleanup interval
+    setInterval(() => this.cleanupOrphanedProjectiles(), PlayerProjectileManager.MANAGER_LIMITS.CLEANUP_INTERVAL);
   }
 
   initializePlayer(playerId: string): void {
@@ -78,35 +89,92 @@ export class PlayerProjectileManager {
     return this.playerStates.get(playerId)?.projectilesRemaining ?? 0;
   }
 
-  private createProjectile(playerId: string, position: Vector3Like, direction: Vector3Like): ProjectileEntity {
-    console.log(`${DEBUG_PREFIX} Creating new projectile for player ${playerId}`);
+  private createProjectile(playerId: string, position: Vector3Like, direction: Vector3Like): ProjectileEntity | null {
+    const state = this.playerStates.get(playerId);
+    if (!state) {
+        console.error(`${DEBUG_PREFIX} Attempted to create projectile for non-existent player ${playerId}`);
+        throw new Error('Invalid player state');
+    }
+
+    // Check active projectile limit
+    const activeCount = state.activeProjectiles.size;
+    if (activeCount >= PlayerProjectileManager.MANAGER_LIMITS.MAX_ACTIVE_PROJECTILES) {
+        console.warn(`${DEBUG_PREFIX} Player ${playerId} has too many active projectiles (${activeCount}), cleaning up`);
+        this.cleanupPlayerProjectiles(playerId);
+        return null;
+    }
+
+    console.log(`${DEBUG_PREFIX} Creating new projectile for player ${playerId} (Active: ${activeCount})`);
     
     const projectile = new ProjectileEntity({
-      modelScale: 1,
-      raycastHandler: this.raycastHandler,
-      enablePreview: this.enablePreview,
-      playerId
+        modelScale: 1,
+        raycastHandler: this.raycastHandler,
+        enablePreview: this.enablePreview,
+        playerId
     });
 
-    // Add to debug tracking
-    const state = this.playerStates.get(playerId);
-    if (state) {
-      const debugInfo: DebugProjectileInfo = {
+    // Add to debug tracking with more info
+    const debugInfo: DebugProjectileInfo = {
         id: `proj_${Math.random().toString(36).substr(2, 9)}`,
         spawnTime: Date.now(),
         lastKnownPosition: position,
-        isPreview: false
-      };
-      state.activeProjectiles.set(debugInfo.id, debugInfo);
-      
-      // Set up position tracking
-      const originalDespawn = projectile.despawn.bind(projectile);
-      projectile.despawn = () => {
-        console.log(`${DEBUG_PREFIX} Projectile ${debugInfo.id} despawning`);
-        state.activeProjectiles.delete(debugInfo.id);
-        originalDespawn();
-      };
-    }
+        isPreview: false,
+        scale: projectile.modelScale || 1, // Default to 1 if undefined
+        lastUpdateTime: Date.now()
+    };
+    
+    state.activeProjectiles.set(debugInfo.id, debugInfo);
+    
+    // Enhanced position tracking
+    const originalSetPosition = projectile.setPosition.bind(projectile);
+    projectile.setPosition = (newPos: Vector3Like) => {
+        const info = state.activeProjectiles.get(debugInfo.id);
+        if (info) {
+            const now = Date.now();
+            const timeDelta = now - info.lastUpdateTime;
+            if (timeDelta > 0 && info.lastKnownPosition) {
+                const distance = Math.sqrt(
+                    Math.pow(newPos.x - info.lastKnownPosition.x, 2) +
+                    Math.pow(newPos.y - info.lastKnownPosition.y, 2) +
+                    Math.pow(newPos.z - info.lastKnownPosition.z, 2)
+                );
+                const speed = distance / timeDelta;
+                if (speed > 100) { // More than 100 units per ms is suspicious
+                    console.error(`${DEBUG_PREFIX} CRITICAL: Projectile ${debugInfo.id} moving too fast: ${speed.toFixed(2)} units/ms`);
+                    projectile.despawn();
+                    return;
+                }
+            }
+            info.lastKnownPosition = { ...newPos };
+            info.lastUpdateTime = now;
+        }
+        originalSetPosition(newPos);
+    };
+
+    // Enhanced scale tracking
+    const originalModelScale = projectile.modelScale || 1;
+    Object.defineProperty(projectile, 'modelScale', {
+        get: function() {
+            return originalModelScale;
+        },
+        set: function(newScale: number) {
+            const info = state.activeProjectiles.get(debugInfo.id);
+            if (info) {
+                if (Math.abs(newScale - info.scale) > 0.5) {
+                    console.error(`${DEBUG_PREFIX} CRITICAL: Projectile ${debugInfo.id} scale change too large: ${info.scale} -> ${newScale}`);
+                    projectile.despawn();
+                    return;
+                }
+                info.scale = newScale;
+            }
+            Object.defineProperty(this, 'modelScale', {
+                value: newScale,
+                writable: true,
+                configurable: true
+            });
+        },
+        configurable: true
+    });
 
     // Calculate spawn position
     const spawnOffset = {
@@ -233,6 +301,33 @@ export class PlayerProjectileManager {
           if (info.lastKnownPosition) {
             console.warn(`Last known position:`, info.lastKnownPosition);
           }
+        }
+      });
+    });
+  }
+
+  private cleanupPlayerProjectiles(playerId: string): void {
+    const state = this.playerStates.get(playerId);
+    if (!state) return;
+
+    console.log(`${DEBUG_PREFIX} Cleaning up projectiles for player ${playerId}`);
+    
+    const now = Date.now();
+    state.activeProjectiles.forEach((info, id) => {
+      if (now - info.spawnTime > 5000) { // Force cleanup after 5 seconds
+        console.warn(`${DEBUG_PREFIX} Force cleaning up old projectile ${id}`);
+        state.activeProjectiles.delete(id);
+      }
+    });
+  }
+
+  private cleanupOrphanedProjectiles(): void {
+    this.playerStates.forEach((state, playerId) => {
+      const now = Date.now();
+      state.activeProjectiles.forEach((info, id) => {
+        if (now - info.lastUpdateTime > 2000) { // No updates for 2 seconds
+          console.warn(`${DEBUG_PREFIX} Cleaning up orphaned projectile ${id} for player ${playerId}`);
+          state.activeProjectiles.delete(id);
         }
       });
     });

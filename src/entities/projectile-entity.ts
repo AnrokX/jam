@@ -50,6 +50,15 @@ export class ProjectileEntity extends Entity {
         MARKER_OPACITY: 0.7
     } as const;
 
+    // Add after the PHYSICS constant
+    private static readonly CRITICAL_LIMITS = {
+        MAX_SCALE: 2.0,           // Maximum allowed scale multiplier
+        MIN_SCALE: 0.1,           // Minimum allowed scale multiplier
+        MAX_POSITION_CHANGE: 50,  // Maximum units of movement per tick
+        MAX_LIFETIME: 5000,       // Maximum lifetime in ms
+        SCALE_CHANGE_THRESHOLD: 0.1, // Maximum allowed scale change per tick
+    } as const;
+
     private speed: number;
     private lifetime: number;
     private damage: number;
@@ -95,6 +104,21 @@ export class ProjectileEntity extends Entity {
         this.raycastHandler = options.raycastHandler;
         this.enablePreview = options.enablePreview ?? true;
         this.playerId = options.playerId;
+
+        // Add scale validation
+        if (options.modelScale) {
+            if (options.modelScale > ProjectileEntity.CRITICAL_LIMITS.MAX_SCALE || 
+                options.modelScale < ProjectileEntity.CRITICAL_LIMITS.MIN_SCALE) {
+                console.error(`${DEBUG_PREFIX} CRITICAL: Invalid initial scale ${options.modelScale} for projectile ${this.debugId}`);
+                options.modelScale = 0.5; // Reset to default
+            }
+        }
+
+        // Add strict lifetime limit
+        if (this.lifetime > ProjectileEntity.CRITICAL_LIMITS.MAX_LIFETIME) {
+            console.warn(`${DEBUG_PREFIX} Clamping lifetime from ${this.lifetime} to ${ProjectileEntity.CRITICAL_LIMITS.MAX_LIFETIME}ms`);
+            this.lifetime = ProjectileEntity.CRITICAL_LIMITS.MAX_LIFETIME;
+        }
     }
 
     private validateTrajectory(direction: Vector3Like): boolean {
@@ -251,6 +275,13 @@ export class ProjectileEntity extends Entity {
     }
 
     override onTick = (entity: Entity, deltaTimeMs: number): void => {
+        // Add critical state validation at start of tick
+        if (!this.validateEntityState()) {
+            console.error(`${DEBUG_PREFIX} CRITICAL: Entity ${this.debugId} failed state validation, despawning`);
+            this.despawn();
+            return;
+        }
+
         // Track position changes
         if (this.position) {
             if (this.debugLastPosition) {
@@ -289,6 +320,42 @@ export class ProjectileEntity extends Entity {
             this.explode();
             this.despawn();
         }
+    }
+
+    private validateEntityState(): boolean {
+        // Check if entity still exists and is spawned
+        if (!this.isSpawned || !this.world) {
+            console.error(`${DEBUG_PREFIX} Entity ${this.debugId} validation failed: Not spawned or no world`);
+            return false;
+        }
+
+        // Validate scale
+        if (this.modelScale) {
+            if (this.modelScale > ProjectileEntity.CRITICAL_LIMITS.MAX_SCALE || 
+                this.modelScale < ProjectileEntity.CRITICAL_LIMITS.MIN_SCALE) {
+                console.error(`${DEBUG_PREFIX} CRITICAL: Scale validation failed for ${this.debugId}. Scale: ${this.modelScale}`);
+                return false;
+            }
+
+            // Check for sudden scale changes
+            if (this.debugLastScale && 
+                Math.abs(this.modelScale - this.debugLastScale) > ProjectileEntity.CRITICAL_LIMITS.SCALE_CHANGE_THRESHOLD) {
+                console.error(`${DEBUG_PREFIX} CRITICAL: Sudden scale change for ${this.debugId}. Previous: ${this.debugLastScale}, Current: ${this.modelScale}`);
+                return false;
+            }
+        }
+
+        // Validate position
+        if (this.position) {
+            if (Math.abs(this.position.x) > 1000 || 
+                Math.abs(this.position.y) > 1000 || 
+                Math.abs(this.position.z) > 1000) {
+                console.error(`${DEBUG_PREFIX} CRITICAL: Position out of bounds for ${this.debugId}`, this.position);
+                return false;
+            }
+        }
+
+        return true;
     }
 
     throw(direction: Vector3Like): void {
@@ -528,5 +595,36 @@ export class ProjectileEntity extends Entity {
     // Add getter for spawn origin
     public getSpawnOrigin(): Vector3Like | undefined {
         return this.spawnOrigin ? { ...this.spawnOrigin } : undefined;
+    }
+
+    // Add public scale setter
+    public setScale(scale: number): void {
+        if (scale > ProjectileEntity.CRITICAL_LIMITS.MAX_SCALE || 
+            scale < ProjectileEntity.CRITICAL_LIMITS.MIN_SCALE) {
+            console.error(`${DEBUG_PREFIX} CRITICAL: Attempted to set invalid scale ${scale} for projectile ${this.debugId}`);
+            return;
+        }
+
+        // Track scale change
+        if (this.debugLastScale) {
+            const scaleChange = Math.abs(scale - this.debugLastScale);
+            if (scaleChange > ProjectileEntity.CRITICAL_LIMITS.SCALE_CHANGE_THRESHOLD) {
+                console.error(`${DEBUG_PREFIX} CRITICAL: Scale change too large (${scaleChange}) for projectile ${this.debugId}`);
+                return;
+            }
+        }
+
+        // Set scale through the base Entity class
+        if (this.isSpawned) {
+            // Use the modelScale property directly since that's what the Entity class exposes
+            Object.defineProperty(this, 'modelScale', {
+                value: scale,
+                writable: true,
+                configurable: true
+            });
+            this.debugLastScale = scale;
+        } else {
+            console.warn(`${DEBUG_PREFIX} Attempted to set scale on unspawned projectile ${this.debugId}`);
+        }
     }
 } 

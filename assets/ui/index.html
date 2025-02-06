@@ -282,9 +282,10 @@
       padding: 15px 30px;
       border-radius: 8px;
       border: 1px solid var(--matrix-green);
-      z-index: 100;
+      z-index: 1000;  /* Increased z-index to ensure it's above other elements */
       text-align: center;
       min-width: 200px;
+      pointer-events: none;  /* Ensure it doesn't interfere with clicking */
     }
 
     .round-timer.warning {
@@ -1258,6 +1259,46 @@
       50% { transform: translate(-50%, -50%) scale(1.1); }  /* Increased scale effect */
       100% { transform: translate(-50%, -50%) scale(1); }
     }
+
+    /* Game status elements */
+    .game-status {
+      position: fixed;
+      top: 40px;
+      left: 0;
+      right: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      pointer-events: none;
+      z-index: 1000;
+    }
+
+    .round-number {
+      font-family: var(--display-font);
+      font-size: 24px;
+      color: var(--matrix-green);
+      text-shadow: 0 0 10px var(--terminal-green);
+      background: rgba(13, 2, 8, 0.9);
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: 1px solid var(--matrix-green);
+      text-align: center;
+      min-width: 150px;
+    }
+
+    .round-timer {
+      font-family: var(--display-font);
+      font-size: 32px;
+      color: var(--matrix-green);
+      text-shadow: 0 0 10px var(--terminal-green);
+      background: rgba(13, 2, 8, 0.9);
+      padding: 15px 30px;
+      border-radius: 8px;
+      border: 1px solid var(--matrix-green);
+      text-align: center;
+      min-width: 200px;
+    }
   </style>
 </head>
 <body>
@@ -1408,14 +1449,18 @@
   <div class="round-info">
     <div id="waitingMessage" class="waiting-message" style="display: none;"></div>
     <div class="player-count" style="display: none">Players: 0/2</div>
-    <div class="round-number"></div>
-    <div class="round-timer"></div>
   </div>
   <div class="scores-wrapper">
     <div id="scores-container">
       <!-- Scores will be added here dynamically -->
     </div>
   </div>
+</div>
+
+<!-- Game status elements -->
+<div class="game-status">
+  <div class="round-number"></div>
+  <div class="round-timer"></div>
 </div>
 
 <div class="leaderboard">

@@ -76,9 +76,10 @@ export class PredictiveCharacterController {
       x: Math.sin(cameraAngle),
       z: Math.cos(cameraAngle)
     };
+    // Right vector is forward vector rotated 90 degrees clockwise
     const right = {
-      x: -Math.sin(cameraAngle),
-      z: Math.cos(cameraAngle)
+      x: Math.cos(cameraAngle),
+      z: -Math.sin(cameraAngle)
     };
 
     // Apply movement relative to camera direction
@@ -91,12 +92,12 @@ export class PredictiveCharacterController {
       dz -= forward.z;
     }
     if (input.a) {
-      dx -= right.x;
-      dz -= right.z;
-    }
-    if (input.d) {
       dx += right.x;
       dz += right.z;
+    }
+    if (input.d) {
+      dx -= right.x;
+      dz -= right.z;
     }
 
     // No movement

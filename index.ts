@@ -311,7 +311,7 @@ startServer(world => {
     playerEntity.player.camera.setFov(70);
   
     // Create predictive controller
-    const predictiveController = new PredictiveCharacterController(player, playerEntity);
+    const predictiveController = new PredictiveCharacterController(player, playerEntity, raycastHandler);
     
     // Wire up input handling
     playerEntity.onTick = (entity: Entity, deltaTimeMs: number) => {

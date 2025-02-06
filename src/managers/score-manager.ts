@@ -83,10 +83,11 @@ export class ScoreManager extends Entity {
     }
   }
 
-  // Start a new round - reset round scores but keep total scores and placement points
+  // Start a new round - reset round scores and total scores, but keep placement points
   public startNewRound(): void {
     for (const [playerId, stats] of this.playerStats.entries()) {
-      stats.roundScore = 0;
+      stats.totalScore = 0;  // Reset total score at start of round
+      stats.roundScore = 0;  // Reset round score
       stats.consecutiveHits = 0;
       stats.multiHitCount = 0;
       stats.lastHitTime = 0;

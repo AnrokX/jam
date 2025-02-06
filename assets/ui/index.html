@@ -1783,10 +1783,14 @@ function updateRoundInfo(roundData) {
     }
   }
 
-  // Reset round scores in the scoreboard to 0
+  // Reset both total and round scores in the scoreboard
   const scores = document.querySelectorAll('.player-score');
   scores.forEach(score => {
+    const totalScore = score.querySelector('.score-value');
     const roundScore = score.querySelector('.round-score');
+    if (totalScore) {
+      totalScore.textContent = '0';
+    }
     if (roundScore) {
       roundScore.textContent = '(+0)';
     }
@@ -1811,10 +1815,14 @@ function handleRoundEnd(data) {
   
   roundInfo.appendChild(statusMessage);
 
-  // Reset round scores to 0 but keep total scores
+  // Reset scores for next round
   const scores = document.querySelectorAll('.player-score');
   scores.forEach(score => {
+    const totalScore = score.querySelector('.score-value');
     const roundScore = score.querySelector('.round-score');
+    if (totalScore) {
+      totalScore.textContent = '0';
+    }
     if (roundScore) {
       roundScore.textContent = '(+0)';
     }

@@ -90,7 +90,7 @@ export class RoundManager {
             };
         }
         
-        // Round 2 - Introduce normal blocks with some static
+        // Round 2 - 100% Normal Blocks
         if (round === 2) {
             return {
                 duration: 20000,
@@ -99,9 +99,9 @@ export class RoundManager {
                 blockSpawnInterval: 1500,
                 speedMultiplier: 0.6,
                 blockTypes: {
-                    normal: 0.7,    // 70% normal blocks
+                    normal: 1.0,    // 100% normal blocks
                     sineWave: 0,
-                    static: 0.3,    // 30% static for comfort
+                    static: 0,
                     verticalWave: 0,
                     popup: 0,
                     rising: 0,
@@ -111,18 +111,18 @@ export class RoundManager {
             };
         }
         
-        // Round 3 - Sine Wave Focus
+        // Round 3 - 100% Sine Wave
         if (round === 3) {
             return {
                 duration: 20000,
-                minBlockCount: 8,
-                maxBlockCount: 12, // Fewer blocks as they're harder
-                blockSpawnInterval: 1500,
+                minBlockCount: 6,  // Fewer blocks as they're harder to hit
+                maxBlockCount: 10,
+                blockSpawnInterval: 1800,
                 speedMultiplier: 0.65,
                 blockTypes: {
-                    normal: 0.1,
-                    sineWave: 0.8,  // 80% sine wave focus
-                    static: 0.1,
+                    normal: 0,
+                    sineWave: 1.0,  // 100% sine wave
+                    static: 0,
                     verticalWave: 0,
                     popup: 0,
                     rising: 0,
@@ -132,20 +132,41 @@ export class RoundManager {
             };
         }
 
-        // Round 4 - Vertical Wave & Pop-up Mix
+        // Round 4 - 100% Vertical Wave
         if (round === 4) {
+            return {
+                duration: 20000,
+                minBlockCount: 6,
+                maxBlockCount: 10,
+                blockSpawnInterval: 1800,
+                speedMultiplier: 0.7,
+                blockTypes: {
+                    normal: 0,
+                    sineWave: 0,
+                    static: 0,
+                    verticalWave: 1.0,  // 100% vertical wave
+                    popup: 0,
+                    rising: 0,
+                    parabolic: 0,
+                    pendulum: 0
+                }
+            };
+        }
+
+        // Round 5 - 100% Pop-up
+        if (round === 5) {
             return {
                 duration: 20000,
                 minBlockCount: 8,
                 maxBlockCount: 12,
                 blockSpawnInterval: 1500,
-                speedMultiplier: 0.7,
+                speedMultiplier: 0.75,
                 blockTypes: {
-                    normal: 0.1,
-                    sineWave: 0.1,
-                    static: 0.1,
-                    verticalWave: 0.4, // 40% vertical wave
-                    popup: 0.3,        // 30% popup introduction
+                    normal: 0,
+                    sineWave: 0,
+                    static: 0,
+                    verticalWave: 0,
+                    popup: 1.0,     // 100% popup targets
                     rising: 0,
                     parabolic: 0,
                     pendulum: 0
@@ -153,85 +174,64 @@ export class RoundManager {
             };
         }
 
-        // Round 5 - Rising & Parabolic Focus
-        if (round === 5) {
-            return {
-                duration: 20000,
-                minBlockCount: 7,
-                maxBlockCount: 10, // Fewer blocks as they're complex
-                blockSpawnInterval: 1800,
-                speedMultiplier: 0.75,
-                blockTypes: {
-                    normal: 0.1,
-                    sineWave: 0,
-                    static: 0.1,
-                    verticalWave: 0,
-                    popup: 0,
-                    rising: 0.4,     // 40% rising
-                    parabolic: 0.4,  // 40% parabolic
-                    pendulum: 0
-                }
-            };
-        }
-
-        // Round 6 - Pendulum Focus
+        // Round 6 - 100% Rising
         if (round === 6) {
             return {
                 duration: 20000,
                 minBlockCount: 6,
-                maxBlockCount: 9, // Even fewer as pendulums are challenging
-                blockSpawnInterval: 2000,
+                maxBlockCount: 10,
+                blockSpawnInterval: 1800,
                 speedMultiplier: 0.8,
                 blockTypes: {
-                    normal: 0.1,
+                    normal: 0,
                     sineWave: 0,
-                    static: 0.1,
+                    static: 0,
                     verticalWave: 0,
                     popup: 0,
-                    rising: 0,
+                    rising: 1.0,    // 100% rising targets
                     parabolic: 0,
-                    pendulum: 0.8  // 80% pendulum focus
+                    pendulum: 0
                 }
             };
         }
 
-        // Round 7 - Complex Mix (No static)
+        // Round 7 - 100% Parabolic
         if (round === 7) {
             return {
                 duration: 20000,
-                minBlockCount: 8,
-                maxBlockCount: 12,
-                blockSpawnInterval: 1500,
+                minBlockCount: 6,
+                maxBlockCount: 10,
+                blockSpawnInterval: 1800,
                 speedMultiplier: 0.85,
                 blockTypes: {
-                    normal: 0.1,
-                    sineWave: 0.2,
+                    normal: 0,
+                    sineWave: 0,
                     static: 0,
-                    verticalWave: 0.2,
-                    popup: 0.2,
-                    rising: 0.1,
-                    parabolic: 0.1,
-                    pendulum: 0.1
+                    verticalWave: 0,
+                    popup: 0,
+                    rising: 0,
+                    parabolic: 1.0,  // 100% parabolic targets
+                    pendulum: 0
                 }
             };
         }
 
-        // Round 8 - Final Challenge
+        // Round 8 - 100% Pendulum
         return {
             duration: 20000,
-            minBlockCount: 10,
-            maxBlockCount: 15,
-            blockSpawnInterval: 1200,
+            minBlockCount: 5,  // Fewer blocks as pendulums are very challenging
+            maxBlockCount: 8,
+            blockSpawnInterval: 2000,  // Slower spawning for pendulums
             speedMultiplier: 0.9,
             blockTypes: {
-                normal: 0.05,
-                sineWave: 0.15,
+                normal: 0,
+                sineWave: 0,
                 static: 0,
-                verticalWave: 0.2,
-                popup: 0.2,
-                rising: 0.15,
-                parabolic: 0.15,
-                pendulum: 0.1
+                verticalWave: 0,
+                popup: 0,
+                rising: 0,
+                parabolic: 0,
+                pendulum: 1.0  // 100% pendulum targets
             }
         };
     }
@@ -506,6 +506,53 @@ export class RoundManager {
                                 y: Math.min(MOVING_BLOCK_CONFIG.VERTICAL_WAVE.HEIGHT_OFFSET, 7)
                             },
                             moveSpeed: baseSpeed * 0.75
+                        });
+                        break;
+                    case 'popup':
+                        this.blockManager.createPopUpTarget({
+                            spawnPosition: spawnPosition,
+                            startY: spawnPosition.y,
+                            topY: spawnPosition.y + 3,
+                            moveSpeed: baseSpeed * 0.8
+                        });
+                        break;
+                    case 'rising':
+                        this.blockManager.createRisingTarget({
+                            startY: 1,  // Start at ground level
+                            firstStopY: 4, // First stop height
+                            finalY: 7,  // Final height
+                            moveSpeed: baseSpeed * 0.7,
+                            pauseDuration: 500 // Pause for half second at first stop
+                        });
+                        break;
+                    case 'parabolic':
+                        this.blockManager.createParabolicTarget({
+                            startPoint: {
+                                x: spawnPosition.x,
+                                y: spawnPosition.y,
+                                z: spawnPosition.z
+                            },
+                            endPoint: {
+                                x: spawnPosition.x + 10,
+                                y: spawnPosition.y,
+                                z: spawnPosition.z
+                            },
+                            maxHeight: 5,
+                            duration: 3000,
+                            moveSpeed: baseSpeed * 0.65
+                        });
+                        break;
+                    case 'pendulum':
+                        this.blockManager.createPendulumTarget({
+                            pivotPoint: {
+                                x: spawnPosition.x,
+                                y: spawnPosition.y + 5,
+                                z: spawnPosition.z
+                            },
+                            length: 4,
+                            amplitude: 1,
+                            frequency: 0.5,
+                            moveSpeed: baseSpeed * 0.5
                         });
                         break;
                 }

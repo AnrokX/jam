@@ -129,7 +129,7 @@
     {
       "id": 22,
       "name": "lava",
-      "textureUri": "blocks/lava.png",
+      "textureUri": "blocks/lava/lava.png",
       "isCustom": false
     },
     {
@@ -249,7 +249,7 @@
     {
       "id": 42,
       "name": "water-flow",
-      "textureUri": "blocks/water-flow.png",
+      "textureUri": "blocks/water/water-flow.png",
       "isCustom": false
     },
     {

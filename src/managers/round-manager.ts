@@ -14,6 +14,10 @@ export interface RoundConfig {
         sineWave: number;
         static: number;
         verticalWave: number;
+        popup: number;     // Pop-up targets that appear and disappear
+        rising: number;    // Rising targets that move upward
+        parabolic: number; // Targets that follow parabolic paths
+        pendulum: number;  // Targets that swing like pendulums
     };
 }
 
@@ -43,11 +47,16 @@ export class RoundManager {
     private readonly REQUIRED_PLAYERS = 2;
     private checkPlayersInterval: NodeJS.Timeout | null = null;
     private readonly GAME_CONFIG: GameConfig = {
-        maxRounds: 4  // Game ends after 5 roundsasdsad
+        maxRounds: 10
     };
     private gameInProgress: boolean = false;
     private roundTransitionPending: boolean = false;
     private readonly TRANSITION_DURATION: number = 5000; // Default 5 seconds
+
+    // Helper function to get a random Y position within a range
+    private getRandomY(min: number, max: number): number {
+        return min + Math.random() * (max - min);
+    }
 
     constructor(
         private world: World,
@@ -65,68 +74,211 @@ export class RoundManager {
     }
 
     private getRoundConfig(round: number): RoundConfig {
-        // Tutorial round (Round 1)
+        // Tutorial round (Round 1) - Static targets only
         if (round === 1) {
             return {
-                duration: 10000,  // 90 seconds for first round to give more time
-                minBlockCount: 8,  // Start with fewer blocks
-                maxBlockCount: 12, // Keep it manageable
-                blockSpawnInterval: 1800, // Slower spawning (2 seconds)
-                speedMultiplier: 0.5,  // Reduced from 0.7 for even slower tutorial speed
+                duration: 60000,  // 60 seconds
+                minBlockCount: 8,
+                maxBlockCount: 12,
+                blockSpawnInterval: 1800,
+                speedMultiplier: 0.5,
                 blockTypes: {
-                    normal: 0,      // No normal blocks in tutorial
-                    sineWave: 0,    // No sine waves in tutorial
-                    static: 1.0,    // static targets to learn aiming
-                    verticalWave: 0  // No vertical waves in tutorial
+                    normal: 0,
+                    sineWave: 0,
+                    static: 1.0,    // 100% static targets for learning
+                    verticalWave: 0,
+                    popup: 0,
+                    rising: 0,
+                    parabolic: 0,
+                    pendulum: 0
                 }
             };
         }
         
+        // Round 2 - 100% Normal Blocks
         if (round === 2) {
             return {
-                duration: 75000,  // 75 seconds
-                minBlockCount: 10,  // Slight increase from round 1
-                maxBlockCount: 15,  // Slight increase from round 1
-                blockSpawnInterval: 1800, // 1.8 seconds between spawns
-                speedMultiplier: 0.6,  // Reduced from 0.7 for smoother progression
+                duration: 60000,
+                minBlockCount: 4,
+                maxBlockCount: 8,
+                blockSpawnInterval: 1500,
+                speedMultiplier: 0.6,
                 blockTypes: {
-                    normal: 0.1,    // Small chance for normal blocks
-                    sineWave: 0.2,  // Introduce sine wave blocks at 20%
-                    static: 0.7,    // Majority still static for learning
-                    verticalWave: 0  // No vertical waves yet
+                    normal: 1.0,    // 100% normal blocks
+                    sineWave: 0,
+                    static: 0,
+                    verticalWave: 0,
+                    popup: 0,
+                    rising: 0,
+                    parabolic: 0,
+                    pendulum: 0
                 }
             };
         }
         
-        // Early rounds (3)
+        // Round 3 - 100% Sine Wave
         if (round === 3) {
             return {
-                duration: 75000,  // 75 seconds
-                minBlockCount: 12 + Math.floor(round * 2),
-                maxBlockCount: 18 + Math.floor(round * 3),
-                blockSpawnInterval: 1500,  // 1.5 seconds between spawns
-                speedMultiplier: 0.7 + (round * 0.05),  // Reduced multiplier increase per round
+                duration: 60000,
+                minBlockCount: 6,
+                maxBlockCount: 10,
+                blockSpawnInterval: 1800,
+                speedMultiplier: 0.65,
                 blockTypes: {
-                    normal: 0.2,     // Increased normal blocks
-                    sineWave: 0.25,  // 25% sine waves
-                    static: 0.55,    // Reduced static targets
-                    verticalWave: 0  // No vertical waves yet
+                    normal: 0,
+                    sineWave: 1.0,
+                    static: 0,
+                    verticalWave: 0,
+                    popup: 0,
+                    rising: 0,
+                    parabolic: 0,
+                    pendulum: 0
                 }
             };
         }
-        
-        // Regular rounds (4+)
+
+        // Round 4 - 100% Vertical Wave
+        if (round === 4) {
+            return {
+                duration: 60000,
+                minBlockCount: 6,
+                maxBlockCount: 10,
+                blockSpawnInterval: 1800,
+                speedMultiplier: 0.7,
+                blockTypes: {
+                    normal: 0,
+                    sineWave: 0,
+                    static: 0,
+                    verticalWave: 1.0,
+                    popup: 0,
+                    rising: 0,
+                    parabolic: 0,
+                    pendulum: 0
+                }
+            };
+        }
+
+        // Round 5 - 100% Pop-up
+        if (round === 5) {
+            return {
+                duration: 60000,
+                minBlockCount: 4,
+                maxBlockCount: 6,
+                blockSpawnInterval: 1500,
+                speedMultiplier: 0.75,
+                blockTypes: {
+                    normal: 0,
+                    sineWave: 0,
+                    static: 0,
+                    verticalWave: 0,
+                    popup: 1.0,
+                    rising: 0,
+                    parabolic: 0,
+                    pendulum: 0
+                }
+            };
+        }
+
+        // Round 6 - 100% Rising
+        if (round === 6) {
+            return {
+                duration: 60000,
+                minBlockCount: 4,
+                maxBlockCount: 6,
+                blockSpawnInterval: 1800,
+                speedMultiplier: 0.8,
+                blockTypes: {
+                    normal: 0,
+                    sineWave: 0,
+                    static: 0,
+                    verticalWave: 0,
+                    popup: 0,
+                    rising: 1.0,
+                    parabolic: 0,
+                    pendulum: 0
+                }
+            };
+        }
+
+        // Round 7 - 100% Parabolic
+        if (round === 7) {
+            return {
+                duration: 60000,
+                minBlockCount: 4,
+                maxBlockCount: 6,
+                blockSpawnInterval: 1800,
+                speedMultiplier: 0.85,
+                blockTypes: {
+                    normal: 0,
+                    sineWave: 0,
+                    static: 0,
+                    verticalWave: 0,
+                    popup: 0,
+                    rising: 0,
+                    parabolic: 1.0,
+                    pendulum: 0
+                }
+            };
+        }
+
+        // Round 8 - 100% Pendulum
+        if (round === 8) {
+            return {
+                duration: 60000,
+                minBlockCount: 3,
+                maxBlockCount: 6,
+                blockSpawnInterval: 2000,
+                speedMultiplier: 0.9,
+                blockTypes: {
+                    normal: 0,
+                    sineWave: 0,
+                    static: 0,
+                    verticalWave: 0,
+                    popup: 0,
+                    rising: 0,
+                    parabolic: 0,
+                    pendulum: 1.0
+                }
+            };
+        }
+
+        // Round 9 - "Up and Down" Mix (Vertical Wave, Rising, and Popup)
+        if (round === 9) {
+            return {
+                duration: 60000,
+                minBlockCount: 5,
+                maxBlockCount: 8,
+                blockSpawnInterval: 1800,
+                speedMultiplier: 0.95,
+                blockTypes: {
+                    normal: 0,
+                    sineWave: 0,
+                    static: 0,
+                    verticalWave: 0.4,  // 40% vertical wave
+                    popup: 0.3,         // 30% popup
+                    rising: 0.3,        // 30% rising
+                    parabolic: 0,
+                    pendulum: 0
+                }
+            };
+        }
+
+        // Round 10 - "Chaos" Mix (Pendulum, Parabolic, and Sine Wave)
         return {
-            duration: 60000,  // 60 seconds
-            minBlockCount: 15 + Math.floor(round * 2),
-            maxBlockCount: 25 + Math.floor(round * 3),
-            blockSpawnInterval: 1000,  // 1 second between spawns
-            speedMultiplier: 0.8 + ((round - 3) * 0.05),  // Reduced from 0.1 to 0.05 increase per round
+            duration: 60000,
+            minBlockCount: 4,
+            maxBlockCount: 7,
+            blockSpawnInterval: 2000,
+            speedMultiplier: 1.0,
             blockTypes: {
-                normal: Math.min(0.3, 0.2 + (round - 3) * 0.05),
-                sineWave: Math.min(0.3, 0.25 + (round - 3) * 0.025),  // Slower increase in sine wave frequency
-                static: Math.max(0.3, 0.55 - (round - 3) * 0.05),
-                verticalWave: Math.min(0.1, (round - 3) * 0.05)
+                normal: 0,
+                sineWave: 0.3,     // 30% sine wave
+                static: 0,
+                verticalWave: 0,
+                popup: 0,
+                rising: 0,
+                parabolic: 0.4,    // 40% parabolic
+                pendulum: 0.3      // 30% pendulum
             }
         };
     }
@@ -305,12 +457,38 @@ export class RoundManager {
                                    Math.random() * (movementBounds.max.x - movementBounds.min.x - 2 * safetyMargin);
                         })(),
                         y: (() => {
-                            if (isStaticBlock) return 1 + Math.random() * 7;  // Static: 1 to 8
-                            if (isVerticalWave) return Math.min(MOVING_BLOCK_CONFIG.VERTICAL_WAVE.HEIGHT_OFFSET, 7);
-                            // Moving blocks: Use movement bounds with safety margin
-                            const movementBounds = MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS;
-                            return movementBounds.min.y + safetyMargin + 
-                                   Math.random() * (movementBounds.max.y - movementBounds.min.y - 2 * safetyMargin);
+                            switch(chosenType) {
+                                case 'static':
+                                    return this.getRandomY(0, 12);  // Static: Wide range for variety
+                                case 'normal':
+                                    return this.getRandomY(-1, 10);  // Normal: Good spread above and below
+                                case 'sineWave':
+                                    return this.getRandomY(0, 10);  // Sine wave: Slight bias towards higher
+                                case 'verticalWave':
+                                    // Calculate random height parameters for more variance
+                                    const waveBaseHeight = this.getRandomY(-3, 3);  // Varied base height
+                                    const waveAmplitude = this.getRandomY(6, 12);   // Higher amplitude for more dramatic peaks
+                                    const waveFrequency = this.getRandomY(0.2, 0.4); // Varied frequency for different speeds
+                                    
+                                    return waveBaseHeight;  // Start at varied base height
+                                case 'popup':
+                                    // Start much lower and pop up much higher with less hang time
+                                    const popupHeight = this.getRandomY(10, 18); // Much higher pop-up range
+                                    const popupStartY = this.getRandomY(-12, -6); // Start even lower with more variance
+                                    
+                                    return popupStartY;  // Use lower start position
+                                case 'rising':
+                                    // Start below ground level
+                                    return this.getRandomY(-5, 4);  // Start deep to rise up dramatically
+                                case 'parabolic':
+                                    // Start at varied heights
+                                    return this.getRandomY(-4, 8);  // Equal spread for parabolic arcs
+                                case 'pendulum':
+                                    // Start higher for swinging
+                                    return this.getRandomY(-2,8);  // Keep high for swinging down
+                                default:
+                                    return this.getRandomY(0, 10);
+                            }
                         })(),
                         z: (() => {
                             if (isStaticBlock) return Math.random() * 24 - 12; // Static: -12 to 12
@@ -336,8 +514,9 @@ export class RoundManager {
                     // Check distance from all existing blocks
                     const isTooCloseToBlocks = existingBlocks.some(block => {
                         const dx = block.position.x - spawnPosition.x;
+                        const dy = block.position.y - spawnPosition.y;
                         const dz = block.position.z - spawnPosition.z;
-                        return Math.sqrt(dx * dx + dz * dz) < minSpacing;
+                        return Math.sqrt(dx * dx + dy * dy + dz * dz) < minSpacing;
                     });
 
                     // Break if position is safe from both platforms and other blocks
@@ -360,12 +539,24 @@ export class RoundManager {
 
                 // Spawn the chosen block type with appropriate spacing
                 switch(chosenType) {
+                    case 'static':
+                        this.blockManager.createStaticTarget({
+                            x: spawnPosition.x,
+                            y: spawnPosition.y,
+                            z: spawnPosition.z
+                        });
+                        break;
                     case 'normal':
                         this.blockManager.createZAxisBlock(spawnPosition);
                         break;
                     case 'sineWave':
                         // For sine wave blocks, we need to account for the amplitude in spawn position
-                        const sineWaveAmplitude = 8; // Match the amplitude in MovingBlockEntity
+                        const sineWaveAmplitude = this.getRandomY(6, 10); // Random amplitude between 6-10 units
+                        const sineWaveFrequency = this.getRandomY(0.15, 0.25); // Varied frequency for different wave patterns
+                        
+                        // Create variety by spawning at different points in the wave cycle
+                        const initialOffset = this.getRandomY(-sineWaveAmplitude, sineWaveAmplitude);
+                        
                         const sineWaveSpawnPosition = {
                             ...spawnPosition,
                             // Restrict X spawn position to account for sine wave amplitude
@@ -376,14 +567,15 @@ export class RoundManager {
                                 ),
                                 MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.min.x + sineWaveAmplitude + safetyMargin
                             ),
-                            // Fixed Y position for sine wave blocks
-                            y: 4
+                            // Vary the Y position for initial offset
+                            y: spawnPosition.y + initialOffset
                         };
                         
                         this.blockManager.createSineWaveBlock({
                             spawnPosition: sineWaveSpawnPosition,
-                            moveSpeed: baseSpeed * 0.6, // Slower base speed for sine wave blocks
-                            amplitude: sineWaveAmplitude, // Fixed amplitude to match MovingBlockEntity
+                            moveSpeed: baseSpeed * 0.6,
+                            amplitude: sineWaveAmplitude,
+                            frequency: sineWaveFrequency
                             frequency: 0.2, // Fixed frequency to match MovingBlockEntity
                             blockTextureUri: 'blocks/nuit.png' // Changed to nuit texture for sine wave (mystical flowing pattern)
                         });
@@ -396,12 +588,91 @@ export class RoundManager {
                         });
                         break;
                     case 'verticalWave':
+                        // Calculate random height parameters for more variance
+                        const waveBaseHeight = this.getRandomY(-3, 3);  // Varied base height
+                        const waveAmplitude = this.getRandomY(6, 12);   // Higher amplitude for more dramatic peaks
+                        const waveFrequency = this.getRandomY(0.2, 0.4); // Varied frequency for different speeds
+                        
                         this.blockManager.createVerticalWaveBlock({
                             spawnPosition: {
                                 ...spawnPosition,
-                                y: Math.min(MOVING_BLOCK_CONFIG.VERTICAL_WAVE.HEIGHT_OFFSET, 7)
+                                y: waveBaseHeight  // Start at varied base height
                             },
-                            moveSpeed: baseSpeed * 0.75
+                            moveSpeed: baseSpeed * 0.75,
+                            amplitude: waveAmplitude,    // Add amplitude for higher peaks
+                            frequency: waveFrequency     // Add frequency for varied wave speeds
+                        });
+                        break;
+                    case 'popup':
+                        // Start much lower and pop up much higher with less hang time
+                        const popupHeight = this.getRandomY(10, 18); // Much higher pop-up range
+                        const popupStartY = this.getRandomY(-12, -6); // Start even lower with more variance
+                        
+                        this.blockManager.createPopUpTarget({
+                            spawnPosition: {
+                                ...spawnPosition,
+                                y: popupStartY  // Use lower start position
+                            },
+                            startY: popupStartY,
+                            topY: popupStartY + popupHeight,  // Pop up much higher from lower start
+                            moveSpeed: baseSpeed * 1.6  // 60% faster for less hang time
+                        });
+                        break;
+                    case 'rising':
+                        const riseHeight = this.getRandomY(5, 8); // Random rise height between 5-8 units
+                        this.blockManager.createRisingTarget({
+                            startY: spawnPosition.y,
+                            firstStopY: spawnPosition.y + (riseHeight * 0.6), // Stop at 60% of total height
+                            finalY: spawnPosition.y + riseHeight,
+                            moveSpeed: baseSpeed * 0.7,
+                            pauseDuration: 500
+                        });
+                        break;
+                    case 'parabolic':
+                        // Calculate a natural throwing arc
+                        const throwDistance = this.getRandomY(15, 25); // Random throw distance
+                        const throwAngle = this.getRandomY(45, 75);    // Steeper angle between 45-75 degrees for more upward arc
+                        const throwHeight = this.getRandomY(10, 15);   // Higher maximum height
+                        
+                        // Start much lower and throw upward
+                        const throwStartY = this.getRandomY(-8, -4);   // Start well below ground level
+                        
+                        // Calculate random direction angle for more varied trajectories
+                        const directionAngle = Math.random() * Math.PI * 2; // Random angle 0-360 degrees
+                        
+                        this.blockManager.createParabolicTarget({
+                            startPoint: {
+                                x: spawnPosition.x,
+                                y: throwStartY,
+                                z: spawnPosition.z
+                            },
+                            endPoint: {
+                                // Use direction angle to create random horizontal movement direction
+                                x: spawnPosition.x + throwDistance * Math.cos(directionAngle),
+                                y: throwStartY - 2,  // End slightly lower than start for more dramatic fall
+                                z: spawnPosition.z + throwDistance * Math.sin(directionAngle)
+                            },
+                            maxHeight: throwHeight,
+                            duration: 4500,  // Much slower for more hang time
+                            moveSpeed: baseSpeed * 0.5  // Slower speed for more hang time
+                        });
+                        break;
+                    case 'pendulum':
+                        const pendulumHeight = this.getRandomY(6, 12); // Increased height range
+                        const pendulumLength = pendulumHeight * this.getRandomY(0.6, 1.0); // Varied rope length
+                        const swingAmplitude = this.getRandomY(0.8, 1.4); // Random swing amplitude
+                        const swingFrequency = this.getRandomY(0.15, 0.35); // Slower frequency (was 0.3-0.7)
+                        
+                        this.blockManager.createPendulumTarget({
+                            pivotPoint: {
+                                x: spawnPosition.x,
+                                y: spawnPosition.y + pendulumHeight,  // Higher pivot point
+                                z: spawnPosition.z
+                            },
+                            length: pendulumLength,  // Varied rope length
+                            amplitude: swingAmplitude,  // More varied swing width
+                            frequency: swingFrequency,  // Slower swing speed
+                            moveSpeed: baseSpeed * this.getRandomY(0.25, 0.4)  // Much slower speed (was 0.4-0.6)
                         });
                         break;
                 }

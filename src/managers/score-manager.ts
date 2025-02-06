@@ -30,7 +30,7 @@ export class ScoreManager extends Entity {
     
     // Movement multipliers adjusted for progression
     BASE_MOVEMENT_MULTIPLIER: 1.0,   // Base for static targets
-    Z_AXIS_MULTIPLIER: 1.5,         // New multiplier for Z-Axis blocks
+    Z_AXIS_MULTIPLIER: 4.0,         // New multiplier for Z-Axis blocks
     SINE_WAVE_MULTIPLIER: 3.0,      // Reduced from 2.5 for better scaling
     VERTICAL_WAVE_MULTIPLIER: 3.0,   // Reduced from 3.0
     POPUP_MULTIPLIER: 4.0,          // Reduced from 3.5

@@ -1786,7 +1786,8 @@ function startLocalTimer(initialTimeMs) {
     // Update lastTimeRemaining for potential server sync
     lastTimeRemaining = remaining;
     
-    const timeRemaining = Math.ceil(remaining / 1000);
+    // Calculate time components, using Math.floor instead of Math.ceil
+    const timeRemaining = Math.floor(remaining / 1000);  // Changed from Math.ceil to Math.floor
     const minutes = Math.floor(timeRemaining / 60);
     const seconds = timeRemaining % 60;
     const formattedTime = `Time: ${minutes}:${seconds.toString().padStart(2, '0')}`;
@@ -1808,6 +1809,11 @@ function startLocalTimer(initialTimeMs) {
     if (remaining <= 0) {
       clearInterval(timerInterval);
       timerInterval = null;
+      
+      // Ensure we show 0:00 at the end
+      if (roundTimer) {
+        roundTimer.textContent = 'Time: 0:00';
+      }
       
       // Send a message to the game that time is up
       if (typeof hytopia !== 'undefined') {

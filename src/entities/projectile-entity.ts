@@ -59,6 +59,9 @@ export class ProjectileEntity extends Entity {
         SCALE_CHANGE_THRESHOLD: 0.1, // Maximum allowed scale change per tick
     } as const;
 
+    // Store original options
+    private readonly originalOptions: ProjectileOptions;
+
     private speed: number;
     private lifetime: number;
     private damage: number;
@@ -92,6 +95,9 @@ export class ProjectileEntity extends Entity {
             modelScale: options.modelScale || 0.5
         });
 
+        // Store options for later use
+        this.originalOptions = { ...options };
+        
         // Initialize debug tracking
         this.debugId = `proj_${Math.random().toString(36).substr(2, 9)}`;
         this.debugSpawnTime = Date.now();
@@ -616,12 +622,21 @@ export class ProjectileEntity extends Entity {
 
         // Set scale through the base Entity class
         if (this.isSpawned) {
-            // Use the modelScale property directly since that's what the Entity class exposes
-            Object.defineProperty(this, 'modelScale', {
-                value: scale,
-                writable: true,
-                configurable: true
+            // Create a new Entity with the desired scale
+            const scaledEntity = new Entity({
+                ...this.originalOptions,
+                modelScale: scale
             });
+            
+            // Copy the scaled entity's properties to this entity
+            if (scaledEntity.modelScale) {
+                Object.defineProperty(this, 'modelScale', {
+                    value: scaledEntity.modelScale,
+                    writable: false,
+                    configurable: true
+                });
+            }
+            
             this.debugLastScale = scale;
         } else {
             console.warn(`${DEBUG_PREFIX} Attempted to set scale on unspawned projectile ${this.debugId}`);

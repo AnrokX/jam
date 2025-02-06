@@ -1,4 +1,4 @@
-import { World, Player } from 'hytopia';
+import { World, Player, Entity } from 'hytopia';
 import { ProjectileEntity } from '../entities/projectile-entity';
 import { RaycastHandler } from '../raycast/raycast-handler';
 import { Vector3Like } from 'hytopia';
@@ -15,6 +15,7 @@ interface DebugProjectileInfo {
   isPreview: boolean;
   scale: number;
   lastUpdateTime: number;
+  entity?: ProjectileEntity; // Store reference to actual entity
 }
 
 export interface PlayerProjectileState {
@@ -41,9 +42,11 @@ export class PlayerProjectileManager {
   private readonly audioManager: AudioManager;
 
   private static readonly MANAGER_LIMITS = {
-    MAX_ACTIVE_PROJECTILES: 20,    // Maximum projectiles per player
+    MAX_ACTIVE_PROJECTILES: 10,    // Reduced from 20 to 10
     MIN_SPAWN_INTERVAL: 100,       // Minimum ms between spawns
-    CLEANUP_INTERVAL: 5000,        // How often to check for orphaned projectiles
+    CLEANUP_INTERVAL: 2000,        // Reduced from 5000 to 2000
+    MAX_PROJECTILE_AGE: 3000,      // Maximum age before forced cleanup
+    SCALE_VALIDATION_INTERVAL: 500, // How often to validate scales
   } as const;
 
   constructor(world: World, raycastHandler: RaycastHandler, enablePreview: boolean = false) {
@@ -57,6 +60,9 @@ export class PlayerProjectileManager {
     
     // Add cleanup interval
     setInterval(() => this.cleanupOrphanedProjectiles(), PlayerProjectileManager.MANAGER_LIMITS.CLEANUP_INTERVAL);
+
+    // Add scale validation interval
+    setInterval(() => this.validateProjectileScales(), PlayerProjectileManager.MANAGER_LIMITS.SCALE_VALIDATION_INTERVAL);
   }
 
   initializePlayer(playerId: string): void {
@@ -77,10 +83,19 @@ export class PlayerProjectileManager {
       // Clean up all active projectiles
       state.activeProjectiles.forEach((info, id) => {
         console.log(`${DEBUG_PREFIX} Cleaning up projectile ${id} for player ${playerId}`);
-        if (state.previewProjectile) {
-          state.previewProjectile.despawn();
+        if (info.entity && info.entity.isSpawned) {
+          console.log(`${DEBUG_PREFIX} Found and despawning projectile entity ${id}`);
+          info.entity.despawn();
         }
       });
+      
+      // Clean up preview projectile
+      if (state.previewProjectile) {
+        state.previewProjectile.despawn();
+      }
+
+      // Clear the active projectiles map
+      state.activeProjectiles.clear();
     }
     this.playerStates.delete(playerId);
   }
@@ -120,7 +135,8 @@ export class PlayerProjectileManager {
         lastKnownPosition: position,
         isPreview: false,
         scale: projectile.modelScale || 1, // Default to 1 if undefined
-        lastUpdateTime: Date.now()
+        lastUpdateTime: Date.now(),
+        entity: projectile // Store reference to the actual entity
     };
     
     state.activeProjectiles.set(debugInfo.id, debugInfo);
@@ -306,6 +322,42 @@ export class PlayerProjectileManager {
     });
   }
 
+  private validateProjectileScales(): void {
+    this.playerStates.forEach((state, playerId) => {
+      state.activeProjectiles.forEach((info, id) => {
+        if (info.entity && info.entity.isSpawned) {
+          const scale = info.entity.modelScale;
+          if (scale && (scale > 2.0 || scale < 0.1)) {
+            console.error(`${DEBUG_PREFIX} CRITICAL: Invalid scale ${scale} detected for projectile ${id}, despawning`);
+            info.entity.despawn();
+            state.activeProjectiles.delete(id);
+          }
+        }
+      });
+    });
+  }
+
+  private cleanupOrphanedProjectiles(): void {
+    this.playerStates.forEach((state, playerId) => {
+      const now = Date.now();
+      state.activeProjectiles.forEach((info, id) => {
+        // Clean up if:
+        // 1. No updates for 2 seconds OR
+        // 2. Projectile is too old OR
+        // 3. Entity is no longer spawned
+        if (now - info.lastUpdateTime > 2000 || 
+            now - info.spawnTime > PlayerProjectileManager.MANAGER_LIMITS.MAX_PROJECTILE_AGE ||
+            (info.entity && !info.entity.isSpawned)) {
+          console.warn(`${DEBUG_PREFIX} Cleaning up projectile ${id} for player ${playerId}`);
+          if (info.entity && info.entity.isSpawned) {
+            info.entity.despawn();
+          }
+          state.activeProjectiles.delete(id);
+        }
+      });
+    });
+  }
+
   private cleanupPlayerProjectiles(playerId: string): void {
     const state = this.playerStates.get(playerId);
     if (!state) return;
@@ -314,22 +366,14 @@ export class PlayerProjectileManager {
     
     const now = Date.now();
     state.activeProjectiles.forEach((info, id) => {
-      if (now - info.spawnTime > 5000) { // Force cleanup after 5 seconds
+      // Force cleanup of old projectiles
+      if (now - info.spawnTime > PlayerProjectileManager.MANAGER_LIMITS.MAX_PROJECTILE_AGE) {
         console.warn(`${DEBUG_PREFIX} Force cleaning up old projectile ${id}`);
+        if (info.entity && info.entity.isSpawned) {
+          info.entity.despawn();
+        }
         state.activeProjectiles.delete(id);
       }
-    });
-  }
-
-  private cleanupOrphanedProjectiles(): void {
-    this.playerStates.forEach((state, playerId) => {
-      const now = Date.now();
-      state.activeProjectiles.forEach((info, id) => {
-        if (now - info.lastUpdateTime > 2000) { // No updates for 2 seconds
-          console.warn(`${DEBUG_PREFIX} Cleaning up orphaned projectile ${id} for player ${playerId}`);
-          state.activeProjectiles.delete(id);
-        }
-      });
     });
   }
 } 

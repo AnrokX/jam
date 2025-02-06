@@ -356,4 +356,121 @@ describe('RoundManager - Round Continuity', () => {
         expect(roundManager.getCurrentRound()).toBe((roundManager as any).GAME_CONFIG.maxRounds);
         expect((roundManager as any).gameInProgress).toBe(false);
     });
+
+    test('should not start new round if one is pending', async () => {
+        // Add initial player and start game
+        addMockPlayer('player1');
+        
+        // Start and end round 1
+        roundManager.startRound();
+        (roundManager as any).actuallyStartRound();
+        roundManager.endRound();
+        
+        // At this point, there's a 5-second timer to start next round
+        
+        // Simulate new player joining during the wait
+        addMockPlayer('player2');
+        roundManager.startRound(); // Should not trigger new round
+        
+        expect(roundManager.getCurrentRound()).toBe(1);
+        
+        // Let the scheduled round start happen
+        (roundManager as any).actuallyStartRound();
+        expect(roundManager.getCurrentRound()).toBe(2);
+    });
+
+    test('should handle player reload during round transition', async () => {
+        // Start with player1
+        const player1 = addMockPlayer('player1');
+        
+        // Start and end round 1
+        roundManager.startRound();
+        (roundManager as any).actuallyStartRound();
+        roundManager.endRound();
+        
+        // Simulate player "reload" - same player rejoining
+        mockPlayers = [];
+        const player1Rejoined = addMockPlayer('player1');
+        
+        // Try to start round (as would happen on player join)
+        roundManager.startRound();
+        
+        // Should still be in round 1, waiting for scheduled next round
+        expect(roundManager.getCurrentRound()).toBe(1);
+        
+        // Let the scheduled round start happen
+        (roundManager as any).actuallyStartRound();
+        expect(roundManager.getCurrentRound()).toBe(2);
+    });
+
+    test('should prevent double round starts during transition period', async () => {
+        jest.useFakeTimers();
+        
+        // Add initial player and start game
+        addMockPlayer('player1');
+        
+        // Start first round
+        roundManager.startRound();
+        (roundManager as any).actuallyStartRound();
+        expect(roundManager.getCurrentRound()).toBe(1);
+        
+        // End round which schedules next round start
+        roundManager.endRound();
+        
+        // Verify we're in transition state
+        expect((roundManager as any).isRoundActive).toBe(false);
+        expect((roundManager as any).roundTransitionPending).toBe(true);
+        
+        // Simulate player reload/rejoin during transition
+        mockPlayers = [];
+        addMockPlayer('player1');
+        roundManager.startRound(); // This should not trigger a new round
+        
+        // Fast forward 2.5 seconds (half of transition time)
+        jest.advanceTimersByTime(2500);
+        
+        // Add another player during transition
+        addMockPlayer('player2');
+        roundManager.startRound(); // This should also not trigger a new round
+        
+        // Verify round hasn't changed
+        expect(roundManager.getCurrentRound()).toBe(1);
+        
+        // Complete the transition period
+        jest.advanceTimersByTime(2500);
+        
+        // Verify only one round increment occurred
+        expect(roundManager.getCurrentRound()).toBe(2);
+        
+        jest.useRealTimers();
+    });
+
+    test('should properly handle rapid player joins/leaves', async () => {
+        jest.useFakeTimers();
+        
+        // Start game with player1
+        addMockPlayer('player1');
+        roundManager.startRound();
+        (roundManager as any).actuallyStartRound();
+        
+        // End round 1
+        roundManager.endRound();
+        
+        // Simulate multiple player changes during transition
+        for(let i = 0; i < 5; i++) {
+            mockPlayers = [];
+            addMockPlayer(`player${i}`);
+            roundManager.startRound();
+            jest.advanceTimersByTime(500);
+        }
+        
+        // Verify we're still waiting for the original transition
+        expect(roundManager.getCurrentRound()).toBe(1);
+        
+        // Complete transition
+        jest.advanceTimersByTime(5000);
+        expect(roundManager.getCurrentRound()).toBe(2);
+        
+        jest.useRealTimers();
+    });
 }); 

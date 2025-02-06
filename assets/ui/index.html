@@ -1977,13 +1977,21 @@ function updateRoundInfo(roundData) {
 }
 
 function handleRoundEnd(data) {
-  // Create round complete message with new styling
-  const statusMessage = document.createElement('div');
-  statusMessage.className = 'round-complete-message';
-  statusMessage.textContent = 'Round Complete!';
-  
-  // Add to body instead of roundInfo
-  document.body.appendChild(statusMessage);
+  // Only show round complete message if it's not the final round
+  if (data.round < data.totalRounds) {
+    // Create round complete message with new styling
+    const statusMessage = document.createElement('div');
+    statusMessage.className = 'round-complete-message';
+    statusMessage.textContent = 'Round Complete!';
+    
+    // Add to body instead of roundInfo
+    document.body.appendChild(statusMessage);
+
+    // Remove status message after transition to next round
+    setTimeout(() => {
+      statusMessage.remove();
+    }, data.nextRoundIn);
+  }
 
   // Reset scores just before the next round starts
   setTimeout(() => {
@@ -2000,11 +2008,6 @@ function handleRoundEnd(data) {
       }
     });
   }, data.nextRoundIn - 100); // Reset 100ms before next round starts
-  
-  // Remove status message after transition to next round
-  setTimeout(() => {
-    statusMessage.remove();
-  }, data.nextRoundIn);
 }
 
 function updateScoreboard(scores) {

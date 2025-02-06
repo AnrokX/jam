@@ -997,23 +997,23 @@ export class MovingBlockManager {
 
     const block = new MovingBlockEntity({
       moveSpeed: options.moveSpeed ?? MOVING_BLOCK_CONFIG.DEFAULT_SPEED * 0.8,
-      blockTextureUri: options.blockTextureUri ?? 'blocks/diamond-ore.png', // Changed to more visible texture
-      blockHalfExtents: { x: 1, y: 1, z: 1 }, // Made the block more cubic and visible
+      blockTextureUri: options.blockTextureUri ?? 'blocks/diamond-ore.png',
+      blockHalfExtents: { x: 1, y: 1, z: 1 },
       movementBehavior: new SineWaveMovement({
-        amplitude: options.amplitude ?? 4,
-        frequency: options.frequency ?? 0.5,
+        amplitude: options.amplitude ?? 8,  // Increased from 4 to 8 for wider X movement
+        frequency: options.frequency ?? 0.2,  // Reduced from 0.5 to 0.2 for slower oscillation
         baseAxis: options.baseAxis ?? 'z',
         waveAxis: options.waveAxis ?? 'x'
       }),
       // Wider movement bounds for sine wave pattern
       movementBounds: {
         min: { 
-          x: -5,  // Allow more horizontal space for wave pattern
+          x: -12,  // Increased from -5 to -12 for wider X range
           y: 1,
           z: MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.min.z
         },
         max: {
-          x: 5,   // Allow more horizontal space for wave pattern
+          x: 12,   // Increased from 5 to 12 for wider X range
           y: 1,
           z: MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.max.z
         }

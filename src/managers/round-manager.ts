@@ -67,10 +67,10 @@ export class RoundManager {
                 blockSpawnInterval: 1800, // 1.8 seconds between spawns
                 speedMultiplier: 0.6,  // Reduced from 0.7 for smoother progression
                 blockTypes: {
-                    normal: 0.1,      // Still no normal blocks
-                    sineWave: 0,    // Still no sine waves
-                    static: 0.9,    // 100% static targets with despawn timer
-                    verticalWave: 0  // No vertical waves
+                    normal: 0.1,    // Small chance for normal blocks
+                    sineWave: 0.2,  // Introduce sine wave blocks at 20%
+                    static: 0.7,    // Majority still static for learning
+                    verticalWave: 0  // No vertical waves yet
                 }
             };
         }
@@ -84,10 +84,10 @@ export class RoundManager {
                 blockSpawnInterval: 1500,  // 1.5 seconds between spawns
                 speedMultiplier: 0.7 + (round * 0.05),  // Reduced multiplier increase per round
                 blockTypes: {
-                    normal: Math.min(0.25, (round - 2) * 0.15),
-                    sineWave: 0.05,
-                    static: Math.max(0.7, 1 - (round * 0.15)),
-                    verticalWave: 0
+                    normal: 0.2,     // Increased normal blocks
+                    sineWave: 0.25,  // 25% sine waves
+                    static: 0.55,    // Reduced static targets
+                    verticalWave: 0  // No vertical waves yet
                 }
             };
         }
@@ -100,9 +100,9 @@ export class RoundManager {
             blockSpawnInterval: 1000,  // 1 second between spawns
             speedMultiplier: 0.8 + ((round - 3) * 0.05),  // Reduced from 0.1 to 0.05 increase per round
             blockTypes: {
-                normal: Math.min(0.2, 0.3 + (round - 3) * 0.05),
-                sineWave: Math.min(0.1, 0.2 + (round - 3) * 0.05),
-                static: Math.max(0.6, 0.4 - (round - 3) * 0.05),
+                normal: Math.min(0.3, 0.2 + (round - 3) * 0.05),
+                sineWave: Math.min(0.3, 0.25 + (round - 3) * 0.025),  // Slower increase in sine wave frequency
+                static: Math.max(0.3, 0.55 - (round - 3) * 0.05),
                 verticalWave: Math.min(0.1, (round - 3) * 0.05)
             }
         };
@@ -321,10 +321,27 @@ export class RoundManager {
                         this.blockManager.createZAxisBlock(spawnPosition);
                         break;
                     case 'sineWave':
+                        // For sine wave blocks, we need to account for the amplitude in spawn position
+                        const sineWaveAmplitude = 8; // Match the amplitude in MovingBlockEntity
+                        const sineWaveSpawnPosition = {
+                            ...spawnPosition,
+                            // Restrict X spawn position to account for sine wave amplitude
+                            x: Math.max(
+                                Math.min(
+                                    spawnPosition.x,
+                                    MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.max.x - sineWaveAmplitude - safetyMargin
+                                ),
+                                MOVING_BLOCK_CONFIG.MOVEMENT_BOUNDS.min.x + sineWaveAmplitude + safetyMargin
+                            ),
+                            // Fixed Y position for sine wave blocks
+                            y: 4
+                        };
+                        
                         this.blockManager.createSineWaveBlock({
-                            spawnPosition,
-                            moveSpeed: baseSpeed,
-                            amplitude: 2 + Math.random() * 2
+                            spawnPosition: sineWaveSpawnPosition,
+                            moveSpeed: baseSpeed * 0.6, // Slower base speed for sine wave blocks
+                            amplitude: sineWaveAmplitude, // Fixed amplitude to match MovingBlockEntity
+                            frequency: 0.2 // Fixed frequency to match MovingBlockEntity
                         });
                         break;
                     case 'static':

@@ -58,7 +58,8 @@ export class SineWaveMovement implements BlockMovementBehavior {
   private readonly frequency: number;
   private readonly baseAxis: 'x' | 'y' | 'z';
   private readonly waveAxis: 'x' | 'y' | 'z';
-  private initialY: number = 0; // Will be set on first update
+  private initialY: number = 0;
+  private lastWaveOffset: number = 0; // Track last offset for smoother transitions
 
   constructor(options: {
     amplitude?: number;
@@ -66,8 +67,8 @@ export class SineWaveMovement implements BlockMovementBehavior {
     baseAxis?: 'x' | 'y' | 'z';
     waveAxis?: 'x' | 'y' | 'z';
   } = {}) {
-    this.amplitude = options.amplitude ?? 3;
-    this.frequency = options.frequency ?? 1;
+    this.amplitude = options.amplitude ?? 8;  // Default to wider amplitude
+    this.frequency = options.frequency ?? 0.2; // Default to slower frequency
     this.baseAxis = options.baseAxis ?? 'z';
     this.waveAxis = options.waveAxis ?? 'x';
   }
@@ -77,7 +78,7 @@ export class SineWaveMovement implements BlockMovementBehavior {
    * If an axis is fixed (min === max) then it returns that fixed value.
    */
   private clampPosition(pos: Vector3Like, bounds: { min: Vector3Like; max: Vector3Like }): Vector3Like {
-    const epsilon = 0.001;
+    const epsilon = 0.05; // Increased epsilon for smoother clamping
     return {
       x: bounds.min.x === bounds.max.x ? bounds.min.x : Math.max(bounds.min.x + epsilon, Math.min(pos.x, bounds.max.x - epsilon)),
       y: bounds.min.y === bounds.max.y ? bounds.min.y : Math.max(bounds.min.y + epsilon, Math.min(pos.y, bounds.max.y - epsilon)),
@@ -89,48 +90,58 @@ export class SineWaveMovement implements BlockMovementBehavior {
     // Set initialY on first update.
     if (this.elapsedTime === 0) {
       this.initialY = block.position.y;
+      this.lastWaveOffset = 0;
     }
-    this.elapsedTime += deltaTimeMs / 1000;
+    
+    const deltaSeconds = deltaTimeMs / 1000;
+    this.elapsedTime += deltaSeconds;
 
-    const baseSpeed = block.getMoveSpeed() * (deltaTimeMs / 1000);
+    const baseSpeed = block.getMoveSpeed() * deltaSeconds;
     const baseMovement = block.getDirection()[this.baseAxis] * baseSpeed;
-    const waveOffset = this.amplitude * Math.sin(2 * Math.PI * this.frequency * this.elapsedTime);
-
+    
+    // Calculate new wave offset with smooth transition
+    const targetWaveOffset = this.amplitude * Math.sin(2 * Math.PI * this.frequency * this.elapsedTime);
+    // Interpolate between last and target offset for smoother movement
+    const smoothingFactor = 0.1; // Lower value = smoother but slower response
+    this.lastWaveOffset += (targetWaveOffset - this.lastWaveOffset) * smoothingFactor;
+    
     let newPosition = { ...block.position };
     newPosition[this.baseAxis] += baseMovement;
 
-    // Apply wave offset on the proper axis
+    // Apply wave offset on the proper axis with smoothing
     if (this.waveAxis === 'y') {
-      newPosition.y = this.initialY + waveOffset;
+      newPosition.y = this.initialY + this.lastWaveOffset;
     } else {
-      newPosition[this.waveAxis] = waveOffset;
+      newPosition[this.waveAxis] = this.lastWaveOffset;
     }
 
     if (!block.isWithinMovementBounds(newPosition)) {
       if (block.shouldOscillate()) {
-        // Reverse the movement direction.
         block.reverseMovementDirection();
-
-        // Adjust elapsed time to try to maintain a smooth wave pattern.
+        
+        // Adjust elapsed time to maintain wave pattern
         this.elapsedTime = Math.PI / (2 * Math.PI * this.frequency) - this.elapsedTime;
         
-        // Recalculate after reversal.
-        const reversedBaseSpeed = block.getMoveSpeed() * (deltaTimeMs / 1000);
+        // Recalculate with reversed direction
+        const reversedBaseSpeed = block.getMoveSpeed() * deltaSeconds;
         const reversedBaseMovement = block.getDirection()[this.baseAxis] * reversedBaseSpeed;
         newPosition = { ...block.position };
         newPosition[this.baseAxis] += reversedBaseMovement;
+        
         if (this.waveAxis === 'y') {
-          newPosition.y = this.initialY + waveOffset;
+          newPosition.y = this.initialY + this.lastWaveOffset;
         } else {
-          newPosition[this.waveAxis] = waveOffset;
+          newPosition[this.waveAxis] = this.lastWaveOffset;
         }
-        // Clamp the newPosition into valid bounds.
+        
+        // Ensure position is within bounds
         if (block['movementBounds']) {
           newPosition = this.clampPosition(newPosition, (block as any)['movementBounds']);
         }
       } else {
         block.resetToInitialPosition();
         this.elapsedTime = 0;
+        this.lastWaveOffset = 0;
         return;
       }
     }

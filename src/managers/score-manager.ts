@@ -90,26 +90,34 @@ export class ScoreManager extends Entity {
   }
 
   // Add a win for the player with the highest score in the round
-  public handleRoundEnd(): string | null {
-    let highestScore = -1;
-    let winnerId: string | null = null;
+  public handleRoundEnd(): { winnerId: string | null, placements: Array<{ playerId: string, points: number }> } {
+    // Sort players by round score in descending order
+    const sortedPlayers = Array.from(this.playerStats.entries())
+        .sort((a, b) => b[1].roundScore - a[1].roundScore);
 
-    // Find the player with the highest round score
-    for (const [playerId, stats] of this.playerStats.entries()) {
-      if (stats.roundScore > highestScore) {
-        highestScore = stats.roundScore;
-        winnerId = playerId;
-      }
-    }
+    const playerCount = sortedPlayers.length;
+    const placements: Array<{ playerId: string, points: number }> = [];
+    
+    // Award points based on placement (inverse of position)
+    // Last place always gets 1 point
+    sortedPlayers.forEach((entry, index) => {
+        const [playerId, stats] = entry;
+        const points = playerCount - index; // 1st gets n points, 2nd gets n-1, etc.
+        
+        stats.totalScore += points;
+        this.playerStats.set(playerId, stats);
+        
+        placements.push({ playerId, points });
+    });
 
-    // Add a win for the winner
+    const winnerId = sortedPlayers.length > 0 ? sortedPlayers[0][0] : null;
     if (winnerId) {
-      const stats = this.playerStats.get(winnerId)!;
-      stats.wins++;
-      this.playerStats.set(winnerId, stats);
+        const stats = this.playerStats.get(winnerId)!;
+        stats.wins++;
+        this.playerStats.set(winnerId, stats);
     }
 
-    return winnerId;
+    return { winnerId, placements };
   }
 
   // Increment (or decrement) player's score
@@ -171,37 +179,38 @@ export class ScoreManager extends Entity {
   // Add this method to broadcast scores and leaderboard
   public broadcastScores(world: World) {
     const scores = Array.from(world.entityManager.getAllPlayerEntities()).map(playerEntity => ({
-      playerId: playerEntity.player.id,
-      totalScore: this.getScore(playerEntity.player.id),
-      roundScore: this.getRoundScore(playerEntity.player.id)
+        playerId: playerEntity.player.id,
+        totalPoints: this.getScore(playerEntity.player.id), // Renamed to totalPoints
+        roundScore: this.getRoundScore(playerEntity.player.id)
     }));
 
-    // Create leaderboard data
+    // Create leaderboard data sorted by total points
     const leaderboard = Array.from(this.playerStats.entries())
-      .map(([playerId, stats]) => ({
-        playerNumber: stats.playerNumber,
-        wins: stats.wins,
-        isWinning: this.isWinning(playerId)
-      }))
-      .sort((a, b) => b.wins - a.wins);
+        .map(([playerId, stats]) => ({
+            playerNumber: stats.playerNumber,
+            points: stats.totalScore, // Changed from wins to total points
+            isLeading: this.isLeading(playerId) // Renamed from isWinning
+        }))
+        .sort((a, b) => b.points - a.points);
 
     world.entityManager.getAllPlayerEntities().forEach(playerEntity => {
-      playerEntity.player.ui.sendData({
-        type: 'updateScores',
-        scores
-      });
-      
-      playerEntity.player.ui.sendData({
-        type: 'updateLeaderboard',
-        leaderboard
-      });
+        playerEntity.player.ui.sendData({
+            type: 'updateScores',
+            scores
+        });
+        
+        playerEntity.player.ui.sendData({
+            type: 'updateLeaderboard',
+            leaderboard
+        });
     });
   }
 
-  private isWinning(playerId: string): boolean {
-    const playerWins = this.getWins(playerId);
+  // Renamed from isWinning to isLeading
+  private isLeading(playerId: string): boolean {
+    const playerScore = this.getScore(playerId);
     return Array.from(this.playerStats.values())
-      .every(stats => stats.wins <= playerWins);
+        .every(stats => stats.totalScore <= playerScore);
   }
 
   // Calculate Euclidean distance between two points

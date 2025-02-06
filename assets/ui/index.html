@@ -1504,6 +1504,12 @@ hytopia.onData(data => {
     updateLeaderboard(data.leaderboard);
   } else if (data.type === 'showCombo') {
     showComboNotification(data.data);
+  } else if (data.type === 'resetCombo') {
+    const container = document.querySelector('.combo-notification');
+    container.classList.remove('active');
+    if (window.comboTimeout) {
+      clearTimeout(window.comboTimeout);
+    }
   }
 });
 

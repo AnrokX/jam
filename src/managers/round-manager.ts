@@ -20,6 +20,17 @@ interface SpawnPosition extends Vector3Like {
     moveSpeed?: number;
 }
 
+export interface GameConfig {
+    maxRounds: number;
+}
+
+interface GameEndStanding {
+    playerId: string;
+    placementPoints: number;
+    wins: number;
+    totalScore: number;
+}
+
 export class RoundManager {
     private currentRound: number = 0;
     private roundTimer: NodeJS.Timeout | null = null;
@@ -30,6 +41,9 @@ export class RoundManager {
     private waitingForPlayers: boolean = false;
     private readonly REQUIRED_PLAYERS = 1;
     private checkPlayersInterval: NodeJS.Timeout | null = null;
+    private readonly GAME_CONFIG: GameConfig = {
+        maxRounds: 5  // Game ends after 5 rounds
+    };
 
     constructor(
         private world: World,
@@ -408,7 +422,13 @@ export class RoundManager {
         // Broadcast round end results with placement info
         this.broadcastRoundEnd(winnerId, placements);
 
-        // Start next round after a delay
+        // Check if this was the final round
+        if (this.currentRound >= this.GAME_CONFIG.maxRounds) {
+            this.endGame();
+            return;
+        }
+
+        // Start next round after delay
         setTimeout(() => {
             this.startRound();
         }, 5000);
@@ -431,14 +451,26 @@ export class RoundManager {
 
     private resetGame(): void {
         this.currentRound = 0;
-        // Reset all player stats including wins
         this.scoreManager.resetAllStats();
         this.scoreManager.broadcastScores(this.world);
         
-        // Start from round 1 after a delay
-        setTimeout(() => {
-            this.startRound();
-        }, 5000);
+        // Check if we have enough players to start new game
+        if (this.getPlayerCount() >= this.REQUIRED_PLAYERS) {
+            // Broadcast new game starting
+            this.world.entityManager.getAllPlayerEntities().forEach(playerEntity => {
+                playerEntity.player.ui.sendData({
+                    type: 'newGame',
+                    message: 'New game starting...'
+                });
+            });
+            
+            setTimeout(() => {
+                this.startRound();
+            }, 5000);
+        } else {
+            this.waitingForPlayers = true;
+            this.broadcastWaitingForPlayers(this.getPlayerCount());
+        }
     }
 
     private broadcastRoundInfo(): void {
@@ -447,16 +479,12 @@ export class RoundManager {
         const elapsedTime = currentTime - this.roundStartTime;
         const remainingTime = Math.max(0, config.duration - elapsedTime);
         
-        console.log('Broadcasting round info:', {
-            round: this.currentRound,
-            duration: config.duration,
-            remainingTime: remainingTime
-        });
-
         const message = {
             type: 'roundUpdate',
             data: {
                 round: this.currentRound,
+                totalRounds: this.GAME_CONFIG.maxRounds,
+                remainingRounds: this.getRemainingRounds(),
                 duration: config.duration,
                 timeRemaining: remainingTime
             }
@@ -527,5 +555,80 @@ export class RoundManager {
             clearInterval(this.blockSpawnTimer);
             this.blockSpawnTimer = null;
         }
+    }
+
+    private endGame(): void {
+        // Get final standings based on placement points
+        const finalStandings: GameEndStanding[] = [];
+        
+        // Get all players and their stats
+        this.world.entityManager.getAllPlayerEntities().forEach(playerEntity => {
+            const playerId = playerEntity.player.id;
+            finalStandings.push({
+                playerId,
+                placementPoints: this.scoreManager.getScore(playerId),
+                wins: this.scoreManager.getWins(playerId),
+                totalScore: this.scoreManager.getScore(playerId)
+            });
+        });
+
+        // Sort by placement points
+        finalStandings.sort((a, b) => b.placementPoints - a.placementPoints);
+        const gameWinner = finalStandings[0];
+        
+        // Clear any remaining blocks
+        this.world.entityManager.getAllEntities()
+            .filter(entity => entity.name.toLowerCase().includes('block'))
+            .forEach(entity => entity.despawn());
+
+        if (gameWinner) {
+            // Broadcast game end to all players
+            const message = {
+                type: 'gameEnd',
+                data: {
+                    winner: gameWinner,
+                    standings: finalStandings,
+                    nextGameIn: 10000, // 10 seconds until next game
+                    stats: {
+                        totalRounds: this.GAME_CONFIG.maxRounds,
+                        completedRounds: this.currentRound
+                    }
+                }
+            };
+
+            // Send game end message to all players
+            this.world.entityManager.getAllPlayerEntities().forEach(playerEntity => {
+                // Send game end data
+                playerEntity.player.ui.sendData(message);
+                
+                // Send congratulatory message to winner
+                if (playerEntity.player.id === gameWinner.playerId) {
+                    playerEntity.player.ui.sendData({
+                        type: 'systemMessage',
+                        message: `🏆 Congratulations! You won the game with ${gameWinner.placementPoints} placement points!`,
+                        color: 'FFD700' // Gold color
+                    });
+                }
+            });
+
+            // Send game end message to all players
+            this.world.entityManager.getAllPlayerEntities().forEach(playerEntity => {
+                playerEntity.player.ui.sendData({
+                    type: 'systemMessage',
+                    message: `Game Over! Player ${gameWinner.playerId} wins!`,
+                    color: 'FFD700'
+                });
+            });
+        }
+
+        // Reset game after delay
+        setTimeout(() => {
+            this.resetGame();
+        }, 10000);
+    }
+
+    // Add method to get remaining rounds
+    public getRemainingRounds(): number {
+        return this.GAME_CONFIG.maxRounds - this.currentRound;
     }
 } 

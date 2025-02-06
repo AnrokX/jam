@@ -4,7 +4,8 @@ import {
   PlayerEntity,
   RaycastOptions,
   PlayerCameraMode,
-  PlayerUI
+  PlayerUI,
+  Vector3Like
 } from 'hytopia';
 
 import worldMap from './assets/map.json';
@@ -19,10 +20,53 @@ import { SceneUIManager } from './src/scene-ui/scene-ui-manager';
 import { AudioManager } from './src/managers/audio-manager';
 import { PlayerSettingsManager, UISettingsData } from './src/managers/player-settings-manager';
 
+// Platform spawn configuration
+const PLATFORM_SPAWNS = {
+  LEFT: {
+    BASE: { x: -43, y: 5, z: 1 },
+    VARIATIONS: [
+      { x: -43, y: 5, z: -1 },  // Back
+      { x: -43, y: 5, z: 3 },   // Front
+      { x: -41, y: 5, z: 1 },   // Closer to center
+      { x: -45, y: 5, z: 1 },   // Further from center
+    ]
+  },
+  RIGHT: {
+    BASE: { x: 44, y: 5, z: 1 },
+    VARIATIONS: [
+      { x: 44, y: 5, z: -1 },   // Back
+      { x: 44, y: 5, z: 3 },    // Front
+      { x: 42, y: 5, z: 1 },    // Closer to center
+      { x: 46, y: 5, z: 1 },    // Further from center
+    ]
+  }
+};
+
 // Configuration flags
 const IS_TEST_MODE = false;  // Set this to true to enable test mode, false for normal game
 const DEBUG_ENABLED = false;  // Development debug flag
 
+// Keep track of last used spawn points
+let lastLeftSpawnIndex = -1;
+let lastRightSpawnIndex = -1;
+
+// Helper function to get next spawn position
+function getNextSpawnPosition(platform: 'LEFT' | 'RIGHT'): Vector3Like {
+  const spawnConfig = PLATFORM_SPAWNS[platform];
+  const variations = spawnConfig.VARIATIONS;
+  
+  // Get next index, avoiding the last used one
+  let index;
+  if (platform === 'LEFT') {
+    lastLeftSpawnIndex = (lastLeftSpawnIndex + 1) % variations.length;
+    index = lastLeftSpawnIndex;
+  } else {
+    lastRightSpawnIndex = (lastRightSpawnIndex + 1) % variations.length;
+    index = lastRightSpawnIndex;
+  }
+  
+  return variations[index];
+}
 
 startServer(world => {
   console.log('Starting server and initializing debug settings...');
@@ -189,19 +233,10 @@ startServer(world => {
     
     // Generate spawn position based on player count
     const playerCount = world.entityManager.getAllPlayerEntities().length;
-    const spawnPos = playerCount === 0 ? 
-      // First player spawns at the back of the left platform
-      {
-        x: -43,
-        y: 5,
-        z: 1
-      } :
-      // Second player spawns at the back of the right platform
-      {
-        x: 44,
-        y: 5,
-        z: 1
-      };
+    const isEvenPlayer = playerCount % 2 === 0;
+    const spawnPos = isEvenPlayer ? 
+      getNextSpawnPosition('LEFT') :
+      getNextSpawnPosition('RIGHT');
 
     const playerEntity = new PlayerEntity({
       player,

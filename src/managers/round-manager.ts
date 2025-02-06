@@ -162,8 +162,8 @@ export class RoundManager {
         if (round === 5) {
             return {
                 duration: 20000,
-                minBlockCount: 8,
-                maxBlockCount: 12,
+                minBlockCount: 4,
+                maxBlockCount: 6,
                 blockSpawnInterval: 1500,
                 speedMultiplier: 0.75,
                 blockTypes: {
@@ -183,8 +183,8 @@ export class RoundManager {
         if (round === 6) {
             return {
                 duration: 20000,
-                minBlockCount: 6,
-                maxBlockCount: 10,
+                minBlockCount: 4,
+                maxBlockCount: 6,
                 blockSpawnInterval: 1800,
                 speedMultiplier: 0.8,
                 blockTypes: {
@@ -204,8 +204,8 @@ export class RoundManager {
         if (round === 7) {
             return {
                 duration: 20000,
-                minBlockCount: 6,
-                maxBlockCount: 10,
+                minBlockCount: 4,
+                maxBlockCount: 6,
                 blockSpawnInterval: 1800,
                 speedMultiplier: 0.85,
                 blockTypes: {
@@ -224,8 +224,8 @@ export class RoundManager {
         // Round 8 - 100% Pendulum
         return {
             duration: 20000,
-            minBlockCount: 5,  // Fewer blocks as pendulums are very challenging
-            maxBlockCount: 8,
+            minBlockCount: 3,  // Fewer blocks as pendulums are very challenging
+            maxBlockCount: 6,
             blockSpawnInterval: 2000,  // Slower spawning for pendulums
             speedMultiplier: 0.9,
             blockTypes: {
@@ -424,21 +424,21 @@ export class RoundManager {
                                     return this.getRandomY(0, 9);  // Sine wave: Slight bias towards higher
                                 case 'verticalWave':
                                     // Start lower since they move up
-                                    return this.getRandomY(-4, 3);  // Start much lower since they move up
+                                    return this.getRandomY(-2, 6);  // Start much lower since they move up
                                 case 'popup':
                                     // Start below ground level
-                                    return this.getRandomY(-6, -3);  // Start underground to pop up
+                                    return this.getRandomY(-3, 3);  // Start underground to pop up
                                 case 'rising':
                                     // Start below ground level
-                                    return this.getRandomY(-8, -4);  // Start deep to rise up dramatically
+                                    return this.getRandomY(-5, 4);  // Start deep to rise up dramatically
                                 case 'parabolic':
                                     // Start at varied heights
-                                    return this.getRandomY(-4, 4);  // Equal spread for parabolic arcs
+                                    return this.getRandomY(-3, 6);  // Equal spread for parabolic arcs
                                 case 'pendulum':
                                     // Start higher for swinging
-                                    return this.getRandomY(4, 12);  // Keep high for swinging down
+                                    return this.getRandomY(0,8);  // Keep high for swinging down
                                 default:
-                                    return this.getRandomY(-3, 6);
+                                    return this.getRandomY(0, 10);
                             }
                         })(),
                         z: (() => {

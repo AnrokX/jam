@@ -419,24 +419,24 @@ export class RoundManager {
                                 case 'static':
                                     return this.getRandomY(0, 12);  // Static: Wide range for variety
                                 case 'normal':
-                                    return this.getRandomY(-1, 9);  // Normal: Good spread above and below
+                                    return this.getRandomY(-1, 10);  // Normal: Good spread above and below
                                 case 'sineWave':
-                                    return this.getRandomY(0, 9);  // Sine wave: Slight bias towards higher
+                                    return this.getRandomY(0, 10);  // Sine wave: Slight bias towards higher
                                 case 'verticalWave':
                                     // Start lower since they move up
-                                    return this.getRandomY(-2, 6);  // Start much lower since they move up
+                                    return this.getRandomY(-3, 8);  // Start much lower since they move up
                                 case 'popup':
                                     // Start below ground level
-                                    return this.getRandomY(-3, 3);  // Start underground to pop up
+                                    return this.getRandomY(-4, 5);  // Start underground to pop up
                                 case 'rising':
                                     // Start below ground level
                                     return this.getRandomY(-5, 4);  // Start deep to rise up dramatically
                                 case 'parabolic':
                                     // Start at varied heights
-                                    return this.getRandomY(-3, 6);  // Equal spread for parabolic arcs
+                                    return this.getRandomY(-4, 8);  // Equal spread for parabolic arcs
                                 case 'pendulum':
                                     // Start higher for swinging
-                                    return this.getRandomY(0,8);  // Keep high for swinging down
+                                    return this.getRandomY(-2,8);  // Keep high for swinging down
                                 default:
                                     return this.getRandomY(0, 10);
                             }

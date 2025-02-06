@@ -210,11 +210,6 @@ export class ProjectileEntity extends Entity {
             };
             this.rawRigidBody.setRotation(initialRotation);
         }
-
-        // If this is a prediction, use a different visual appearance
-        if (this.isPrediction) {
-            this.setOpacity(0.7); // Make predicted projectiles slightly transparent
-        }
     }
 
     override onTick = (entity: Entity, deltaTimeMs: number): void => {
@@ -462,26 +457,18 @@ export class ProjectileEntity extends Entity {
         return this.spawnOrigin ? { ...this.spawnOrigin } : undefined;
     }
 
-    // Method to confirm this prediction matches server state
-    public confirmPrediction(): void {
-        if (this.isPrediction) {
-            this.serverConfirmed = true;
-            this.setOpacity(1.0); // Make it fully opaque once confirmed
-        }
-    }
-
-    // Method to get prediction ID for reconciliation
+    // Add prediction-related methods
     public getPredictionId(): string | undefined {
         return this.predictionId;
     }
 
-    // Method to check if this is a predicted entity
-    public isPredictedEntity(): boolean {
-        return this.isPrediction;
-    }
-
-    // Method to check if prediction has been confirmed
     public isConfirmed(): boolean {
         return this.serverConfirmed;
+    }
+
+    public confirmPrediction(): void {
+        if (this.isPrediction) {
+            this.serverConfirmed = true;
+        }
     }
 } 

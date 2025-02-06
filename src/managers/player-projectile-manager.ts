@@ -69,7 +69,7 @@ export class PlayerProjectileManager {
     const projectile = new ProjectileEntity({
       name: 'Projectile',
       modelUri: 'models/projectiles/bomb.gltf',
-      modelScale: 0.3,
+      modelScale: 1.0,
       speed: 20,
       lifetime: 2300,
       damage: 10,

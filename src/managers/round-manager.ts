@@ -188,12 +188,19 @@ export class RoundManager {
     public startRound(): void {
         if (this.isRoundActive) return;
 
+        // Add this check to prevent starting new rounds if we've hit the max
+        if (this.currentRound >= this.GAME_CONFIG.maxRounds) {
+            this.endGame();
+            return;
+        }
+
         const playerCount = this.getPlayerCount();
-        if (playerCount < this.REQUIRED_PLAYERS) {
+        
+        // Only check for minimum players when starting a new game (round 0)
+        if (this.currentRound === 0 && playerCount < this.REQUIRED_PLAYERS) {
             this.waitingForPlayers = true;
             this.broadcastWaitingForPlayers(playerCount);
             
-            // Start checking for players if not already checking
             if (!this.checkPlayersInterval) {
                 this.checkPlayersInterval = setInterval(() => {
                     const currentPlayers = this.getPlayerCount();
@@ -201,17 +208,16 @@ export class RoundManager {
                         this.waitingForPlayers = false;
                         clearInterval(this.checkPlayersInterval!);
                         this.checkPlayersInterval = null;
-                        // Start countdown instead of round directly
                         this.startCountdown();
                     } else {
                         this.broadcastWaitingForPlayers(currentPlayers);
                     }
-                }, 1000); // Check every second
+                }, 1000);
             }
             return;
         }
         
-        // If we already have enough players, start countdown
+        // Once game has started, continue regardless of player count
         this.startCountdown();
     }
 
@@ -405,14 +411,6 @@ export class RoundManager {
             this.blockSpawnTimer = null;
         }
 
-        // Check if we still have enough players
-        if (this.getPlayerCount() < this.REQUIRED_PLAYERS) {
-            this.resetGame();
-            this.waitingForPlayers = true;
-            this.broadcastWaitingForPlayers(this.getPlayerCount());
-            return;
-        }
-
         // Get round results with placements
         const { winnerId, placements } = this.scoreManager.handleRoundEnd();
         
@@ -435,18 +433,19 @@ export class RoundManager {
     }
 
     public handlePlayerLeave(): void {
-        // If we don't have enough players and a round is active, end it
-        if (this.isRoundActive && this.getPlayerCount() < this.REQUIRED_PLAYERS) {
+        // Only reset game if we're waiting for players to start
+        if (this.waitingForPlayers && this.getPlayerCount() < this.REQUIRED_PLAYERS) {
             // Send message to all players using UI data
             this.world.entityManager.getAllPlayerEntities().forEach(playerEntity => {
                 playerEntity.player.ui.sendData({
                     type: 'systemMessage',
-                    message: 'Not enough players, ending round...',
+                    message: 'Not enough players to start game...',
                     color: 'FF0000'
                 });
             });
-            this.endRound();
+            this.resetGame();
         }
+        // Otherwise, let the game continue even with fewer players
     }
 
     private resetGame(): void {

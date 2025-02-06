@@ -46,12 +46,18 @@ export class RoundManager {
     };
     private gameInProgress: boolean = false;
     private roundTransitionPending: boolean = false;
+    private readonly TRANSITION_DURATION: number = 5000; // Default 5 seconds
 
     constructor(
         private world: World,
         private blockManager: MovingBlockManager,
-        private scoreManager: ScoreManager
-    ) {}
+        private scoreManager: ScoreManager,
+        transitionDuration?: number
+    ) {
+        if (transitionDuration !== undefined) {
+            this.TRANSITION_DURATION = transitionDuration;
+        }
+    }
 
     private getPlayerCount(): number {
         return this.world.entityManager.getAllPlayerEntities().length;
@@ -157,6 +163,12 @@ export class RoundManager {
     }
 
     private actuallyStartRound(): void {
+        // Don't start if a round is already active
+        if (this.isRoundActive) {
+            console.log('Attempted to start round while another is active');
+            return;
+        }
+
         this.currentRound++;
         this.isRoundActive = true;
         this.gameInProgress = true;
@@ -408,7 +420,7 @@ export class RoundManager {
         
         if (!this.isRoundActive) return;
 
-        this.isRoundActive = false;
+        // Clear any existing timers first
         if (this.roundTimer) {
             clearTimeout(this.roundTimer);
             this.roundTimer = null;
@@ -417,6 +429,8 @@ export class RoundManager {
             clearInterval(this.blockSpawnTimer);
             this.blockSpawnTimer = null;
         }
+
+        this.isRoundActive = false;
 
         // Get round results with placements
         const { winnerId, placements } = this.scoreManager.handleRoundEnd();
@@ -435,10 +449,12 @@ export class RoundManager {
 
         // Set transition flag and schedule next round
         this.roundTransitionPending = true;
+        console.log('Starting round transition period');
         setTimeout(() => {
+            console.log('Round transition complete');
             this.roundTransitionPending = false;
             this.startRound();
-        }, 5000);
+        }, this.TRANSITION_DURATION);
     }
 
     public handlePlayerLeave(): void {
@@ -509,7 +525,7 @@ export class RoundManager {
             type: 'roundEnd',
             data: {
                 round: this.currentRound,
-                nextRoundIn: 5000,
+                nextRoundIn: this.TRANSITION_DURATION,
                 winnerId: winnerId,
                 placements: placements
             }

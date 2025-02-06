@@ -352,21 +352,23 @@ startServer(world => {
           return;
         }
 
-        // Create server-side projectile and handle prediction
-        projectileManager.handleProjectileInput(
+        // Create server-side projectile
+        const serverProjectile = projectileManager.createProjectile(
           player.id,
           position,
           direction,
-          { mr: true },
-          player
+          false // Not a prediction on server
         );
+
+        // Throw the projectile on the server
+        serverProjectile.throw(direction);
         
-        // Send confirmation back to client
+        // Send confirmation back to client with the server's projectile position
         player.ui.sendData({
           type: 'shotConfirm',
           data: {
             timestamp,
-            position: playerEntity.position,
+            position: serverProjectile.position,
             predictionId
           }
         });

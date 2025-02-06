@@ -60,7 +60,7 @@ export class PlayerProjectileManager {
     return this.playerStates.get(playerId)?.projectilesRemaining ?? 0;
   }
 
-  private createProjectile(
+  public createProjectile(
     playerId: string, 
     position: Vector3Like, 
     direction: Vector3Like,

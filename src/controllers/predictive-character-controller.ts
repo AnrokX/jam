@@ -1,15 +1,17 @@
 import { Entity, Player, Vector3Like, World, PlayerEntity } from 'hytopia';
 
 export class PredictiveCharacterController {
-  private static readonly MOVEMENT_SPEED = 8;
-  private static readonly PREDICTION_THRESHOLD = 0.5;
+  private static readonly MOVEMENT_SPEED = 12;
+  private static readonly PREDICTION_THRESHOLD = 0.8;
+  private static readonly PREDICTION_STEPS = 2;
+  private static readonly LERP_FACTOR = 0.15;
   private lastServerPosition: Vector3Like | null = null;
   private lastInputTime: number = 0;
   private pendingInputs: Array<{
     input: any,
     timestamp: number,
     position: Vector3Like,
-    movement?: Vector3Like
+    movement: Vector3Like
   }> = [];
   private readonly player: Player;
   private readonly playerEntity: PlayerEntity;
@@ -25,24 +27,23 @@ export class PredictiveCharacterController {
     // Apply movement immediately for responsiveness
     const movement = this.calculateMovement(input, deltaTimeMs);
     if (movement) {
-      // Predict multiple steps ahead for smoother movement
-      const PREDICTION_STEPS = 3;  // Predict 3 frames ahead
-      const predictedPosition = {
-        x: this.playerEntity.position.x + (movement.x * PREDICTION_STEPS),
-        y: this.playerEntity.position.y + (movement.y * PREDICTION_STEPS),
-        z: this.playerEntity.position.z + (movement.z * PREDICTION_STEPS)
+      // Apply movement immediately without waiting for prediction
+      const immediatePosition = {
+        x: this.playerEntity.position.x + movement.x,
+        y: this.playerEntity.position.y + movement.y,
+        z: this.playerEntity.position.z + movement.z
       };
 
       // Store input for reconciliation
       this.pendingInputs.push({
         input: { ...input },
         timestamp: currentTime,
-        position: predictedPosition,
-        movement: movement  // Store original movement for reconciliation
+        position: immediatePosition,
+        movement
       });
 
-      // Apply predicted movement immediately
-      this.playerEntity.setPosition(predictedPosition);
+      // Apply movement immediately
+      this.playerEntity.setPosition(immediatePosition);
       
       // Send movement to server
       this.player.ui.sendData({
@@ -50,8 +51,8 @@ export class PredictiveCharacterController {
         data: {
           input: { ...input },
           timestamp: currentTime,
-          position: predictedPosition,
-          movement: movement
+          position: immediatePosition,
+          movement
         }
       });
     }
@@ -118,16 +119,15 @@ export class PredictiveCharacterController {
     // Check if we need to correct position
     const positionError = this.calculatePositionError(serverPosition);
     if (positionError > PredictiveCharacterController.PREDICTION_THRESHOLD) {
-      // Smoothly interpolate to server position instead of snapping
-      const LERP_FACTOR = 0.3;  // Adjust this for smoother or faster correction
+      // Smoothly interpolate to server position
       const currentPos = this.playerEntity.position;
-      
       const interpolatedPosition = {
-        x: currentPos.x + (serverPosition.x - currentPos.x) * LERP_FACTOR,
-        y: currentPos.y + (serverPosition.y - currentPos.y) * LERP_FACTOR,
-        z: currentPos.z + (serverPosition.z - currentPos.z) * LERP_FACTOR
+        x: currentPos.x + (serverPosition.x - currentPos.x) * PredictiveCharacterController.LERP_FACTOR,
+        y: currentPos.y + (serverPosition.y - currentPos.y) * PredictiveCharacterController.LERP_FACTOR,
+        z: currentPos.z + (serverPosition.z - currentPos.z) * PredictiveCharacterController.LERP_FACTOR
       };
 
+      // Apply interpolated position
       this.playerEntity.setPosition(interpolatedPosition);
       this.lastServerPosition = serverPosition;
 
@@ -135,10 +135,17 @@ export class PredictiveCharacterController {
       let currentPosition = { ...interpolatedPosition };
       this.pendingInputs.forEach(input => {
         if (input.movement) {
+          // Apply movement with prediction steps
+          const predictedMovement = {
+            x: input.movement.x * PredictiveCharacterController.PREDICTION_STEPS,
+            y: input.movement.y * PredictiveCharacterController.PREDICTION_STEPS,
+            z: input.movement.z * PredictiveCharacterController.PREDICTION_STEPS
+          };
+          
           currentPosition = {
-            x: currentPosition.x + input.movement.x,
-            y: currentPosition.y + input.movement.y,
-            z: currentPosition.z + input.movement.z
+            x: currentPosition.x + predictedMovement.x,
+            y: currentPosition.y + predictedMovement.y,
+            z: currentPosition.z + predictedMovement.z
           };
           this.playerEntity.setPosition(currentPosition);
         }

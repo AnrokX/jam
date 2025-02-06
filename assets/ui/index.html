@@ -1267,63 +1267,46 @@
       left: 50%;
       transform: translateX(-50%);
       display: flex;
-      flex-direction: row;
+      flex-direction: column;
       align-items: center;
-      gap: 15px;
+      gap: 5px;
       pointer-events: none;
       z-index: 1000;
-      background: rgba(13, 2, 8, 0.9);
-      padding: 5px 15px;
-      border-radius: 4px;
     }
 
-    .game-status .round-number,
+    .game-status .round-number {
+      font-family: var(--display-font);
+      font-size: 32px;
+      color: var(--matrix-green);
+      text-shadow: 0 0 10px var(--terminal-green);
+      text-align: center;
+      background: rgba(13, 2, 8, 0.9);
+      padding: 5px 20px;
+      border-radius: 8px;
+      border: 1px solid var(--matrix-green);
+      margin-bottom: 5px;
+    }
+
     .game-status .round-timer {
       font-family: var(--display-font);
       font-size: 24px;
       color: var(--blood-red);
       text-shadow: 0 0 10px var(--glow-red);
       text-align: center;
-    }
-
-    .game-status .round-timer {
-      border-left: 1px solid rgba(255, 0, 0, 0.3);
-      padding-left: 15px;
+      background: rgba(13, 2, 8, 0.9);
+      padding: 5px 15px;
+      border-radius: 4px;
+      border: 1px solid var(--blood-red);
     }
 
     .game-status.waiting {
       border-color: var(--blood-red);
     }
 
-    .game-status.waiting .round-number {
-      color: var(--blood-red);
-      text-shadow: 0 0 10px var(--glow-red);
-    }
-
+    .game-status.waiting .round-number,
     .game-status.waiting .round-timer {
       color: var(--blood-red);
       text-shadow: 0 0 10px var(--glow-red);
-    }
-
-    .round-number {
-      font-family: var(--display-font);
-      font-size: 24px;
-      color: var(--matrix-green);
-      text-shadow: 0 0 10px var(--terminal-green);
-      text-align: center;
-      transition: color 0.3s ease, text-shadow 0.3s ease;
-    }
-
-    .round-timer {
-      font-family: var(--display-font);
-      font-size: 32px;
-      color: var(--matrix-green);
-      text-shadow: 0 0 10px var(--terminal-green);
-      text-align: center;
-      margin-left: 15px;
-      border-left: 1px solid rgba(0, 255, 65, 0.3);
-      padding-left: 15px;
-      transition: color 0.3s ease, text-shadow 0.3s ease;
     }
 
     .scores-title {

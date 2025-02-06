@@ -12,11 +12,12 @@ export interface ScoreOptions {
 interface PlayerStats {
   totalScore: number;
   roundScore: number;
+  placementPoints: number;  // Add new field to track points from placements
   wins: number;
   playerNumber: number;
-  consecutiveHits: number;  // Track combo counter
-  multiHitCount: number;    // Track multi-hit counter
-  lastHitTime: number;      // Track timing for combo system
+  consecutiveHits: number;  
+  multiHitCount: number;    
+  lastHitTime: number;      
 }
 
 export class ScoreManager extends Entity {
@@ -64,6 +65,7 @@ export class ScoreManager extends Entity {
       this.playerStats.set(playerId, {
         totalScore: 0,
         roundScore: 0,
+        placementPoints: 0,  // Initialize placement points
         wins: 0,
         playerNumber: this.playerCount,
         consecutiveHits: 0,
@@ -81,35 +83,58 @@ export class ScoreManager extends Entity {
     }
   }
 
-  // Start a new round - reset round scores but keep total scores and wins
+  // Start a new round - reset round scores and total scores, but keep placement points
   public startNewRound(): void {
     for (const [playerId, stats] of this.playerStats.entries()) {
-      stats.roundScore = 0;
+      stats.totalScore = 0;  // Reset total score at start of round
+      stats.roundScore = 0;  // Reset round score
+      stats.consecutiveHits = 0;
+      stats.multiHitCount = 0;
+      stats.lastHitTime = 0;
       this.playerStats.set(playerId, stats);
     }
   }
 
   // Add a win for the player with the highest score in the round
-  public handleRoundEnd(): string | null {
-    let highestScore = -1;
-    let winnerId: string | null = null;
+  public handleRoundEnd(): { winnerId: string | null, placements: Array<{ playerId: string, points: number }> } {
+    // Sort players by round score in descending order
+    const sortedPlayers = Array.from(this.playerStats.entries())
+        .sort((a, b) => b[1].roundScore - a[1].roundScore);
 
-    // Find the player with the highest round score
-    for (const [playerId, stats] of this.playerStats.entries()) {
-      if (stats.roundScore > highestScore) {
-        highestScore = stats.roundScore;
-        winnerId = playerId;
-      }
-    }
+    const playerCount = sortedPlayers.length;
+    const placements: Array<{ playerId: string, points: number }> = [];
+    
+    // Handle ties by giving same points to players with equal scores
+    let currentPoints = playerCount;
+    let currentScore = -1;
+    let sameScoreCount = 0;
 
-    // Add a win for the winner
+    sortedPlayers.forEach((entry, index) => {
+        const [playerId, stats] = entry;
+        
+        // If this is a new score, update the points
+        if (stats.roundScore !== currentScore) {
+            currentPoints = playerCount - index;
+            currentScore = stats.roundScore;
+            sameScoreCount = 0;
+        } else {
+            sameScoreCount++;
+        }
+        
+        stats.placementPoints += currentPoints; // Add to placement points
+        this.playerStats.set(playerId, stats);
+        
+        placements.push({ playerId, points: currentPoints });
+    });
+
+    const winnerId = sortedPlayers.length > 0 ? sortedPlayers[0][0] : null;
     if (winnerId) {
-      const stats = this.playerStats.get(winnerId)!;
-      stats.wins++;
-      this.playerStats.set(winnerId, stats);
+        const stats = this.playerStats.get(winnerId)!;
+        stats.wins++;
+        this.playerStats.set(winnerId, stats);
     }
 
-    return winnerId;
+    return { winnerId, placements };
   }
 
   // Increment (or decrement) player's score
@@ -158,12 +183,16 @@ export class ScoreManager extends Entity {
     }
   }
 
-  // Reset all stats including wins
+  // Reset all stats including wins and placement points
   public resetAllStats(): void {
     for (const [playerId, stats] of this.playerStats.entries()) {
       stats.totalScore = 0;
       stats.roundScore = 0;
+      stats.placementPoints = 0;  // Reset placement points
       stats.wins = 0;
+      stats.consecutiveHits = 0;
+      stats.multiHitCount = 0;
+      stats.lastHitTime = 0;
       this.playerStats.set(playerId, stats);
     }
   }
@@ -171,37 +200,38 @@ export class ScoreManager extends Entity {
   // Add this method to broadcast scores and leaderboard
   public broadcastScores(world: World) {
     const scores = Array.from(world.entityManager.getAllPlayerEntities()).map(playerEntity => ({
-      playerId: playerEntity.player.id,
-      totalScore: this.getScore(playerEntity.player.id),
-      roundScore: this.getRoundScore(playerEntity.player.id)
+        playerId: playerEntity.player.id,
+        totalPoints: this.getScore(playerEntity.player.id),
+        roundScore: this.getRoundScore(playerEntity.player.id)
     }));
 
-    // Create leaderboard data
+    // Create leaderboard data sorted by placement points
     const leaderboard = Array.from(this.playerStats.entries())
-      .map(([playerId, stats]) => ({
-        playerNumber: stats.playerNumber,
-        wins: stats.wins,
-        isWinning: this.isWinning(playerId)
-      }))
-      .sort((a, b) => b.wins - a.wins);
+        .map(([playerId, stats]) => ({
+            playerNumber: stats.playerNumber,
+            points: stats.placementPoints, // Use placement points for leaderboard
+            isLeading: this.isLeadingByPlacements(playerId) // New method for placement-based leading
+        }))
+        .sort((a, b) => b.points - a.points);
 
     world.entityManager.getAllPlayerEntities().forEach(playerEntity => {
-      playerEntity.player.ui.sendData({
-        type: 'updateScores',
-        scores
-      });
-      
-      playerEntity.player.ui.sendData({
-        type: 'updateLeaderboard',
-        leaderboard
-      });
+        playerEntity.player.ui.sendData({
+            type: 'updateScores',
+            scores
+        });
+        
+        playerEntity.player.ui.sendData({
+            type: 'updateLeaderboard',
+            leaderboard
+        });
     });
   }
 
-  private isWinning(playerId: string): boolean {
-    const playerWins = this.getWins(playerId);
+  // New method to check who's leading by placement points
+  private isLeadingByPlacements(playerId: string): boolean {
+    const playerPoints = this.playerStats.get(playerId)?.placementPoints ?? 0;
     return Array.from(this.playerStats.values())
-      .every(stats => stats.wins <= playerWins);
+        .every(stats => stats.placementPoints <= playerPoints);
   }
 
   // Calculate Euclidean distance between two points

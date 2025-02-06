@@ -84,9 +84,9 @@ export class RoundManager {
                 speedMultiplier: 0.5,
                 blockTypes: {
                     normal: 0,
-                    sineWave: 1.0,
+                    sineWave: 0.0,
                     static: 0.0,    // 100% static targets for learning
-                    verticalWave: 0,
+                    verticalWave: 1.0,
                     popup: 0,
                     rising: 0,
                     parabolic: 0.0,
@@ -423,8 +423,12 @@ export class RoundManager {
                                 case 'sineWave':
                                     return this.getRandomY(0, 10);  // Sine wave: Slight bias towards higher
                                 case 'verticalWave':
-                                    // Start lower since they move up
-                                    return this.getRandomY(-3, 8);  // Start much lower since they move up
+                                    // Calculate random height parameters for more variance
+                                    const waveBaseHeight = this.getRandomY(-3, 3);  // Varied base height
+                                    const waveAmplitude = this.getRandomY(6, 12);   // Higher amplitude for more dramatic peaks
+                                    const waveFrequency = this.getRandomY(0.2, 0.4); // Varied frequency for different speeds
+                                    
+                                    return waveBaseHeight;  // Start at varied base height
                                 case 'popup':
                                     // Start below ground level
                                     return this.getRandomY(-4, 5);  // Start underground to pop up
@@ -530,11 +534,19 @@ export class RoundManager {
                         });
                         break;
                     case 'verticalWave':
+                        // Calculate random height parameters for more variance
+                        const waveBaseHeight = this.getRandomY(-3, 3);  // Varied base height
+                        const waveAmplitude = this.getRandomY(6, 12);   // Higher amplitude for more dramatic peaks
+                        const waveFrequency = this.getRandomY(0.2, 0.4); // Varied frequency for different speeds
+                        
                         this.blockManager.createVerticalWaveBlock({
                             spawnPosition: {
-                                ...spawnPosition
+                                ...spawnPosition,
+                                y: waveBaseHeight  // Start at varied base height
                             },
-                            moveSpeed: baseSpeed * 0.75
+                            moveSpeed: baseSpeed * 0.75,
+                            amplitude: waveAmplitude,    // Add amplitude for higher peaks
+                            frequency: waveFrequency     // Add frequency for varied wave speeds
                         });
                         break;
                     case 'popup':

@@ -535,7 +535,7 @@ describe('RoundManager - Round Continuity', () => {
         roundManager.startRound();
         
         // Wait for initial round to start
-        await new Promise(resolve => setTimeout(resolve, 20));
+        await new Promise(resolve => setTimeout(resolve, 150));
         (roundManager as any).actuallyStartRound();
         expect(roundManager.getCurrentRound()).toBe(1);
 
@@ -549,17 +549,19 @@ describe('RoundManager - Round Continuity', () => {
             
             if (i < (roundManager as any).GAME_CONFIG.maxRounds - 1) {
                 // Wait for transition and countdown
-                await new Promise(resolve => setTimeout(resolve, TEST_TRANSITION_DURATION + 5150));
+                await new Promise(resolve => setTimeout(resolve, TEST_TRANSITION_DURATION + 150));
                 
-                // Get current round before starting next
-                const currentRound = roundManager.getCurrentRound();
+                // Start next round
                 (roundManager as any).actuallyStartRound();
                 
                 // Verify game is still in progress and round incremented
                 expect((roundManager as any).gameInProgress).toBe(true);
-                expect(roundManager.getCurrentRound()).toBe(currentRound + 1);
+                expect(roundManager.getCurrentRound()).toBe(i + 2);
             }
         }
+        
+        // Wait for final round to complete
+        await new Promise(resolve => setTimeout(resolve, TEST_ROUND_DURATION + 150));
         
         // Verify final game state
         expect((roundManager as any).gameInProgress).toBe(false);
@@ -570,7 +572,14 @@ describe('RoundManager - Round Continuity', () => {
             expect.objectContaining({
                 type: 'gameEnd',
                 data: expect.objectContaining({
-                    winners: expect.arrayContaining(['player1'])
+                    winner: expect.objectContaining({
+                        playerId: 'player1'
+                    }),
+                    standings: expect.arrayContaining([
+                        expect.objectContaining({
+                            playerId: 'player1'
+                        })
+                    ])
                 })
             })
         );

@@ -129,7 +129,7 @@
     {
       "id": 22,
       "name": "lava",
-      "textureUri": "blocks/lava.png",
+      "textureUri": "blocks/lava/lava.png",
       "isCustom": false
     },
     {

@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "block-breaking-game": ".",
-    "hytopia": "^0.1.95"
+    "hytopia": "^0.1.98"
   },
   "jest": {
     "preset": "ts-jest",

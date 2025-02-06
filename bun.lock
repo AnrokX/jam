@@ -5,7 +5,7 @@
       "name": "block-breaking-game",
       "dependencies": {
         "block-breaking-game": ".",
-        "hytopia": "^0.1.95",
+        "hytopia": "^0.1.98",
       },
       "devDependencies": {
         "@types/jest": "^29.5.14",
@@ -184,7 +184,7 @@
 
     "balanced-match": ["balanced-match@1.0.2", "", {}, "sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw=="],
 
-    "block-breaking-game": ["block-breaking-game@file:", { "dependencies": { "hytopia": "^0.1.95" }, "devDependencies": { "@types/jest": "^29.5.14", "jest": "^29.7.0", "ts-jest": "^29.2.5", "typescript": "^5.7.3" } }],
+    "block-breaking-game": ["block-breaking-game@file:", { "dependencies": { "block-breaking-game": ".", "hytopia": "^0.1.98" }, "devDependencies": { "@types/jest": "^29.5.14", "jest": "^29.7.0", "ts-jest": "^29.2.5", "typescript": "^5.7.3" } }],
 
     "brace-expansion": ["brace-expansion@1.1.11", "", { "dependencies": { "balanced-match": "^1.0.0", "concat-map": "0.0.1" } }, "sha512-iCuPHDFgrHX7H2vEI/5xpz07zSHB00TpugqhmYtVmMO6518mCuRMoOYFldEBl0g187ufozdaHgWKcYFb61qGiA=="],
 
@@ -300,7 +300,7 @@
 
     "human-signals": ["human-signals@2.1.0", "", {}, "sha512-B4FFZ6q/T2jhhksgkbEW3HBvWIfDW85snkQgawt07S7J5QXTk6BkNV+0yAeZrM5QpMAdYlocGoljn0sJ/WQkFw=="],
 
-    "hytopia": ["hytopia@0.1.96", "", { "bin": { "hytopia": "bin/scripts.js" } }, "sha512-OXV3M6hCWtzp2O+EQzNkHoJgHA3KjTp+UUJiXci0FY7QUXdRQdNgFRO/VlavA+ln3BQh1F1ZR/LSMIlybDoGBA=="],
+    "hytopia": ["hytopia@0.1.98", "", { "bin": { "hytopia": "bin/scripts.js" } }, "sha512-YTVuBcliIdXPamf0WNSWsOdXib4toSoKPiOyWYYAcyed+ziPTYaGSAHe8LMrzHE0JsdxF6fKeEqV3YQkncD5Rg=="],
 
     "import-local": ["import-local@3.2.0", "", { "dependencies": { "pkg-dir": "^4.2.0", "resolve-cwd": "^3.0.0" }, "bin": { "import-local-fixture": "fixtures/cli.js" } }, "sha512-2SPlun1JUPWoM6t3F0dw0FkCF/jWY8kttcY4f599GLTSjh2OCuuhdTkJQsEcZzBqbXZGKMK2OqW1oZsjtf/gQA=="],
 
@@ -565,6 +565,8 @@
     "@istanbuljs/load-nyc-config/camelcase": ["camelcase@5.3.1", "", {}, "sha512-L28STB170nwWS63UjtlEOE3dldQApaJXZkOI1uMFfzf3rRuPegHaHesyee+YxQ+W6SvRDQV6UrdOdRiR153wJg=="],
 
     "babel-plugin-istanbul/istanbul-lib-instrument": ["istanbul-lib-instrument@5.2.1", "", { "dependencies": { "@babel/core": "^7.12.3", "@babel/parser": "^7.14.7", "@istanbuljs/schema": "^0.1.2", "istanbul-lib-coverage": "^3.2.0", "semver": "^6.3.0" } }, "sha512-pzqtp31nLv/XFOzXGuvhCb8qhjmTVo5vjVk19XE4CRlSWz0KoeJ3bw9XsA7nOp9YBf4qHjwBxkDzKcME/J29Yg=="],
+
+    "block-breaking-game/block-breaking-game": ["block-breaking-game@file:.", {}],
 
     "chalk/ansi-styles": ["ansi-styles@4.3.0", "", { "dependencies": { "color-convert": "^2.0.1" } }, "sha512-zbB9rCJAT1rbjiVDb2hqKFHNYLxgtk8NURxZ3IZwD3F6NtxbXZQCnnSi1Lkx+IDohdPlFp222wVALIheZJQSEg=="],
 

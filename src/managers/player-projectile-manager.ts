@@ -4,6 +4,7 @@ import { RaycastHandler } from '../raycast/raycast-handler';
 import { Vector3Like } from 'hytopia';
 import { BlockParticleEffects } from '../effects/block-particle-effects';
 import { AudioManager } from './audio-manager';
+import { RoundManager } from './round-manager';
 
 export interface PlayerProjectileState {
   previewProjectile: ProjectileEntity | null;
@@ -25,12 +26,14 @@ export class PlayerProjectileManager {
   private readonly raycastHandler: RaycastHandler;
   private readonly enablePreview: boolean;
   private readonly audioManager: AudioManager;
+  private readonly roundManager?: RoundManager;
 
-  constructor(world: World, raycastHandler: RaycastHandler, enablePreview: boolean = false) {
+  constructor(world: World, raycastHandler: RaycastHandler, enablePreview: boolean = false, roundManager?: RoundManager) {
     this.world = world;
     this.raycastHandler = raycastHandler;
     this.enablePreview = enablePreview;
     this.audioManager = AudioManager.getInstance(world);
+    this.roundManager = roundManager;
   }
 
   initializePlayer(playerId: string): void {
@@ -102,6 +105,16 @@ export class PlayerProjectileManager {
   ): void {
     const state = this.playerStates.get(playerId);
     if (!state) return;
+
+    // Check if shooting is allowed based on round state
+    if (this.roundManager && !this.roundManager.isShootingAllowed()) {
+      // Clear any existing preview if shooting is not allowed
+      if (state.previewProjectile) {
+        state.previewProjectile.despawn();
+        state.previewProjectile = null;
+      }
+      return;
+    }
 
     const currentMrState = input.mr ?? false;
     const mrJustPressed = currentMrState && !state.lastInputState.mr;

@@ -40,12 +40,6 @@ startServer(world => {
   raycastHandler.enableDebugRaycasting(DEBUG_ENABLED);
   console.log('RaycastHandler initialized with debug enabled');
 
-  // Development flag for trajectory preview - set to false to disable
-  const SHOW_TRAJECTORY_PREVIEW = false;
-
-  // Initialize the projectile manager
-  const projectileManager = new PlayerProjectileManager(world, raycastHandler, SHOW_TRAJECTORY_PREVIEW);
-
   // Initialize the score manager
   const scoreManager = new ScoreManager();
   scoreManager.spawn(world, { x: 0, y: 0, z: 0 }); // Make it available as an entity
@@ -58,6 +52,17 @@ startServer(world => {
   
   // Initialize the round manager (only used in normal mode)
   const roundManager = !IS_TEST_MODE ? new RoundManager(world, movingBlockManager, scoreManager) : null;
+
+  // Development flag for trajectory preview - set to false to disable
+  const SHOW_TRAJECTORY_PREVIEW = false;
+
+  // Initialize the projectile manager with round manager if not in test mode
+  const projectileManager = new PlayerProjectileManager(
+    world,
+    raycastHandler,
+    SHOW_TRAJECTORY_PREVIEW,
+    roundManager ?? undefined
+  );
 
   // Register test mode commands if in test mode
   if (IS_TEST_MODE && testSpawner) {

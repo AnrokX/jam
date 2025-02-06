@@ -489,6 +489,10 @@ export class RoundManager {
         return this.isRoundActive;
     }
 
+    public isShootingAllowed(): boolean {
+        return this.isRoundActive && !this.waitingForPlayers;
+    }
+
     public isWaitingForPlayers(): boolean {
         return this.waitingForPlayers;
     }

@@ -77,8 +77,8 @@ export class PredictiveCharacterController {
       z: Math.cos(cameraAngle)
     };
     const right = {
-      x: Math.cos(cameraAngle),
-      z: -Math.sin(cameraAngle)
+      x: -Math.sin(cameraAngle),
+      z: Math.cos(cameraAngle)
     };
 
     // Apply movement relative to camera direction

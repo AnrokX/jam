@@ -575,8 +575,7 @@ export class RoundManager {
                             spawnPosition: sineWaveSpawnPosition,
                             moveSpeed: baseSpeed * 0.6,
                             amplitude: sineWaveAmplitude,
-                            frequency: sineWaveFrequency
-                            frequency: 0.2, // Fixed frequency to match MovingBlockEntity
+                            frequency: sineWaveFrequency,
                             blockTextureUri: 'blocks/nuit.png' // Changed to nuit texture for sine wave (mystical flowing pattern)
                         });
                         break;

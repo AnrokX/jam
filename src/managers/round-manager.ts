@@ -86,8 +86,8 @@ export class RoundManager {
                     normal: 0,
                     sineWave: 0.0,
                     static: 0.0,    // 100% static targets for learning
-                    verticalWave: 1.0,
-                    popup: 0,
+                    verticalWave: 0.0,
+                    popup: 1.0,
                     rising: 0,
                     parabolic: 0.0,
                     pendulum: 0
@@ -430,8 +430,11 @@ export class RoundManager {
                                     
                                     return waveBaseHeight;  // Start at varied base height
                                 case 'popup':
-                                    // Start below ground level
-                                    return this.getRandomY(-4, 5);  // Start underground to pop up
+                                    // Start much lower and pop up much higher with less hang time
+                                    const popupHeight = this.getRandomY(10, 18); // Much higher pop-up range
+                                    const popupStartY = this.getRandomY(-12, -6); // Start even lower with more variance
+                                    
+                                    return popupStartY;  // Use lower start position
                                 case 'rising':
                                     // Start below ground level
                                     return this.getRandomY(-5, 4);  // Start deep to rise up dramatically
@@ -550,11 +553,18 @@ export class RoundManager {
                         });
                         break;
                     case 'popup':
+                        // Start much lower and pop up much higher with less hang time
+                        const popupHeight = this.getRandomY(10, 18); // Much higher pop-up range
+                        const popupStartY = this.getRandomY(-12, -6); // Start even lower with more variance
+                        
                         this.blockManager.createPopUpTarget({
-                            spawnPosition: spawnPosition,
-                            startY: spawnPosition.y,
-                            topY: spawnPosition.y + this.getRandomY(3, 5), // Random popup height between 3-5 units
-                            moveSpeed: baseSpeed * 0.8
+                            spawnPosition: {
+                                ...spawnPosition,
+                                y: popupStartY  // Use lower start position
+                            },
+                            startY: popupStartY,
+                            topY: popupStartY + popupHeight,  // Pop up much higher from lower start
+                            moveSpeed: baseSpeed * 1.6  // 60% faster for less hang time
                         });
                         break;
                     case 'rising':

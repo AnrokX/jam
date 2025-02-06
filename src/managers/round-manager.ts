@@ -43,7 +43,7 @@ export class RoundManager {
     private readonly REQUIRED_PLAYERS = 2;
     private checkPlayersInterval: NodeJS.Timeout | null = null;
     private readonly GAME_CONFIG: GameConfig = {
-        maxRounds: 4  // Game ends after 5 rounds
+        maxRounds: 4  // Game ends after 5 roundsasdsad
     };
     private gameInProgress: boolean = false;
     private roundTransitionPending: boolean = false;

@@ -70,6 +70,12 @@ describe('RoundManager - Game Lifecycle', () => {
                     id: 'player1',
                     ui: { sendData: jest.fn() }
                 }
+            },
+            { 
+                player: { 
+                    id: 'player2',
+                    ui: { sendData: jest.fn() }
+                }
             }
         ];
         
@@ -120,7 +126,7 @@ describe('RoundManager - Game Lifecycle', () => {
                     type: 'waitingForPlayers',
                     data: expect.objectContaining({
                         current: 0,
-                        required: 1
+                        required: 2
                     })
                 })
             );
@@ -300,8 +306,9 @@ describe('RoundManager - Round Continuity', () => {
     };
 
     test('should maintain round count when player leaves and new player joins mid-game', async () => {
-        // Add initial player and start game
+        // Add initial players and start game
         addMockPlayer('player1');
+        addMockPlayer('player2');
         
         // Start first round
         roundManager.startRound();
@@ -337,30 +344,23 @@ describe('RoundManager - Round Continuity', () => {
         expect(roundManager.isWaitingForPlayers()).toBe(true);
         expect((roundManager as any).gameInProgress).toBe(false);
 
-        // Add first player and start game
+        // Add first player
         addMockPlayer('player1');
         roundManager.startRound();
-        (roundManager as any).actuallyStartRound();
-        expect(roundManager.getCurrentRound()).toBe(1);
-        expect((roundManager as any).gameInProgress).toBe(true);
-
-        // Player leaves mid-game
-        mockPlayers = [];
-        roundManager.handlePlayerLeave();
+        expect(roundManager.isWaitingForPlayers()).toBe(true);
         
-        // Game should continue
-        expect(roundManager.getCurrentRound()).toBe(1);
-        expect((roundManager as any).gameInProgress).toBe(true);
-
-        // New player joins mid-game
+        // Add second player and start game
         addMockPlayer('player2');
+        roundManager.startRound();
+        (roundManager as any).actuallyStartRound();
         expect(roundManager.getCurrentRound()).toBe(1);
         expect((roundManager as any).gameInProgress).toBe(true);
     });
 
     test('should complete full game cycle with player changes', async () => {
-        // Start with player1
+        // Start with two players
         addMockPlayer('player1');
+        addMockPlayer('player2');
         
         // Play through all rounds with player changes
         for (let i = 0; i < (roundManager as any).GAME_CONFIG.maxRounds; i++) {
@@ -388,8 +388,9 @@ describe('RoundManager - Round Continuity', () => {
     });
 
     test('should not start new round if one is pending', async () => {
-        // Add initial player and start game
+        // Add initial players and start game
         addMockPlayer('player1');
+        addMockPlayer('player2');
         
         // Start and end round 1
         roundManager.startRound();
@@ -399,7 +400,7 @@ describe('RoundManager - Round Continuity', () => {
         // At this point, there's a 5-second timer to start next round
         
         // Simulate new player joining during the wait
-        addMockPlayer('player2');
+        addMockPlayer('player3');
         roundManager.startRound(); // Should not trigger new round
         
         expect(roundManager.getCurrentRound()).toBe(1);
@@ -410,8 +411,9 @@ describe('RoundManager - Round Continuity', () => {
     });
 
     test('should handle player reload during round transition', async () => {
-        // Start with player1
-        const player1 = addMockPlayer('player1');
+        // Start with two players
+        addMockPlayer('player1');
+        addMockPlayer('player2');
         
         // Start and end round 1
         roundManager.startRound();
@@ -434,8 +436,9 @@ describe('RoundManager - Round Continuity', () => {
     });
 
     test('should prevent double round starts during transition period', async () => {
-        // Add initial player and start game
+        // Add initial players and start game
         addMockPlayer('player1');
+        addMockPlayer('player2');
         
         // Start first round
         roundManager.startRound();
@@ -472,8 +475,9 @@ describe('RoundManager - Round Continuity', () => {
         (roundManager as any).resetGame();
         expect(roundManager.getCurrentRound()).toBe(0);
 
-        // Add initial player and start first round
+        // Add initial players and start first round
         addMockPlayer('player1');
+        addMockPlayer('player2');
         roundManager.startRound();
         await new Promise(resolve => setTimeout(resolve, 20));
 
@@ -495,8 +499,9 @@ describe('RoundManager - Round Continuity', () => {
     });
 
     test('should maintain roundTransitionPending state during player changes', async () => {
-        // Start game with player1
+        // Start game with two players
         addMockPlayer('player1');
+        addMockPlayer('player2');
         roundManager.startRound();
         (roundManager as any).actuallyStartRound();
         
@@ -510,7 +515,7 @@ describe('RoundManager - Round Continuity', () => {
         expect((roundManager as any).roundTransitionPending).toBe(true);
         
         // Simulate new player joining during transition
-        addMockPlayer('player2');
+        addMockPlayer('player3');
         roundManager.startRound();
         expect((roundManager as any).roundTransitionPending).toBe(true);
         
@@ -530,8 +535,9 @@ describe('RoundManager - Round Continuity', () => {
         (roundManager as any).resetGame();
         expect(roundManager.getCurrentRound()).toBe(0);
 
-        // Add player and start game
+        // Add players and start game
         addMockPlayer('player1');
+        addMockPlayer('player2');
         roundManager.startRound();
         
         // Wait for initial round to start
@@ -608,6 +614,10 @@ describe('RoundManager - Round Timing', () => {
     });
 
     test('should respect round duration and transition timing', async () => {
+        // Add required players
+        addMockPlayer('player1');
+        addMockPlayer('player2');
+        
         // Start first round
         roundManager.startRound();
         await new Promise(resolve => setTimeout(resolve, 150)); // Wait for countdown

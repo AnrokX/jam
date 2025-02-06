@@ -44,6 +44,7 @@ export class RoundManager {
     private readonly GAME_CONFIG: GameConfig = {
         maxRounds: 4  // Game ends after 5 rounds
     };
+    private gameInProgress: boolean = false;
 
     constructor(
         private world: World,
@@ -154,6 +155,7 @@ export class RoundManager {
     private actuallyStartRound(): void {
         this.currentRound++;
         this.isRoundActive = true;
+        this.gameInProgress = true;
         this.roundStartTime = Date.now();
         this.lastUpdateTime = this.roundStartTime;
 
@@ -196,8 +198,8 @@ export class RoundManager {
 
         const playerCount = this.getPlayerCount();
         
-        // Only check for minimum players when starting a new game (round 0)
-        if (this.currentRound === 0 && playerCount < this.REQUIRED_PLAYERS) {
+        // Only check for minimum players when starting a new game (not in progress)
+        if (!this.gameInProgress && playerCount < this.REQUIRED_PLAYERS) {
             this.waitingForPlayers = true;
             this.broadcastWaitingForPlayers(playerCount);
             
@@ -217,7 +219,7 @@ export class RoundManager {
             return;
         }
         
-        // Once game has started, continue regardless of player count
+        // Start countdown to begin round
         this.startCountdown();
     }
 
@@ -433,9 +435,10 @@ export class RoundManager {
     }
 
     public handlePlayerLeave(): void {
-        // Only reset game if we're waiting for players to start
-        if (this.waitingForPlayers && this.getPlayerCount() < this.REQUIRED_PLAYERS) {
-            // Send message to all players using UI data
+        const playerCount = this.getPlayerCount();
+        
+        // Only reset game if we're waiting for players to start and don't have enough
+        if (!this.gameInProgress && playerCount < this.REQUIRED_PLAYERS) {
             this.world.entityManager.getAllPlayerEntities().forEach(playerEntity => {
                 playerEntity.player.ui.sendData({
                     type: 'systemMessage',
@@ -445,17 +448,17 @@ export class RoundManager {
             });
             this.resetGame();
         }
-        // Otherwise, let the game continue even with fewer players
+        // If game is in progress, continue with remaining players
     }
 
     private resetGame(): void {
         this.currentRound = 0;
+        this.gameInProgress = false;
         this.scoreManager.resetAllStats();
         this.scoreManager.broadcastScores(this.world);
         
         // Check if we have enough players to start new game
         if (this.getPlayerCount() >= this.REQUIRED_PLAYERS) {
-            // Broadcast new game starting
             this.world.entityManager.getAllPlayerEntities().forEach(playerEntity => {
                 playerEntity.player.ui.sendData({
                     type: 'newGame',
@@ -557,6 +560,7 @@ export class RoundManager {
     }
 
     private endGame(): void {
+        this.gameInProgress = false;
         const finalStandings: GameEndStanding[] = [];
         
         this.world.entityManager.getAllPlayerEntities().forEach(playerEntity => {

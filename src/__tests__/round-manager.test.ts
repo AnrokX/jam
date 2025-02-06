@@ -2,7 +2,7 @@ import { RoundManager } from '../managers/round-manager';
 import { ScoreManager } from '../managers/score-manager';
 import { MovingBlockManager } from '../moving_blocks/moving-block-entity';
 import { World } from 'hytopia';
-import { mock, describe, test, expect, beforeEach, jest } from 'bun:test';
+import { describe, test, expect, beforeEach, jest } from '@jest/globals';
 
 // Mock implementations
 const mockWorld = {
@@ -220,5 +220,140 @@ describe('RoundManager - Game Lifecycle', () => {
             expect((roundManager as any).blockSpawnTimer).toBeNull();
             expect((roundManager as any).checkPlayersInterval).toBeNull();
         });
+    });
+});
+
+describe('RoundManager - Round Continuity', () => {
+    let roundManager: RoundManager;
+    let scoreManager: ScoreManager;
+    let mockPlayers: any[];
+    let mockWorld: jest.Mocked<World>;
+    let mockBlockManager: jest.Mocked<MovingBlockManager>;
+
+    beforeEach(() => {
+        // Reset mocks
+        jest.clearAllMocks();
+        
+        // Setup mock players
+        mockPlayers = [];
+        
+        // Setup mock world
+        mockWorld = {
+            entityManager: {
+                getAllPlayerEntities: jest.fn(() => mockPlayers),
+                getAllEntities: jest.fn(() => [])
+            }
+        } as unknown as jest.Mocked<World>;
+
+        // Setup mock block manager
+        mockBlockManager = {
+            getBlockCount: jest.fn(),
+            createZAxisBlock: jest.fn(),
+            createSineWaveBlock: jest.fn(),
+            createStaticTarget: jest.fn(),
+            createVerticalWaveBlock: jest.fn()
+        } as unknown as jest.Mocked<MovingBlockManager>;
+
+        // Create fresh instances
+        scoreManager = new ScoreManager();
+        roundManager = new RoundManager(mockWorld, mockBlockManager, scoreManager);
+    });
+
+    const addMockPlayer = (id: string) => {
+        const player = {
+            id,
+            ui: { sendData: jest.fn() }
+        };
+        const playerEntity = { player };
+        mockPlayers.push(playerEntity);
+        return playerEntity;
+    };
+
+    test('should maintain round count when player leaves and new player joins mid-game', async () => {
+        // Add initial player and start game
+        addMockPlayer('player1');
+        
+        // Start first round
+        roundManager.startRound();
+        (roundManager as any).actuallyStartRound();
+        expect(roundManager.getCurrentRound()).toBe(1);
+        expect((roundManager as any).gameInProgress).toBe(true);
+
+        // End round 1
+        roundManager.endRound();
+        expect(roundManager.getCurrentRound()).toBe(1);
+
+        // Remove player1, add player2
+        mockPlayers = [];
+        addMockPlayer('player2');
+
+        // Start round 2 - should continue from previous round
+        (roundManager as any).actuallyStartRound();
+        expect(roundManager.getCurrentRound()).toBe(2);
+        expect((roundManager as any).gameInProgress).toBe(true);
+
+        // Add back player1
+        addMockPlayer('player1');
+        expect(roundManager.getCurrentRound()).toBe(2);
+
+        // Verify game is still in progress
+        expect((roundManager as any).gameInProgress).toBe(true);
+    });
+
+    test('should only reset game when waiting for initial players', () => {
+        // Start with no players
+        expect(mockPlayers.length).toBe(0);
+        roundManager.startRound();
+        expect(roundManager.isWaitingForPlayers()).toBe(true);
+        expect((roundManager as any).gameInProgress).toBe(false);
+
+        // Add first player and start game
+        addMockPlayer('player1');
+        roundManager.startRound();
+        (roundManager as any).actuallyStartRound();
+        expect(roundManager.getCurrentRound()).toBe(1);
+        expect((roundManager as any).gameInProgress).toBe(true);
+
+        // Player leaves mid-game
+        mockPlayers = [];
+        roundManager.handlePlayerLeave();
+        
+        // Game should continue
+        expect(roundManager.getCurrentRound()).toBe(1);
+        expect((roundManager as any).gameInProgress).toBe(true);
+
+        // New player joins mid-game
+        addMockPlayer('player2');
+        expect(roundManager.getCurrentRound()).toBe(1);
+        expect((roundManager as any).gameInProgress).toBe(true);
+    });
+
+    test('should complete full game cycle with player changes', async () => {
+        // Start with player1
+        addMockPlayer('player1');
+        
+        // Play through all rounds with player changes
+        for (let i = 0; i < (roundManager as any).GAME_CONFIG.maxRounds; i++) {
+            roundManager.startRound();
+            (roundManager as any).actuallyStartRound();
+            
+            // Simulate player switch in middle rounds
+            if (i === 1) {
+                mockPlayers = [];
+                addMockPlayer('player2');
+            }
+            if (i === 2) {
+                addMockPlayer('player1');
+            }
+            
+            expect(roundManager.getCurrentRound()).toBe(i + 1);
+            expect((roundManager as any).gameInProgress).toBe(true);
+            
+            roundManager.endRound();
+        }
+        
+        // Verify game ended properly
+        expect(roundManager.getCurrentRound()).toBe((roundManager as any).GAME_CONFIG.maxRounds);
+        expect((roundManager as any).gameInProgress).toBe(false);
     });
 }); 

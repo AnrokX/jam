@@ -249,7 +249,7 @@
     {
       "id": 42,
       "name": "water-flow",
-      "textureUri": "blocks/water-flow.png",
+      "textureUri": "blocks/water/water-flow.png",
       "isCustom": false
     },
     {

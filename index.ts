@@ -375,6 +375,39 @@ startServer(world => {
           audioManager.setBgmVolume(volume);
         }
       }
+      
+      // Handle projectile shots from clients
+      if (data && data.type === 'projectileShot') {
+        const { position, direction, timestamp, predictionId } = data.data;
+        
+        // Validate the shot
+        const currentTime = Date.now();
+        const timeSinceShot = currentTime - timestamp;
+        
+        // If the shot is too old, reject it
+        if (timeSinceShot > 1000) {
+          return;
+        }
+
+        // Send confirmation back to the client
+        player.ui.sendData({
+          type: 'projectileConfirm',
+          data: {
+            predictionId,
+            position,
+            timestamp: currentTime
+          }
+        });
+
+        // Create server-side projectile
+        projectileManager.handleProjectileInput(
+          player.id,
+          position,
+          direction,
+          { mr: true },
+          player
+        );
+      }
     };
 
     // Start the round or spawn test blocks based on mode

@@ -10,6 +10,7 @@ export interface ProjectileOptions extends EntityOptions {
     raycastHandler?: RaycastHandler;
     enablePreview?: boolean;
     playerId?: string;
+    isPrediction?: boolean;
 }
 
 interface TrajectoryPoint {
@@ -66,6 +67,10 @@ export class ProjectileEntity extends Entity {
     public readonly playerId?: string;
     public onCollision?: (position: Vector3Like, blockTextureUri: string) => void;
     private spawnOrigin?: Vector3Like;
+    private isPrediction: boolean = false;
+    private predictionId?: string;
+    private serverConfirmed: boolean = false;
+    private static predictionCounter: number = 0;
 
     constructor(options: ProjectileOptions) {
         super({
@@ -82,6 +87,10 @@ export class ProjectileEntity extends Entity {
         this.raycastHandler = options.raycastHandler;
         this.enablePreview = options.enablePreview ?? true;
         this.playerId = options.playerId;
+        this.isPrediction = options.isPrediction || false;
+        if (this.isPrediction) {
+            this.predictionId = `pred_${Date.now()}_${ProjectileEntity.predictionCounter++}`;
+        }
     }
 
     private validateTrajectory(direction: Vector3Like): boolean {
@@ -200,6 +209,11 @@ export class ProjectileEntity extends Entity {
                 w: 0.7071068
             };
             this.rawRigidBody.setRotation(initialRotation);
+        }
+
+        // If this is a prediction, use a different visual appearance
+        if (this.isPrediction) {
+            this.setOpacity(0.7); // Make predicted projectiles slightly transparent
         }
     }
 
@@ -446,5 +460,28 @@ export class ProjectileEntity extends Entity {
     // Add getter for spawn origin
     public getSpawnOrigin(): Vector3Like | undefined {
         return this.spawnOrigin ? { ...this.spawnOrigin } : undefined;
+    }
+
+    // Method to confirm this prediction matches server state
+    public confirmPrediction(): void {
+        if (this.isPrediction) {
+            this.serverConfirmed = true;
+            this.setOpacity(1.0); // Make it fully opaque once confirmed
+        }
+    }
+
+    // Method to get prediction ID for reconciliation
+    public getPredictionId(): string | undefined {
+        return this.predictionId;
+    }
+
+    // Method to check if this is a predicted entity
+    public isPredictedEntity(): boolean {
+        return this.isPrediction;
+    }
+
+    // Method to check if prediction has been confirmed
+    public isConfirmed(): boolean {
+        return this.serverConfirmed;
     }
 } 

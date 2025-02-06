@@ -11,6 +11,7 @@ export interface PlayerProjectileState {
   lastInputState: { mr: boolean };
   projectilesRemaining: number;
   lastShotTime: number;
+  predictedProjectiles: Map<string, ProjectileEntity>;
 }
 
 export class PlayerProjectileManager {
@@ -21,6 +22,7 @@ export class PlayerProjectileManager {
     'audio/sfx/projectile/grenade-launcher2.mp3',
     'audio/sfx/projectile/grenade-launcher3.mp3'
   ];
+  private static readonly PREDICTION_TIMEOUT = 1000; // Time to wait for server confirmation
   private playerStates = new Map<string, PlayerProjectileState>();
   private readonly world: World;
   private readonly raycastHandler: RaycastHandler;
@@ -41,7 +43,8 @@ export class PlayerProjectileManager {
       previewProjectile: null,
       lastInputState: { mr: false },
       projectilesRemaining: PlayerProjectileManager.INITIAL_AMMO_COUNT,
-      lastShotTime: 0
+      lastShotTime: 0,
+      predictedProjectiles: new Map()
     });
   }
 
@@ -57,12 +60,23 @@ export class PlayerProjectileManager {
     return this.playerStates.get(playerId)?.projectilesRemaining ?? 0;
   }
 
-  private createProjectile(playerId: string, position: Vector3Like, direction: Vector3Like): ProjectileEntity {
+  private createProjectile(
+    playerId: string, 
+    position: Vector3Like, 
+    direction: Vector3Like,
+    isPrediction: boolean = false
+  ): ProjectileEntity {
     const projectile = new ProjectileEntity({
-      modelScale: 1,
+      name: 'Projectile',
+      modelUri: 'models/projectiles/bomb.gltf',
+      modelScale: 0.3,
+      speed: 20,
+      lifetime: 2300,
+      damage: 10,
       raycastHandler: this.raycastHandler,
       enablePreview: this.enablePreview,
-      playerId
+      playerId: playerId,
+      isPrediction
     });
 
     // Calculate spawn position
@@ -145,8 +159,40 @@ export class PlayerProjectileManager {
         return;
       }
 
-      if (!state.previewProjectile) {
-        state.previewProjectile = this.createProjectile(playerId, position, direction);
+      // Create and spawn predicted projectile immediately
+      const predictedProjectile = this.createProjectile(playerId, position, direction, true);
+      const predictionId = predictedProjectile.getPredictionId();
+      
+      if (predictionId) {
+        state.predictedProjectiles.set(predictionId, predictedProjectile);
+        
+        // Set timeout to clean up prediction if not confirmed
+        setTimeout(() => {
+          if (!predictedProjectile.isConfirmed()) {
+            predictedProjectile.despawn();
+            state.predictedProjectiles.delete(predictionId);
+          }
+        }, PlayerProjectileManager.PREDICTION_TIMEOUT);
+      }
+
+      // Throw the predicted projectile immediately
+      predictedProjectile.throw(direction);
+
+      // Update state
+      state.lastShotTime = currentTime;
+      state.projectilesRemaining--;
+
+      // Send the shot to the server for validation
+      if (player) {
+        player.ui.sendData({
+          type: 'projectileShot',
+          data: {
+            position,
+            direction,
+            timestamp: currentTime,
+            predictionId
+          }
+        });
       }
     }
     
@@ -188,6 +234,29 @@ export class PlayerProjectileManager {
       particleSystem.createDestructionEffect(this.world, position, blockTextureUri);
     } catch (error) {
       console.error('Failed to create particle effect:', error);
+    }
+  }
+
+  // New method to handle server confirmation
+  public handleServerConfirmation(playerId: string, predictionId: string, serverPosition: Vector3Like): void {
+    const state = this.playerStates.get(playerId);
+    if (!state) return;
+
+    const predictedProjectile = state.predictedProjectiles.get(predictionId);
+    if (predictedProjectile) {
+      // Compare predicted position with server position
+      const predictedPos = predictedProjectile.position;
+      const positionError = Math.sqrt(
+        Math.pow(predictedPos.x - serverPosition.x, 2) +
+        Math.pow(predictedPos.y - serverPosition.y, 2) +
+        Math.pow(predictedPos.z - serverPosition.z, 2)
+      );
+
+      if (positionError > 0.5) { // If error is too large, correct the position
+        predictedProjectile.setPosition(serverPosition);
+      }
+
+      predictedProjectile.confirmPrediction();
     }
   }
 } 

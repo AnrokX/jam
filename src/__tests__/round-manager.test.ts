@@ -177,19 +177,21 @@ describe('RoundManager - Game Lifecycle', () => {
     });
 
     describe('Game End and Restart', () => {
-        test('should end game after max rounds', () => {
-            // Set current round to max
-            for (let i = 0; i < 4; i++) {
+        test('should end game after max rounds', async () => {
+            // Get max rounds from the manager's config
+            const maxRounds = (roundManager as any).GAME_CONFIG.maxRounds;
+            
+            // Run through all rounds
+            for (let i = 0; i < maxRounds; i++) {
                 (roundManager as any).actuallyStartRound();
                 roundManager.endRound();
             }
-            
+
             // Verify game end broadcast
-            expect(mockPlayers[0].player.ui.sendData).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    type: 'gameEnd'
-                })
-            );
+            expect(mockPlayers[0].player.ui.sendData).toHaveBeenCalledWith({
+                type: 'gameEnd',
+                data: expect.any(Object)
+            });
         });
 
         test('should reset game state for new game', () => {
@@ -231,24 +233,57 @@ describe('RoundManager - Game Lifecycle', () => {
             );
         });
 
-        test('should calculate final standings at game end', () => {
-            // Play through all rounds to trigger game end
-            for (let i = 0; i < 4; i++) {
+        test('should calculate final standings at game end', async () => {
+            const maxRounds = (roundManager as any).GAME_CONFIG.maxRounds;
+            
+            // Run through all rounds with scoring
+            for (let i = 0; i < maxRounds; i++) {
                 (roundManager as any).actuallyStartRound();
                 scoreManager.addScore('player1', 100);
                 roundManager.endRound();
+                
+                // Wait for round transition
+                await new Promise(resolve => setTimeout(resolve, TEST_TRANSITION_DURATION + 50));
+                
+                // Wait for any pending round start
+                while ((roundManager as any).roundTransitionPending) {
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                }
             }
-            
+
+            // Wait for final game end calculations
+            await new Promise(resolve => setTimeout(resolve, TEST_TRANSITION_DURATION + 100));
+
+            // Get the last call arguments to sendData
+            const calls = mockPlayers[0].player.ui.sendData.mock.calls;
+            const gameEndCall = calls.find((call: any) => call[0]?.type === 'gameEnd');
+
             // Verify game end data was sent
-            expect(mockPlayers[0].player.ui.sendData).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    type: 'gameEnd',
-                    data: expect.objectContaining({
-                        winner: expect.any(Object),
-                        standings: expect.any(Array)
+            expect(gameEndCall).toBeTruthy();
+            expect(gameEndCall[0]).toEqual({
+                type: 'gameEnd',
+                data: expect.objectContaining({
+                    nextGameIn: expect.any(Number),
+                    standings: expect.arrayContaining([
+                        expect.objectContaining({
+                            playerId: expect.any(String),
+                            totalScore: expect.any(Number),
+                            placementPoints: expect.any(Number),
+                            wins: expect.any(Number)
+                        })
+                    ]),
+                    stats: expect.objectContaining({
+                        completedRounds: expect.any(Number),
+                        totalRounds: expect.any(Number)
+                    }),
+                    winner: expect.objectContaining({
+                        playerId: expect.any(String),
+                        totalScore: expect.any(Number),
+                        placementPoints: expect.any(Number),
+                        wins: expect.any(Number)
                     })
                 })
-            );
+            });
         });
     });
 

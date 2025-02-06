@@ -42,6 +42,12 @@ const PLATFORM_SPAWNS = {
   }
 };
 
+// Game configuration
+const GAME_CONFIG = {
+  FALL_THRESHOLD: -50,  // Y position below which a player is considered fallen
+  RESPAWN_HEIGHT_OFFSET: 1,  // How high above the spawn point to respawn
+};
+
 // Configuration flags
 const IS_TEST_MODE = false;  // Set this to true to enable test mode, false for normal game
 const DEBUG_ENABLED = false;  // Development debug flag
@@ -49,6 +55,9 @@ const DEBUG_ENABLED = false;  // Development debug flag
 // Keep track of last used spawn points
 let lastLeftSpawnIndex = -1;
 let lastRightSpawnIndex = -1;
+
+// Keep track of player spawn positions
+const playerSpawnPositions = new Map<string, Vector3Like>();
 
 // Helper function to get next spawn position
 function getNextSpawnPosition(platform: 'LEFT' | 'RIGHT'): Vector3Like {
@@ -197,9 +206,31 @@ startServer(world => {
   const audioManager = AudioManager.getInstance(world);
   
   /**
-   * Handles the event when a player joins the game.
-   * Sets up player entity and input handling for raycasting.
+   * Check if a player has fallen and needs to be respawned
    */
+  function checkPlayerFall(entity: PlayerEntity) {
+    if (entity.position.y < GAME_CONFIG.FALL_THRESHOLD) {
+      const spawnPos = playerSpawnPositions.get(entity.player.id);
+      if (spawnPos) {
+        // Add a small height offset to prevent immediate falling
+        const respawnPos = {
+          x: spawnPos.x,
+          y: spawnPos.y + GAME_CONFIG.RESPAWN_HEIGHT_OFFSET,
+          z: spawnPos.z
+        };
+        entity.setPosition(respawnPos);
+        console.log(`Player ${entity.player.id} fell and respawned at their initial position`);
+      }
+    }
+  }
+
+  // Set up fall detection interval
+  setInterval(() => {
+    world.entityManager.getAllPlayerEntities().forEach(entity => {
+      checkPlayerFall(entity);
+    });
+  }, 100); // Check every 100ms
+
   world.onPlayerJoin = player => {
     console.log('New player joined the game');
     
@@ -237,6 +268,9 @@ startServer(world => {
     const spawnPos = isEvenPlayer ? 
       getNextSpawnPosition('LEFT') :
       getNextSpawnPosition('RIGHT');
+
+    // Store the spawn position for this player
+    playerSpawnPositions.set(player.id, spawnPos);
 
     const playerEntity = new PlayerEntity({
       player,
@@ -389,6 +423,9 @@ startServer(world => {
     if (!IS_TEST_MODE && roundManager) {
       roundManager.handlePlayerLeave();
     }
+    
+    // Clean up stored spawn position
+    playerSpawnPositions.delete(player.id);
     
     world.entityManager.getPlayerEntitiesByPlayer(player).forEach(entity => entity.despawn());
   };

@@ -104,16 +104,27 @@ export class ScoreManager extends Entity {
     const playerCount = sortedPlayers.length;
     const placements: Array<{ playerId: string, points: number }> = [];
     
-    // Award points based on placement (inverse of position)
-    // Last place always gets 1 point
+    // Handle ties by giving same points to players with equal scores
+    let currentPoints = playerCount;
+    let currentScore = -1;
+    let sameScoreCount = 0;
+
     sortedPlayers.forEach((entry, index) => {
         const [playerId, stats] = entry;
-        const points = playerCount - index; // 1st gets n points, 2nd gets n-1, etc.
         
-        stats.placementPoints += points; // Add to placement points instead of total score
+        // If this is a new score, update the points
+        if (stats.roundScore !== currentScore) {
+            currentPoints = playerCount - index;
+            currentScore = stats.roundScore;
+            sameScoreCount = 0;
+        } else {
+            sameScoreCount++;
+        }
+        
+        stats.placementPoints += currentPoints; // Add to placement points
         this.playerStats.set(playerId, stats);
         
-        placements.push({ playerId, points });
+        placements.push({ playerId, points: currentPoints });
     });
 
     const winnerId = sortedPlayers.length > 0 ? sortedPlayers[0][0] : null;

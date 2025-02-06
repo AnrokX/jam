@@ -6,11 +6,30 @@ export interface BlockMovementBehavior {
 }
 
 export class DefaultBlockMovement implements BlockMovementBehavior {
+  private initialY: number = 0;
+  private heightVariation: number = 2;  // Height variation range
+  private heightPhase: number = 0;      // Phase for height oscillation
+
   update(block: MovingBlockEntity, deltaTimeMs: number): void {
+    // Initialize height parameters on first update if needed
+    if (this.initialY === 0) {
+      this.initialY = block.position.y;
+      this.heightPhase = Math.random() * Math.PI * 2; // Random starting phase
+      this.heightVariation = 1 + Math.random() * 2;   // Random height variation between 1-3
+    }
+
     const deltaSeconds = deltaTimeMs / 1000;
+    
+    // Calculate height oscillation
+    const heightOffset = Math.sin(this.heightPhase + deltaTimeMs / 1000) * this.heightVariation;
+    
+    // Update phase
+    this.heightPhase += deltaSeconds;
+
+    // Calculate new position with all components
     let newPosition = {
       x: block.position.x + block.getDirection().x * block.getMoveSpeed() * deltaSeconds,
-      y: block.position.y + block.getDirection().y * block.getMoveSpeed() * deltaSeconds,
+      y: this.initialY + heightOffset,
       z: block.position.z + block.getDirection().z * block.getMoveSpeed() * deltaSeconds,
     };
 
@@ -19,11 +38,12 @@ export class DefaultBlockMovement implements BlockMovementBehavior {
         block.reverseMovementDirection();
         newPosition = {
           x: block.position.x + block.getDirection().x * block.getMoveSpeed() * deltaSeconds,
-          y: block.position.y + block.getDirection().y * block.getMoveSpeed() * deltaSeconds,
+          y: this.initialY + heightOffset,
           z: block.position.z + block.getDirection().z * block.getMoveSpeed() * deltaSeconds,
         };
       } else {
         block.resetToInitialPosition();
+        this.initialY = block.position.y;
         return;
       }
     }

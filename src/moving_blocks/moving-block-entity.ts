@@ -14,10 +14,10 @@ export const MOVING_BLOCK_CONFIG = {
   DEFAULT_TEXTURE: 'blocks/void-sand.png',
   DEFAULT_HALF_EXTENTS: { x: 0.5, y: 2, z: 2 },
   MOVEMENT_BOUNDS: {
-    min: { x: -5, y: 1, z: -15 },
-    max: { x: 5, y: 1, z: 16 }
+    min: { x: -15, y: 2, z: -15 },  // Wider X range, higher minimum Y
+    max: { x: 15, y: 12, z: 16 }    // Wider X range, higher maximum Y
   },
-  SPAWN_POSITION: { x: 0, y: 1, z: 0 },
+  SPAWN_POSITION: { x: 0, y: 4, z: 0 },  // Higher default spawn
   BREAK_SCORE: 5,  // Points awarded for breaking a block
   STATIC_TARGET: {
     TEXTURE: 'blocks/gold-ore.png',
@@ -909,34 +909,75 @@ export class MovingBlockManager {
         z: defaultHalfExtents.z * 0.6   // 40% smaller
     };
 
+    // Generate random direction with X component
+    const randomAngle = Math.random() * Math.PI * 0.5 - Math.PI * 0.25; // -45 to 45 degrees
+    const direction = {
+        x: Math.sin(randomAngle) * 0.5,  // X component limited to 0.5 magnitude
+        y: 0,                            // Y handled by movement behavior
+        z: Math.cos(randomAngle)         // Z component
+    };
+
     const block = new MovingBlockEntity(MovingBlockEntity.createDefaultBlockConfiguration({
-        blockHalfExtents: scaledHalfExtents,  // Apply the smaller size
+        blockHalfExtents: scaledHalfExtents,
+        direction: direction,
         onBlockBroken: () => {
             if (this.scoreManager && (block as any).playerId) {
                 const playerId = (block as any).playerId;
                 const score = MovingBlockEntity.DefaultBlockScore;
                 
                 this.scoreManager.addScore(playerId, score);
-                
-                // Broadcast updated scores
                 this.scoreManager.broadcastScores(this.world);
-                
-                // Remove the block from our tracking array when broken
                 this.removeBlock(block);
             }
         }
     }));
     
-    const finalSpawnPosition = spawnPosition || MovingBlockEntity.generateDefaultSpawnPosition();
+    // Generate spawn position respecting platform safety
+    const finalSpawnPosition = spawnPosition || this.generateSafeSpawnPosition();
     
-    if (!MovingBlockEntity.isValidDefaultBlockPosition(finalSpawnPosition)) {
-      block.spawn(this.world, MovingBlockEntity.DefaultSpawnPosition);
-    } else {
-      block.spawn(this.world, finalSpawnPosition);
-    }
-    
+    block.spawn(this.world, finalSpawnPosition);
     this.blocks.push(block);
     return block;
+  }
+
+  private generateSafeSpawnPosition(): Vector3Like {
+    const bounds = MovingBlockEntity.DefaultMovementBounds;
+    const safetyMargin = MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.PLATFORM_SAFETY_MARGIN;
+    const rightPlatformX = MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.RIGHT_PLATFORM_EDGE.X;
+    const leftPlatformX = MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.LEFT_PLATFORM_EDGE.X;
+    
+    let attempts = 0;
+    let position: Vector3Like;
+    
+    do {
+        position = {
+            x: bounds.min.x + Math.random() * (bounds.max.x - bounds.min.x),
+            y: bounds.min.y + Math.random() * (bounds.max.y - bounds.min.y),
+            z: bounds.min.z + Math.random() * (bounds.max.z - bounds.min.z)
+        };
+        
+        // Check if position is safe from platforms
+        const isNearRightPlatform = Math.abs(position.x - rightPlatformX) < safetyMargin &&
+            position.z >= MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.RIGHT_PLATFORM_EDGE.Z_MIN - safetyMargin &&
+            position.z <= MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.RIGHT_PLATFORM_EDGE.Z_MAX + safetyMargin;
+            
+        const isNearLeftPlatform = Math.abs(position.x - leftPlatformX) < safetyMargin &&
+            position.z >= MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.LEFT_PLATFORM_EDGE.Z_MIN - safetyMargin &&
+            position.z <= MOVING_BLOCK_CONFIG.PLATFORM_SAFETY.LEFT_PLATFORM_EDGE.Z_MAX + safetyMargin;
+        
+        if (!isNearRightPlatform && !isNearLeftPlatform) {
+            break;
+        }
+        
+        attempts++;
+    } while (attempts < 10);
+    
+    // If we couldn't find a safe position, use a guaranteed safe default
+    if (attempts >= 10) {
+        position = { ...MovingBlockEntity.DefaultSpawnPosition };
+    }
+    
+    return position;
   }
 
   public createSineWaveBlock(options: {

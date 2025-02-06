@@ -45,6 +45,7 @@ export class RoundManager {
         maxRounds: 4  // Game ends after 5 rounds
     };
     private gameInProgress: boolean = false;
+    private roundTransitionPending: boolean = false;
 
     constructor(
         private world: World,
@@ -124,6 +125,9 @@ export class RoundManager {
     }
 
     private startCountdown(): void {
+        // Don't start countdown if in transition
+        if (this.roundTransitionPending) return;
+
         let count = 5;
         
         const sendCount = () => {
@@ -188,7 +192,8 @@ export class RoundManager {
     }
 
     public startRound(): void {
-        if (this.isRoundActive) return;
+        // Don't start if round is active or we're in transition
+        if (this.isRoundActive || this.roundTransitionPending) return;
 
         // Add this check to prevent starting new rounds if we've hit the max
         if (this.currentRound >= this.GAME_CONFIG.maxRounds) {
@@ -428,8 +433,10 @@ export class RoundManager {
             return;
         }
 
-        // Start next round after delay
+        // Set transition flag and schedule next round
+        this.roundTransitionPending = true;
         setTimeout(() => {
+            this.roundTransitionPending = false;
             this.startRound();
         }, 5000);
     }
@@ -557,6 +564,7 @@ export class RoundManager {
             clearInterval(this.blockSpawnTimer);
             this.blockSpawnTimer = null;
         }
+        this.roundTransitionPending = false;
     }
 
     private endGame(): void {

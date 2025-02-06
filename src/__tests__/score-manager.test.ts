@@ -1,4 +1,5 @@
 import { ScoreManager } from '../managers/score-manager';
+import { mock, describe, test, expect, beforeEach } from 'bun:test';
 
 describe('ScoreManager', () => {
   let scoreManager: ScoreManager;
@@ -41,5 +42,59 @@ describe('ScoreManager', () => {
     const blockBreakScore = 5;
     scoreManager.addScore(playerId, blockBreakScore); // simulate block break event awarding points
     expect(scoreManager.getScore(playerId)).toBe(blockBreakScore);
+  });
+});
+
+describe('Combo System', () => {
+  let scoreManager: ScoreManager;
+  const playerId = 'player1';
+  let mockPlayer: any;
+
+  beforeEach(() => {
+    // Create ScoreManager
+    scoreManager = new ScoreManager();
+    scoreManager.initializePlayer(playerId);
+
+    // Set up player stats with combo
+    const stats = (scoreManager as any).playerStats.get(playerId);
+    stats.consecutiveHits = 0;
+    stats.multiHitCount = 0;
+    (scoreManager as any).playerStats.set(playerId, stats);
+  });
+
+  test('should reset combo when explicitly called', () => {
+    const stats = (scoreManager as any).playerStats.get(playerId);
+    stats.consecutiveHits = 5;
+    stats.multiHitCount = 2;
+    (scoreManager as any).playerStats.set(playerId, stats);
+
+    scoreManager.resetCombo(playerId);
+
+    const updatedStats = (scoreManager as any).playerStats.get(playerId);
+    expect(updatedStats.consecutiveHits).toBe(0);
+    expect(updatedStats.multiHitCount).toBe(0);
+  });
+
+  test('should handle resetting combo for non-existent player', () => {
+    // Should not throw error
+    expect(() => {
+      scoreManager.resetCombo('nonexistent-player');
+    }).not.toThrow();
+  });
+
+  test('should maintain combo state across multiple resets', () => {
+    const stats = (scoreManager as any).playerStats.get(playerId);
+    stats.consecutiveHits = 5;
+    stats.multiHitCount = 2;
+    (scoreManager as any).playerStats.set(playerId, stats);
+
+    // Reset multiple times
+    scoreManager.resetCombo(playerId);
+    scoreManager.resetCombo(playerId);
+    scoreManager.resetCombo(playerId);
+
+    const finalStats = (scoreManager as any).playerStats.get(playerId);
+    expect(finalStats.consecutiveHits).toBe(0);
+    expect(finalStats.multiHitCount).toBe(0);
   });
 }); 

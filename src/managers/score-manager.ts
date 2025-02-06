@@ -408,4 +408,26 @@ export class ScoreManager extends Entity {
 
     return finalScore;
   }
+
+  // Add new method to reset combo
+  public resetCombo(playerId: string): void {
+    const stats = this.playerStats.get(playerId);
+    if (stats) {
+      const hadCombo = stats.consecutiveHits >= 3;
+      stats.consecutiveHits = 0;
+      stats.multiHitCount = 0;
+      this.playerStats.set(playerId, stats);
+
+      // Only notify UI if there was an active combo
+      if (hadCombo && this.world) {
+        this.world.entityManager.getAllPlayerEntities()
+          .filter(entity => entity.player.id === playerId)
+          .forEach(entity => {
+            entity.player.ui.sendData({
+              type: 'resetCombo'
+            });
+          });
+      }
+    }
+  }
 } 

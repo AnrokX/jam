@@ -1,6 +1,7 @@
 import { Entity, EntityOptions, Vector3Like, ColliderShape, CollisionGroup, BlockType, World } from 'hytopia';
 import { RaycastHandler } from '../raycast/raycast-handler';
 import { BlockParticleEffects } from '../effects/block-particle-effects';
+import { ScoreManager } from '../managers/score-manager';
 
 export interface ProjectileOptions extends EntityOptions {
     speed?: number;
@@ -402,8 +403,15 @@ export class ProjectileEntity extends Entity {
 
     private explode(): void {
         if (!this.isSpawned) return;
-        // Additional explosion logic can be added here
-        // Such as damage, particle effects, or knockback
+        
+        // Reset combo when projectile expires without hitting anything
+        if (this.playerId && this.world) {
+            const scoreManager = this.world.entityManager.getAllEntities()
+                .find(entity => entity instanceof ScoreManager) as ScoreManager;
+            if (scoreManager) {
+                scoreManager.resetCombo(this.playerId);
+            }
+        }
     }
 
     private onImpact(): void {

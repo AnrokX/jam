@@ -99,8 +99,8 @@ export class RoundManager {
         if (round === 2) {
             return {
                 duration: 20000,
-                minBlockCount: 10,
-                maxBlockCount: 15,
+                minBlockCount: 4,
+                maxBlockCount: 8,
                 blockSpawnInterval: 1500,
                 speedMultiplier: 0.6,
                 blockTypes: {
@@ -417,28 +417,28 @@ export class RoundManager {
                         y: (() => {
                             switch(chosenType) {
                                 case 'static':
-                                    return this.getRandomY(1, 8);  // Static: 1 to 8 units high
+                                    return this.getRandomY(0, 12);  // Static: Wide range for variety
                                 case 'normal':
-                                    return this.getRandomY(2, 7);  // Normal: 2 to 7 units high
+                                    return this.getRandomY(-1, 9);  // Normal: Good spread above and below
                                 case 'sineWave':
-                                    return this.getRandomY(3, 8);  // Sine wave: 3 to 8 units high
+                                    return this.getRandomY(0, 9);  // Sine wave: Slight bias towards higher
                                 case 'verticalWave':
                                     // Start lower since they move up
-                                    return this.getRandomY(2, 5);
+                                    return this.getRandomY(-4, 3);  // Start much lower since they move up
                                 case 'popup':
-                                    // Start at ground level
-                                    return 1;
+                                    // Start below ground level
+                                    return this.getRandomY(-6, -3);  // Start underground to pop up
                                 case 'rising':
-                                    // Always start at ground
-                                    return 1;
+                                    // Start below ground level
+                                    return this.getRandomY(-8, -4);  // Start deep to rise up dramatically
                                 case 'parabolic':
-                                    // Start at medium height
-                                    return this.getRandomY(3, 6);
+                                    // Start at varied heights
+                                    return this.getRandomY(-4, 4);  // Equal spread for parabolic arcs
                                 case 'pendulum':
-                                    // Start higher since they swing down
-                                    return this.getRandomY(6, 9);
+                                    // Start higher for swinging
+                                    return this.getRandomY(4, 12);  // Keep high for swinging down
                                 default:
-                                    return this.getRandomY(2, 6);
+                                    return this.getRandomY(-3, 6);
                             }
                         })(),
                         z: (() => {
@@ -490,6 +490,13 @@ export class RoundManager {
 
                 // Spawn the chosen block type with appropriate spacing
                 switch(chosenType) {
+                    case 'static':
+                        this.blockManager.createStaticTarget({
+                            x: spawnPosition.x,
+                            y: spawnPosition.y,
+                            z: spawnPosition.z
+                        });
+                        break;
                     case 'normal':
                         this.blockManager.createZAxisBlock(spawnPosition);
                         break;
@@ -513,13 +520,6 @@ export class RoundManager {
                             moveSpeed: baseSpeed * 0.6,
                             amplitude: sineWaveAmplitude,
                             frequency: 0.2
-                        });
-                        break;
-                    case 'static':
-                        this.blockManager.createStaticTarget({
-                            x: spawnPosition.x,
-                            y: spawnPosition.y,
-                            z: spawnPosition.z
                         });
                         break;
                     case 'verticalWave':

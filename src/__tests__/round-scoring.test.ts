@@ -122,4 +122,39 @@ describe('Round-based Scoring', () => {
     expect(placements[1].points).toBe(3); // player2
     expect(placements[2].points).toBe(1); // player3
   });
+
+  test('should maintain round continuity when players leave and rejoin', () => {
+    // Start with initial players
+    scoreManager.addScore(player1Id, 30);
+    scoreManager.addScore(player2Id, 20);
+    const round1Result = scoreManager.handleRoundEnd();
+    expect(round1Result.winnerId).toBe(player1Id);
+
+    // Start new round
+    scoreManager.startNewRound();
+    
+    // Simulate player2 leaving (remove their stats)
+    scoreManager.removePlayer(player2Id);
+    
+    // Add scores for remaining player
+    scoreManager.addScore(player1Id, 25);
+    const round2Result = scoreManager.handleRoundEnd();
+    expect(round2Result.winnerId).toBe(player1Id);
+
+    // Start another round
+    scoreManager.startNewRound();
+    
+    // Simulate player2 rejoining
+    scoreManager.initializePlayer(player2Id);
+    
+    // Add scores in new order
+    scoreManager.addScore(player2Id, 40);
+    scoreManager.addScore(player1Id, 30);
+    const round3Result = scoreManager.handleRoundEnd();
+    
+    // Check that player2's rejoin didn't affect round counting
+    expect(round3Result.winnerId).toBe(player2Id);
+    expect(scoreManager.getWins(player1Id)).toBe(2); // Should have won rounds 1 and 2
+    expect(scoreManager.getWins(player2Id)).toBe(1); // Should have won round 3
+  });
 }); 

@@ -21,6 +21,17 @@ interface SpawnPosition extends Vector3Like {
     moveSpeed?: number;
 }
 
+export interface GameConfig {
+    maxRounds: number;
+}
+
+interface GameEndStanding {
+    playerId: string;
+    placementPoints: number;
+    wins: number;
+    totalScore: number;
+}
+
 export class RoundManager {
     private currentRound: number = 0;
     private roundTimer: NodeJS.Timeout | null = null;
@@ -31,12 +42,23 @@ export class RoundManager {
     private waitingForPlayers: boolean = false;
     private readonly REQUIRED_PLAYERS = 1;
     private checkPlayersInterval: NodeJS.Timeout | null = null;
+    private readonly GAME_CONFIG: GameConfig = {
+        maxRounds: 4  // Game ends after 5 rounds
+    };
+    private gameInProgress: boolean = false;
+    private roundTransitionPending: boolean = false;
+    private readonly TRANSITION_DURATION: number = 5000; // Default 5 seconds
 
     constructor(
         private world: World,
         private blockManager: MovingBlockManager,
-        private scoreManager: ScoreManager
-    ) {}
+        private scoreManager: ScoreManager,
+        transitionDuration?: number
+    ) {
+        if (transitionDuration !== undefined) {
+            this.TRANSITION_DURATION = transitionDuration;
+        }
+    }
 
     private getPlayerCount(): number {
         return this.world.entityManager.getAllPlayerEntities().length;
@@ -46,7 +68,7 @@ export class RoundManager {
         // Tutorial round (Round 1)
         if (round === 1) {
             return {
-                duration: 10000,  // 90 seconds for first round to give more time
+                duration: 90000,  // 90 seconds for first round to give more time
                 minBlockCount: 8,  // Start with fewer blocks
                 maxBlockCount: 12, // Keep it manageable
                 blockSpawnInterval: 1800, // Slower spawning (2 seconds)
@@ -62,7 +84,7 @@ export class RoundManager {
         
         if (round === 2) {
             return {
-                duration: 20000,  // 75 seconds
+                duration: 75000,  // 75 seconds
                 minBlockCount: 10,  // Slight increase from round 1
                 maxBlockCount: 15,  // Slight increase from round 1
                 blockSpawnInterval: 1800, // 1.8 seconds between spawns
@@ -79,7 +101,7 @@ export class RoundManager {
         // Early rounds (3)
         if (round === 3) {
             return {
-                duration: 20000,  // 75 seconds
+                duration: 75000,  // 75 seconds
                 minBlockCount: 12 + Math.floor(round * 2),
                 maxBlockCount: 18 + Math.floor(round * 3),
                 blockSpawnInterval: 1500,  // 1.5 seconds between spawns
@@ -95,7 +117,7 @@ export class RoundManager {
         
         // Regular rounds (4+)
         return {
-            duration: 20000,  // Back to 60 seconds
+            duration: 60000,  // 60 seconds
             minBlockCount: 15 + Math.floor(round * 2),
             maxBlockCount: 25 + Math.floor(round * 3),
             blockSpawnInterval: 1000,  // 1 second between spawns
@@ -110,6 +132,9 @@ export class RoundManager {
     }
 
     private startCountdown(): void {
+        // Don't start countdown if in transition
+        if (this.roundTransitionPending) return;
+
         let count = 5;
         
         const sendCount = () => {
@@ -139,8 +164,15 @@ export class RoundManager {
     }
 
     private actuallyStartRound(): void {
+        // Don't start if a round is already active
+        if (this.isRoundActive) {
+            console.log('Attempted to start round while another is active');
+            return;
+        }
+
         this.currentRound++;
         this.isRoundActive = true;
+        this.gameInProgress = true;
         this.roundStartTime = Date.now();
         this.lastUpdateTime = this.roundStartTime;
 
@@ -173,14 +205,22 @@ export class RoundManager {
     }
 
     public startRound(): void {
-        if (this.isRoundActive) return;
+        // Don't start if round is active or we're in transition
+        if (this.isRoundActive || this.roundTransitionPending) return;
+
+        // Add this check to prevent starting new rounds if we've hit the max
+        if (this.currentRound >= this.GAME_CONFIG.maxRounds) {
+            this.endGame();
+            return;
+        }
 
         const playerCount = this.getPlayerCount();
-        if (playerCount < this.REQUIRED_PLAYERS) {
+        
+        // Only check for minimum players when starting a new game (not in progress)
+        if (!this.gameInProgress && playerCount < this.REQUIRED_PLAYERS) {
             this.waitingForPlayers = true;
             this.broadcastWaitingForPlayers(playerCount);
             
-            // Start checking for players if not already checking
             if (!this.checkPlayersInterval) {
                 this.checkPlayersInterval = setInterval(() => {
                     const currentPlayers = this.getPlayerCount();
@@ -188,17 +228,16 @@ export class RoundManager {
                         this.waitingForPlayers = false;
                         clearInterval(this.checkPlayersInterval!);
                         this.checkPlayersInterval = null;
-                        // Start countdown instead of round directly
                         this.startCountdown();
                     } else {
                         this.broadcastWaitingForPlayers(currentPlayers);
                     }
-                }, 1000); // Check every second
+                }, 1000);
             }
             return;
         }
         
-        // If we already have enough players, start countdown
+        // Start countdown to begin round
         this.startCountdown();
     }
 
@@ -382,7 +421,7 @@ export class RoundManager {
         
         if (!this.isRoundActive) return;
 
-        this.isRoundActive = false;
+        // Clear any existing timers first
         if (this.roundTimer) {
             clearTimeout(this.roundTimer);
             this.roundTimer = null;
@@ -392,13 +431,7 @@ export class RoundManager {
             this.blockSpawnTimer = null;
         }
 
-        // Check if we still have enough players
-        if (this.getPlayerCount() < this.REQUIRED_PLAYERS) {
-            this.resetGame();
-            this.waitingForPlayers = true;
-            this.broadcastWaitingForPlayers(this.getPlayerCount());
-            return;
-        }
+        this.isRoundActive = false;
 
         // Get round results with placements
         const { winnerId, placements } = this.scoreManager.handleRoundEnd();
@@ -415,37 +448,61 @@ export class RoundManager {
         // Broadcast round end results with placement info
         this.broadcastRoundEnd(winnerId, placements);
 
-        // Start next round after a delay
+        // Check if this was the final round
+        if (this.currentRound >= this.GAME_CONFIG.maxRounds) {
+            this.endGame();
+            return;
+        }
+
+        // Set transition flag and schedule next round
+        this.roundTransitionPending = true;
+        console.log('Starting round transition period');
         setTimeout(() => {
+            console.log('Round transition complete');
+            this.roundTransitionPending = false;
             this.startRound();
-        }, 5000);
+        }, this.TRANSITION_DURATION);
     }
 
     public handlePlayerLeave(): void {
-        // If we don't have enough players and a round is active, end it
-        if (this.isRoundActive && this.getPlayerCount() < this.REQUIRED_PLAYERS) {
-            // Send message to all players using UI data
+        const playerCount = this.getPlayerCount();
+        
+        // Only reset game if we're waiting for players to start and don't have enough
+        if (!this.gameInProgress && playerCount < this.REQUIRED_PLAYERS) {
             this.world.entityManager.getAllPlayerEntities().forEach(playerEntity => {
                 playerEntity.player.ui.sendData({
                     type: 'systemMessage',
-                    message: 'Not enough players, ending round...',
+                    message: 'Not enough players to start game...',
                     color: 'FF0000'
                 });
             });
-            this.endRound();
+            this.resetGame();
         }
+        // If game is in progress, continue with remaining players
     }
 
     private resetGame(): void {
         this.currentRound = 0;
-        // Reset all player stats including wins
+        this.gameInProgress = false;
         this.scoreManager.resetAllStats();
         this.scoreManager.broadcastScores(this.world);
         
-        // Start from round 1 after a delay
-        setTimeout(() => {
-            this.startRound();
-        }, 5000);
+        // Check if we have enough players to start new game
+        if (this.getPlayerCount() >= this.REQUIRED_PLAYERS) {
+            this.world.entityManager.getAllPlayerEntities().forEach(playerEntity => {
+                playerEntity.player.ui.sendData({
+                    type: 'newGame',
+                    message: 'New game starting...'
+                });
+            });
+            
+            setTimeout(() => {
+                this.startRound();
+            }, 5000);
+        } else {
+            this.waitingForPlayers = true;
+            this.broadcastWaitingForPlayers(this.getPlayerCount());
+        }
     }
 
     private broadcastRoundInfo(): void {
@@ -454,16 +511,12 @@ export class RoundManager {
         const elapsedTime = currentTime - this.roundStartTime;
         const remainingTime = Math.max(0, config.duration - elapsedTime);
         
-        console.log('Broadcasting round info:', {
-            round: this.currentRound,
-            duration: config.duration,
-            remainingTime: remainingTime
-        });
-
         const message = {
             type: 'roundUpdate',
             data: {
                 round: this.currentRound,
+                totalRounds: this.GAME_CONFIG.maxRounds,
+                remainingRounds: this.getRemainingRounds(),
                 duration: config.duration,
                 timeRemaining: remainingTime
             }
@@ -479,7 +532,7 @@ export class RoundManager {
             type: 'roundEnd',
             data: {
                 round: this.currentRound,
-                nextRoundIn: 5000,
+                nextRoundIn: this.TRANSITION_DURATION,
                 winnerId: winnerId,
                 placements: placements
             }
@@ -534,5 +587,80 @@ export class RoundManager {
             clearInterval(this.blockSpawnTimer);
             this.blockSpawnTimer = null;
         }
+        this.roundTransitionPending = false;
+    }
+
+    private endGame(): void {
+        this.gameInProgress = false;
+        const finalStandings: GameEndStanding[] = [];
+        
+        this.world.entityManager.getAllPlayerEntities().forEach(playerEntity => {
+            const playerId = playerEntity.player.id;
+            finalStandings.push({
+                playerId,
+                placementPoints: this.scoreManager.getLeaderboardPoints(playerId),
+                wins: this.scoreManager.getWins(playerId),
+                totalScore: this.scoreManager.getScore(playerId)
+            });
+        });
+
+        // Sort by placement points
+        finalStandings.sort((a, b) => b.placementPoints - a.placementPoints);
+        const gameWinner = finalStandings[0];
+        
+        // Clear any remaining blocks
+        this.world.entityManager.getAllEntities()
+            .filter(entity => entity.name.toLowerCase().includes('block'))
+            .forEach(entity => entity.despawn());
+
+        if (gameWinner) {
+            // Broadcast game end to all players
+            const message = {
+                type: 'gameEnd',
+                data: {
+                    winner: gameWinner,
+                    standings: finalStandings,
+                    nextGameIn: 10000, // 10 seconds until next game
+                    stats: {
+                        totalRounds: this.GAME_CONFIG.maxRounds,
+                        completedRounds: this.currentRound
+                    }
+                }
+            };
+
+            // Send game end message to all players
+            this.world.entityManager.getAllPlayerEntities().forEach(playerEntity => {
+                // Send game end data
+                playerEntity.player.ui.sendData(message);
+                
+                // Send congratulatory message to winner
+                if (playerEntity.player.id === gameWinner.playerId) {
+                    playerEntity.player.ui.sendData({
+                        type: 'systemMessage',
+                        message: `🏆 Congratulations! You won the game with ${gameWinner.placementPoints} placement points!`,
+                        color: 'FFD700' // Gold color
+                    });
+                }
+            });
+
+            // Send game end message to all players
+            this.world.entityManager.getAllPlayerEntities().forEach(playerEntity => {
+                playerEntity.player.ui.sendData({
+                    type: 'systemMessage',
+                    message: `Game Over! Player ${gameWinner.playerId} wins!`,
+                    color: 'FFD700'
+                });
+            });
+        }
+
+        // Reset game after delay
+        setTimeout(() => {
+            this.resetGame();
+        }, 10000);
+    }
+
+    // Add method to get remaining rounds
+    public getRemainingRounds(): number {
+        return this.GAME_CONFIG.maxRounds - this.currentRound;
     }
 } 

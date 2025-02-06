@@ -1318,6 +1318,126 @@
       text-transform: uppercase;
       letter-spacing: 2px;
     }
+
+    /* Add this to the style section */
+    .game-end-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(13, 2, 8, 0.95) 0%, rgba(13, 2, 8, 0.98) 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.5s ease;
+    }
+
+    .game-end-overlay.visible {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .game-end-content {
+        background: linear-gradient(135deg, var(--matrix-dark) 0%, rgba(13, 2, 8, 0.95) 100%);
+        padding: 40px;
+        border-radius: 20px;
+        border: 3px solid var(--blood-red);
+        box-shadow: 0 0 50px rgba(255, 0, 0, 0.3),
+                    inset 0 0 25px rgba(255, 0, 0, 0.2);
+        text-align: center;
+        max-width: 800px;
+        width: 90%;
+    }
+
+    .game-end-title {
+        font-family: var(--title-font);
+        font-size: 64px;
+        color: var(--blood-red);
+        text-shadow: 0 0 20px var(--glow-red);
+        margin-bottom: 30px;
+        letter-spacing: 4px;
+        animation: titlePulse 2s infinite;
+    }
+
+    .winner-announcement {
+        font-family: var(--display-font);
+        font-size: 48px;
+        color: #ffd700;
+        text-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+        margin-bottom: 40px;
+    }
+
+    .final-standings {
+        margin: 30px 0;
+        width: 100%;
+    }
+
+    .standing-entry {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: linear-gradient(90deg, rgba(255, 0, 0, 0.1) 0%, transparent 100%);
+        margin: 10px 0;
+        padding: 20px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 0, 0, 0.2);
+        transition: all 0.3s ease;
+    }
+
+    .standing-entry.winner {
+        background: linear-gradient(90deg, rgba(255, 215, 0, 0.2) 0%, transparent 100%);
+        border: 1px solid #ffd700;
+    }
+
+    .standing-position {
+        font-family: var(--number-font);
+        font-size: 36px;
+        color: var(--matrix-green);
+        min-width: 60px;
+        text-align: center;
+    }
+
+    .standing-stats {
+        display: flex;
+        gap: 30px;
+        align-items: center;
+    }
+
+    .standing-stat {
+        text-align: center;
+    }
+
+    .stat-label {
+        font-family: var(--text-font);
+        font-size: 16px;
+        color: rgba(255, 255, 255, 0.7);
+        margin-bottom: 5px;
+    }
+
+    .stat-value {
+        font-family: var(--number-font);
+        font-size: 32px;
+        color: var(--matrix-green);
+        text-shadow: 0 0 10px var(--terminal-green);
+    }
+
+    .next-game-timer {
+        font-family: var(--display-font);
+        font-size: 24px;
+        color: rgba(255, 255, 255, 0.8);
+        margin-top: 30px;
+    }
+
+    @keyframes titlePulse {
+        0% { text-shadow: 0 0 20px var(--glow-red); }
+        50% { text-shadow: 0 0 40px var(--glow-red); }
+        100% { text-shadow: 0 0 20px var(--glow-red); }
+    }
   </style>
 </head>
 <body>
@@ -1710,6 +1830,8 @@ hytopia.onData(data => {
     if (window.comboTimeout) {
       clearTimeout(window.comboTimeout);
     }
+  } else if (data.type === 'gameEnd') {
+    showGameEnd(data.data);
   }
 });
 
@@ -1855,13 +1977,21 @@ function updateRoundInfo(roundData) {
 }
 
 function handleRoundEnd(data) {
-  // Create round complete message with new styling
-  const statusMessage = document.createElement('div');
-  statusMessage.className = 'round-complete-message';
-  statusMessage.textContent = 'Round Complete!';
-  
-  // Add to body instead of roundInfo
-  document.body.appendChild(statusMessage);
+  // Only show round complete message if it's not the final round
+  if (data.round < data.totalRounds) {
+    // Create round complete message with new styling
+    const statusMessage = document.createElement('div');
+    statusMessage.className = 'round-complete-message';
+    statusMessage.textContent = 'Round Complete!';
+    
+    // Add to body instead of roundInfo
+    document.body.appendChild(statusMessage);
+
+    // Remove status message after transition to next round
+    setTimeout(() => {
+      statusMessage.remove();
+    }, data.nextRoundIn);
+  }
 
   // Reset scores just before the next round starts
   setTimeout(() => {
@@ -1878,11 +2008,6 @@ function handleRoundEnd(data) {
       }
     });
   }, data.nextRoundIn - 100); // Reset 100ms before next round starts
-  
-  // Remove status message after transition to next round
-  setTimeout(() => {
-    statusMessage.remove();
-  }, data.nextRoundIn);
 }
 
 function updateScoreboard(scores) {
@@ -1891,14 +2016,14 @@ function updateScoreboard(scores) {
     const playerDiv = document.createElement('div');
     playerDiv.className = 'player-score';
     
-    // Ensure we're using numbers and not accidentally concatenating strings
-    const totalPoints = Number(score.totalPoints || 0);
+    // Use leaderboardPoints for game end, otherwise use round scoring
+    const points = score.isGameEnd ? score.leaderboardPoints : score.totalPoints;
     const roundScore = Number(score.roundScore || 0);
     
     playerDiv.innerHTML = `
       <span class="player-label">P${index + 1}</span>
-      <span class="score-value">${totalPoints}</span>
-      <span class="round-score">(+${roundScore})</span>
+      <span class="score-value">${points}</span>
+      ${!score.isGameEnd ? `<span class="round-score">(+${roundScore})</span>` : ''}
     `;
     scoresContainer.appendChild(playerDiv);
   });
@@ -2238,7 +2363,67 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+function showGameEnd(data) {
+    const overlay = document.querySelector('.game-end-overlay');
+    const winnerAnnouncement = document.querySelector('.winner-announcement');
+    const standingsContainer = document.querySelector('.final-standings');
+    const nextGameTimer = document.querySelector('.next-game-timer');
+    
+    // Show winner
+    winnerAnnouncement.textContent = `🏆 Player ${data.winner.playerId} Wins! 🏆`;
+    
+    // Show standings
+    standingsContainer.innerHTML = '';
+    data.standings.forEach((standing, index) => {
+        const entry = document.createElement('div');
+        entry.className = `standing-entry ${index === 0 ? 'winner' : ''}`;
+        
+        entry.innerHTML = `
+            <div class="standing-position">#${index + 1}</div>
+            <div class="standing-stats">
+                <div class="standing-stat">
+                    <div class="stat-label">POINTS</div>
+                    <div class="stat-value">${standing.placementPoints}</div>
+                </div>
+            </div>
+        `;
+        
+        standingsContainer.appendChild(entry);
+    });
+    
+    // Show next game countdown
+    let timeLeft = Math.floor(data.nextGameIn / 1000);
+    nextGameTimer.textContent = `Next Game in ${timeLeft}s`;
+    
+    const countdownInterval = setInterval(() => {
+        timeLeft--;
+        nextGameTimer.textContent = `Next Game in ${timeLeft}s`;
+        
+        if (timeLeft <= 0) {
+            clearInterval(countdownInterval);
+            overlay.classList.remove('visible');
+        }
+    }, 1000);
+    
+    // Show overlay
+    overlay.classList.add('visible');
+    
+    // Hide overlay after nextGameIn duration
+    setTimeout(() => {
+        overlay.classList.remove('visible');
+    }, data.nextGameIn);
+}
 </script>
+
+<div class="game-end-overlay">
+    <div class="game-end-content">
+        <div class="game-end-title">GAME OVER</div>
+        <div class="winner-announcement"></div>
+        <div class="final-standings"></div>
+        <div class="next-game-timer"></div>
+    </div>
+</div>
 
 </body>
 </html>

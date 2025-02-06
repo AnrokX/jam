@@ -12,11 +12,12 @@ export interface ScoreOptions {
 interface PlayerStats {
   totalScore: number;
   roundScore: number;
+  placementPoints: number;  // Add new field to track points from placements
   wins: number;
   playerNumber: number;
-  consecutiveHits: number;  // Track combo counter
-  multiHitCount: number;    // Track multi-hit counter
-  lastHitTime: number;      // Track timing for combo system
+  consecutiveHits: number;  
+  multiHitCount: number;    
+  lastHitTime: number;      
 }
 
 export class ScoreManager extends Entity {
@@ -64,6 +65,7 @@ export class ScoreManager extends Entity {
       this.playerStats.set(playerId, {
         totalScore: 0,
         roundScore: 0,
+        placementPoints: 0,  // Initialize placement points
         wins: 0,
         playerNumber: this.playerCount,
         consecutiveHits: 0,
@@ -81,10 +83,13 @@ export class ScoreManager extends Entity {
     }
   }
 
-  // Start a new round - reset round scores but keep total scores and wins
+  // Start a new round - reset round scores but keep total scores and placement points
   public startNewRound(): void {
     for (const [playerId, stats] of this.playerStats.entries()) {
       stats.roundScore = 0;
+      stats.consecutiveHits = 0;
+      stats.multiHitCount = 0;
+      stats.lastHitTime = 0;
       this.playerStats.set(playerId, stats);
     }
   }
@@ -104,7 +109,7 @@ export class ScoreManager extends Entity {
         const [playerId, stats] = entry;
         const points = playerCount - index; // 1st gets n points, 2nd gets n-1, etc.
         
-        stats.totalScore += points;
+        stats.placementPoints += points; // Add to placement points instead of total score
         this.playerStats.set(playerId, stats);
         
         placements.push({ playerId, points });
@@ -166,12 +171,16 @@ export class ScoreManager extends Entity {
     }
   }
 
-  // Reset all stats including wins
+  // Reset all stats including wins and placement points
   public resetAllStats(): void {
     for (const [playerId, stats] of this.playerStats.entries()) {
       stats.totalScore = 0;
       stats.roundScore = 0;
+      stats.placementPoints = 0;  // Reset placement points
       stats.wins = 0;
+      stats.consecutiveHits = 0;
+      stats.multiHitCount = 0;
+      stats.lastHitTime = 0;
       this.playerStats.set(playerId, stats);
     }
   }
@@ -180,16 +189,16 @@ export class ScoreManager extends Entity {
   public broadcastScores(world: World) {
     const scores = Array.from(world.entityManager.getAllPlayerEntities()).map(playerEntity => ({
         playerId: playerEntity.player.id,
-        totalPoints: this.getScore(playerEntity.player.id), // Renamed to totalPoints
+        totalPoints: this.getScore(playerEntity.player.id),
         roundScore: this.getRoundScore(playerEntity.player.id)
     }));
 
-    // Create leaderboard data sorted by total points
+    // Create leaderboard data sorted by placement points
     const leaderboard = Array.from(this.playerStats.entries())
         .map(([playerId, stats]) => ({
             playerNumber: stats.playerNumber,
-            points: stats.totalScore, // Changed from wins to total points
-            isLeading: this.isLeading(playerId) // Renamed from isWinning
+            points: stats.placementPoints, // Use placement points for leaderboard
+            isLeading: this.isLeadingByPlacements(playerId) // New method for placement-based leading
         }))
         .sort((a, b) => b.points - a.points);
 
@@ -206,11 +215,11 @@ export class ScoreManager extends Entity {
     });
   }
 
-  // Renamed from isWinning to isLeading
-  private isLeading(playerId: string): boolean {
-    const playerScore = this.getScore(playerId);
+  // New method to check who's leading by placement points
+  private isLeadingByPlacements(playerId: string): boolean {
+    const playerPoints = this.playerStats.get(playerId)?.placementPoints ?? 0;
     return Array.from(this.playerStats.values())
-        .every(stats => stats.totalScore <= playerScore);
+        .every(stats => stats.placementPoints <= playerPoints);
   }
 
   // Calculate Euclidean distance between two points

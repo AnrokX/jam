@@ -249,10 +249,9 @@
       font-family: var(--display-font);
       font-size: 16px;
       color: var(--blood-red);
-      text-shadow: 0 0 10px var(--glow-red);
-      animation: matrix-pulse 1.5s infinite;
-      letter-spacing: 1px;
-      line-height: 1.5;
+      text-align: center;
+      margin: 10px 0;
+      animation: pulse 2s infinite;
     }
 
     .player-count {
@@ -1119,6 +1118,141 @@
       color: rgba(255, 0, 0, 0.9);
       text-shadow: 0 0 4px rgba(255, 0, 0, 0.4);
     }
+
+    .countdown {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: var(--title-font);
+      font-size: 72px;
+      color: var(--blood-red);
+      text-shadow: 0 0 20px var(--glow-red);
+      z-index: 1000;
+      animation: countdownPulse 1s ease-in-out;
+    }
+
+    @keyframes countdownPulse {
+      0% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+      50% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+    }
+
+    .system-message {
+      position: fixed;
+      top: 20%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: var(--display-font);
+      font-size: 24px;
+      color: var(--blood-red);
+      text-shadow: 0 0 10px var(--glow-red);
+      background: rgba(13, 2, 8, 0.9);
+      padding: 15px 30px;
+      border-radius: 8px;
+      border: 1px solid var(--blood-red);
+      z-index: 1000;
+      animation: fadeInOut 4s ease-in-out;
+    }
+
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translate(-50%, -60%); }
+      10% { opacity: 1; transform: translate(-50%, -50%); }
+      90% { opacity: 1; transform: translate(-50%, -50%); }
+      100% { opacity: 0; transform: translate(-50%, -40%); }
+    }
+
+    .round-end {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(135deg, var(--matrix-dark) 0%, rgba(13, 2, 8, 0.95) 100%);
+      padding: 30px;
+      border-radius: 16px;
+      color: #ffffff;
+      font-family: var(--text-font);
+      backdrop-filter: blur(10px);
+      border: 2px solid var(--blood-red);
+      box-shadow: 0 0 40px rgba(255, 0, 0, 0.3),
+                  inset 0 0 20px rgba(255, 0, 0, 0.2);
+      z-index: 1000;
+      min-width: 400px;
+      text-align: center;
+    }
+
+    .round-end-title {
+      font-family: var(--title-font);
+      font-size: 24px;
+      color: var(--blood-red);
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      text-shadow: 0 0 15px var(--glow-red);
+    }
+
+    .round-end-placement {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 10px 0;
+      padding: 10px 20px;
+      background: linear-gradient(90deg, rgba(139, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0) 100%);
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+
+    .round-end-placement.first {
+      background: linear-gradient(90deg, rgba(255, 215, 0, 0.2) 0%, rgba(0, 0, 0, 0) 100%);
+      border: 1px solid #ffd700;
+    }
+
+    .placement-rank {
+      font-family: var(--number-font);
+      font-size: 28px;
+      color: var(--matrix-green);
+      min-width: 40px;
+    }
+
+    .placement-points {
+      font-family: var(--number-font);
+      font-size: 24px;
+      color: var(--terminal-green);
+    }
+
+    .next-round-timer {
+      font-family: var(--display-font);
+      font-size: 18px;
+      color: #ffffff;
+      margin-top: 20px;
+      opacity: 0.8;
+    }
+
+    .round-timer {
+      position: fixed;
+      top: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: var(--display-font);
+      font-size: 24px;
+      color: var(--matrix-green);
+      text-shadow: 0 0 10px var(--terminal-green);
+      background: rgba(13, 2, 8, 0.9);
+      padding: 10px 25px;
+      border-radius: 8px;
+      border: 1px solid var(--matrix-green);
+      z-index: 100;
+    }
+
+    .round-number {
+      position: fixed;
+      top: 40px;
+      left: 40px;
+      font-family: var(--title-font);
+      font-size: 16px;
+      color: var(--blood-red);
+      text-shadow: 0 0 10px var(--glow-red);
+    }
   </style>
 </head>
 <body>
@@ -1267,10 +1401,10 @@
 
 <div class="scoreboard">
   <div class="round-info">
-    <div class="waiting-message" style="display: none">Waiting for Players</div>
+    <div id="waitingMessage" class="waiting-message" style="display: none;"></div>
     <div class="player-count" style="display: none">Players: 0/2</div>
-    <div class="round-number">Round 1</div>
-    <div class="round-timer">Time: 60s</div>
+    <div class="round-number"></div>
+    <div class="round-timer"></div>
   </div>
   <div class="scores-wrapper">
     <div id="scores-container">
@@ -1649,7 +1783,7 @@ function updateRoundInfo(roundData) {
     }
   }
 
-  // Reset round scores in the scoreboard
+  // Reset round scores in the scoreboard to 0
   const scores = document.querySelectorAll('.player-score');
   scores.forEach(score => {
     const roundScore = score.querySelector('.round-score');
@@ -1662,11 +1796,6 @@ function updateRoundInfo(roundData) {
   if (roundData.timeRemaining > 0) {
     startLocalTimer(roundData.timeRemaining);
   }
-  
-  // When setting new timeout, use window.comboTimeout
-  window.comboTimeout = setTimeout(() => {
-    // Your timeout logic here
-  }, 2000);
 }
 
 function handleRoundEnd(data) {
@@ -1704,17 +1833,15 @@ function updateScoreboard(scores) {
     playerDiv.className = 'player-score';
     
     // Ensure we're using numbers and not accidentally concatenating strings
-    const totalScore = Number(score.totalScore);
-    const roundScore = Number(score.roundScore);
+    const totalPoints = Number(score.totalPoints || 0);
+    const roundScore = Number(score.roundScore || 0);
     
     playerDiv.innerHTML = `
       <span class="player-label">P${index + 1}</span>
-      <span class="score-value">${totalScore}</span>
+      <span class="score-value">${totalPoints}</span>
       <span class="round-score">(+${roundScore})</span>
     `;
     scoresContainer.appendChild(playerDiv);
-    
-    console.log(`Player ${index + 1} scores - Total: ${totalScore}, Round: ${roundScore}`); // Debug log
   });
 }
 
@@ -1747,14 +1874,15 @@ function updateLeaderboard(leaderboardData) {
   
   leaderboardData.forEach((entry, index) => {
     const entryDiv = document.createElement('div');
-    entryDiv.className = `leaderboard-entry ${entry.isWinning ? 'winner' : ''}`;
+    entryDiv.className = `leaderboard-entry ${entry.isLeading ? 'winner' : ''}`;
     
+    // Update the display to show placement points
     entryDiv.innerHTML = `
       <div class="player-name">
         <span class="player-rank">#${index + 1}</span>
         <span>P${entry.playerNumber}</span>
       </div>
-      <span class="player-wins">${entry.wins} wins</span>
+      <span class="player-wins">${entry.points} points</span>
     `;
     
     container.appendChild(entryDiv);

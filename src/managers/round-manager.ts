@@ -72,7 +72,7 @@ export class RoundManager {
         // Tutorial round (Round 1) - Static targets only
         if (round === 1) {
             return {
-                duration: 60000,  // 60 seconds
+                duration: 20000,  // 60 seconds
                 minBlockCount: 8,
                 maxBlockCount: 12,
                 blockSpawnInterval: 1800, // 1.8 seconds between spawns
@@ -93,7 +93,7 @@ export class RoundManager {
         // Round 2 - Introduce normal blocks with some static
         if (round === 2) {
             return {
-                duration: 60000,
+                duration: 20000,
                 minBlockCount: 10,
                 maxBlockCount: 15,
                 blockSpawnInterval: 1500,
@@ -114,7 +114,7 @@ export class RoundManager {
         // Round 3 - Sine Wave Focus
         if (round === 3) {
             return {
-                duration: 60000,
+                duration: 20000,
                 minBlockCount: 8,
                 maxBlockCount: 12, // Fewer blocks as they're harder
                 blockSpawnInterval: 1500,
@@ -135,7 +135,7 @@ export class RoundManager {
         // Round 4 - Vertical Wave & Pop-up Mix
         if (round === 4) {
             return {
-                duration: 60000,
+                duration: 20000,
                 minBlockCount: 8,
                 maxBlockCount: 12,
                 blockSpawnInterval: 1500,
@@ -156,7 +156,7 @@ export class RoundManager {
         // Round 5 - Rising & Parabolic Focus
         if (round === 5) {
             return {
-                duration: 60000,
+                duration: 20000,
                 minBlockCount: 7,
                 maxBlockCount: 10, // Fewer blocks as they're complex
                 blockSpawnInterval: 1800,
@@ -177,7 +177,7 @@ export class RoundManager {
         // Round 6 - Pendulum Focus
         if (round === 6) {
             return {
-                duration: 60000,
+                duration: 20000,
                 minBlockCount: 6,
                 maxBlockCount: 9, // Even fewer as pendulums are challenging
                 blockSpawnInterval: 2000,
@@ -198,7 +198,7 @@ export class RoundManager {
         // Round 7 - Complex Mix (No static)
         if (round === 7) {
             return {
-                duration: 60000,
+                duration: 20000,
                 minBlockCount: 8,
                 maxBlockCount: 12,
                 blockSpawnInterval: 1500,
@@ -218,7 +218,7 @@ export class RoundManager {
 
         // Round 8 - Final Challenge
         return {
-            duration: 60000,
+            duration: 20000,
             minBlockCount: 10,
             maxBlockCount: 15,
             blockSpawnInterval: 1200,

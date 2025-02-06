@@ -14,6 +14,10 @@ export interface RoundConfig {
         sineWave: number;
         static: number;
         verticalWave: number;
+        popup: number;     // Pop-up targets that appear and disappear
+        rising: number;    // Rising targets that move upward
+        parabolic: number; // Targets that follow parabolic paths
+        pendulum: number;  // Targets that swing like pendulums
     };
 }
 
@@ -43,7 +47,7 @@ export class RoundManager {
     private readonly REQUIRED_PLAYERS = 2;
     private checkPlayersInterval: NodeJS.Timeout | null = null;
     private readonly GAME_CONFIG: GameConfig = {
-        maxRounds: 4  // Game ends after 5 roundsasdsad
+        maxRounds: 8
     };
     private gameInProgress: boolean = false;
     private roundTransitionPending: boolean = false;
@@ -65,68 +69,169 @@ export class RoundManager {
     }
 
     private getRoundConfig(round: number): RoundConfig {
-        // Tutorial round (Round 1)
+        // Tutorial round (Round 1) - Static targets only
         if (round === 1) {
             return {
-                duration: 90000,  // 90 seconds for first round to give more time
-                minBlockCount: 8,  // Start with fewer blocks
-                maxBlockCount: 12, // Keep it manageable
-                blockSpawnInterval: 1800, // Slower spawning (2 seconds)
-                speedMultiplier: 0.5,  // Reduced from 0.7 for even slower tutorial speed
+                duration: 60000,  // 60 seconds
+                minBlockCount: 8,
+                maxBlockCount: 12,
+                blockSpawnInterval: 1800, // 1.8 seconds between spawns
+                speedMultiplier: 0.5,
                 blockTypes: {
-                    normal: 0,      // No normal blocks in tutorial
-                    sineWave: 0,    // No sine waves in tutorial
-                    static: 1.0,    // static targets to learn aiming
-                    verticalWave: 0  // No vertical waves in tutorial
+                    normal: 0,
+                    sineWave: 0,
+                    static: 1.0,    // 100% static targets for learning
+                    verticalWave: 0,
+                    popup: 0,
+                    rising: 0,
+                    parabolic: 0,
+                    pendulum: 0
                 }
             };
         }
         
+        // Round 2 - Introduce normal blocks with some static
         if (round === 2) {
             return {
-                duration: 75000,  // 75 seconds
-                minBlockCount: 10,  // Slight increase from round 1
-                maxBlockCount: 15,  // Slight increase from round 1
-                blockSpawnInterval: 1800, // 1.8 seconds between spawns
-                speedMultiplier: 0.6,  // Reduced from 0.7 for smoother progression
+                duration: 60000,
+                minBlockCount: 10,
+                maxBlockCount: 15,
+                blockSpawnInterval: 1500,
+                speedMultiplier: 0.6,
                 blockTypes: {
-                    normal: 0.1,    // Small chance for normal blocks
-                    sineWave: 0.2,  // Introduce sine wave blocks at 20%
-                    static: 0.7,    // Majority still static for learning
-                    verticalWave: 0  // No vertical waves yet
+                    normal: 0.7,    // 70% normal blocks
+                    sineWave: 0,
+                    static: 0.3,    // 30% static for comfort
+                    verticalWave: 0,
+                    popup: 0,
+                    rising: 0,
+                    parabolic: 0,
+                    pendulum: 0
                 }
             };
         }
         
-        // Early rounds (3)
+        // Round 3 - Sine Wave Focus
         if (round === 3) {
             return {
-                duration: 75000,  // 75 seconds
-                minBlockCount: 12 + Math.floor(round * 2),
-                maxBlockCount: 18 + Math.floor(round * 3),
-                blockSpawnInterval: 1500,  // 1.5 seconds between spawns
-                speedMultiplier: 0.7 + (round * 0.05),  // Reduced multiplier increase per round
+                duration: 60000,
+                minBlockCount: 8,
+                maxBlockCount: 12, // Fewer blocks as they're harder
+                blockSpawnInterval: 1500,
+                speedMultiplier: 0.65,
                 blockTypes: {
-                    normal: 0.2,     // Increased normal blocks
-                    sineWave: 0.25,  // 25% sine waves
-                    static: 0.55,    // Reduced static targets
-                    verticalWave: 0  // No vertical waves yet
+                    normal: 0.1,
+                    sineWave: 0.8,  // 80% sine wave focus
+                    static: 0.1,
+                    verticalWave: 0,
+                    popup: 0,
+                    rising: 0,
+                    parabolic: 0,
+                    pendulum: 0
                 }
             };
         }
-        
-        // Regular rounds (4+)
+
+        // Round 4 - Vertical Wave & Pop-up Mix
+        if (round === 4) {
+            return {
+                duration: 60000,
+                minBlockCount: 8,
+                maxBlockCount: 12,
+                blockSpawnInterval: 1500,
+                speedMultiplier: 0.7,
+                blockTypes: {
+                    normal: 0.1,
+                    sineWave: 0.1,
+                    static: 0.1,
+                    verticalWave: 0.4, // 40% vertical wave
+                    popup: 0.3,        // 30% popup introduction
+                    rising: 0,
+                    parabolic: 0,
+                    pendulum: 0
+                }
+            };
+        }
+
+        // Round 5 - Rising & Parabolic Focus
+        if (round === 5) {
+            return {
+                duration: 60000,
+                minBlockCount: 7,
+                maxBlockCount: 10, // Fewer blocks as they're complex
+                blockSpawnInterval: 1800,
+                speedMultiplier: 0.75,
+                blockTypes: {
+                    normal: 0.1,
+                    sineWave: 0,
+                    static: 0.1,
+                    verticalWave: 0,
+                    popup: 0,
+                    rising: 0.4,     // 40% rising
+                    parabolic: 0.4,  // 40% parabolic
+                    pendulum: 0
+                }
+            };
+        }
+
+        // Round 6 - Pendulum Focus
+        if (round === 6) {
+            return {
+                duration: 60000,
+                minBlockCount: 6,
+                maxBlockCount: 9, // Even fewer as pendulums are challenging
+                blockSpawnInterval: 2000,
+                speedMultiplier: 0.8,
+                blockTypes: {
+                    normal: 0.1,
+                    sineWave: 0,
+                    static: 0.1,
+                    verticalWave: 0,
+                    popup: 0,
+                    rising: 0,
+                    parabolic: 0,
+                    pendulum: 0.8  // 80% pendulum focus
+                }
+            };
+        }
+
+        // Round 7 - Complex Mix (No static)
+        if (round === 7) {
+            return {
+                duration: 60000,
+                minBlockCount: 8,
+                maxBlockCount: 12,
+                blockSpawnInterval: 1500,
+                speedMultiplier: 0.85,
+                blockTypes: {
+                    normal: 0.1,
+                    sineWave: 0.2,
+                    static: 0,
+                    verticalWave: 0.2,
+                    popup: 0.2,
+                    rising: 0.1,
+                    parabolic: 0.1,
+                    pendulum: 0.1
+                }
+            };
+        }
+
+        // Round 8 - Final Challenge
         return {
-            duration: 60000,  // 60 seconds
-            minBlockCount: 15 + Math.floor(round * 2),
-            maxBlockCount: 25 + Math.floor(round * 3),
-            blockSpawnInterval: 1000,  // 1 second between spawns
-            speedMultiplier: 0.8 + ((round - 3) * 0.05),  // Reduced from 0.1 to 0.05 increase per round
+            duration: 60000,
+            minBlockCount: 10,
+            maxBlockCount: 15,
+            blockSpawnInterval: 1200,
+            speedMultiplier: 0.9,
             blockTypes: {
-                normal: Math.min(0.3, 0.2 + (round - 3) * 0.05),
-                sineWave: Math.min(0.3, 0.25 + (round - 3) * 0.025),  // Slower increase in sine wave frequency
-                static: Math.max(0.3, 0.55 - (round - 3) * 0.05),
-                verticalWave: Math.min(0.1, (round - 3) * 0.05)
+                normal: 0.05,
+                sineWave: 0.15,
+                static: 0,
+                verticalWave: 0.2,
+                popup: 0.2,
+                rising: 0.15,
+                parabolic: 0.15,
+                pendulum: 0.1
             }
         };
     }

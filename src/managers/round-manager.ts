@@ -42,7 +42,7 @@ export class RoundManager {
     private readonly REQUIRED_PLAYERS = 1;
     private checkPlayersInterval: NodeJS.Timeout | null = null;
     private readonly GAME_CONFIG: GameConfig = {
-        maxRounds: 5  // Game ends after 5 rounds
+        maxRounds: 4  // Game ends after 5 rounds
     };
 
     constructor(

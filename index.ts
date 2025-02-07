@@ -53,7 +53,6 @@ const GAME_CONFIG = {
 // Configuration flags
 const IS_TEST_MODE = false;  // Set this to true to enable test mode, false for normal game
 const DEBUG_ENABLED = false;  // Development debug flag
-const TICK_RATE = 60;  // Server tick rate in Hz
 
 // Keep track of last used spawn points
 let lastLeftSpawnIndex = -1;
@@ -61,6 +60,9 @@ let lastRightSpawnIndex = -1;
 
 // Keep track of player spawn positions
 const playerSpawnPositions = new Map<string, Vector3Like>();
+
+// Keep track of current tick rate
+let currentTickRate = 0;
 
 // Helper function to get next spawn position
 function getNextSpawnPosition(platform: 'LEFT' | 'RIGHT'): Vector3Like {
@@ -83,7 +85,6 @@ function getNextSpawnPosition(platform: 'LEFT' | 'RIGHT'): Vector3Like {
 startServer(world => {
   console.log('Starting server and initializing debug settings...');
   console.log(`Test mode: ${IS_TEST_MODE ? 'enabled' : 'disabled'}`);
-  console.log(`Server running at ${TICK_RATE}Hz tick rate`);
   
   // Initialize managers
   const sceneUIManager = SceneUIManager.getInstance(world);
@@ -96,6 +97,11 @@ startServer(world => {
   const raycastHandler = new RaycastHandler(world);
   raycastHandler.enableDebugRaycasting(DEBUG_ENABLED);
   console.log('RaycastHandler initialized with debug enabled');
+
+  // Register tick rate command
+  world.chatManager.registerCommand('tickrate', (player) => {
+    world.chatManager.sendPlayerMessage(player, `Current server tick rate: ${currentTickRate}Hz`, 'FFFF00');
+  });
 
   // Initialize the score manager
   const scoreManager = new ScoreManager();
@@ -319,6 +325,9 @@ startServer(world => {
     playerEntity.onTick = (entity: Entity, deltaTimeMs: number) => {
       const input = player.input;
       predictiveController.tickWithPlayerInput(entity, input, deltaTimeMs);
+
+      // Update current tick rate
+      currentTickRate = Math.round(1000 / deltaTimeMs);
     };
 
     // Handle UI messages

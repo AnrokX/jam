@@ -11,6 +11,11 @@ export class PredictiveCharacterController {
   private static readonly PREDICTION_THRESHOLD = 0.8;
   private static readonly PREDICTION_STEPS = 2;
   private static readonly LERP_FACTOR = 0.15;
+  private static readonly SYNC_INTERVAL = 5000; // Sync every 5 seconds
+  private lastSyncTime: number = 0;
+  private serverTimeOffset: number = 0;
+  private rttHistory: number[] = [];
+  private averageRTT: number = 0;
   private lastServerPosition: Vector3Like | null = null;
   private lastInputTime: number = 0;
   private pendingInputs: Array<{
@@ -34,10 +39,44 @@ export class PredictiveCharacterController {
     
     this.projectileManager = new PlayerProjectileManager(player.world, raycastHandler);
     this.projectileManager.initializePlayer(player.id);
+    
+    // Initialize time sync
+    this.syncTime();
+    setInterval(() => this.syncTime(), PredictiveCharacterController.SYNC_INTERVAL);
+  }
+
+  private syncTime(): void {
+    const clientTime = Date.now();
+    this.player.ui.sendData({
+      type: 'timeSync',
+      data: {
+        clientTime
+      }
+    });
+  }
+
+  private updateTimeSync(serverTime: number, originalClientTime: number): void {
+    const currentTime = Date.now();
+    const rtt = currentTime - originalClientTime;
+    
+    // Update RTT tracking
+    this.rttHistory.push(rtt);
+    if (this.rttHistory.length > 10) this.rttHistory.shift();
+    this.averageRTT = this.rttHistory.reduce((a, b) => a + b) / this.rttHistory.length;
+
+    // Estimate server time offset (assuming symmetric latency)
+    const latency = rtt / 2;
+    this.serverTimeOffset = serverTime - (currentTime - latency);
+  }
+
+  // Get current server time estimate
+  private getEstimatedServerTime(): number {
+    return Date.now() + this.serverTimeOffset;
   }
 
   tickWithPlayerInput(entity: Entity, input: PlayerInput, deltaTimeMs: number): void {
-    const currentTime = Date.now();
+    // Use estimated server time instead of local time
+    const currentTime = this.getEstimatedServerTime();
     
     // Process movement first
     const movement = this.calculateMovement(input, deltaTimeMs);

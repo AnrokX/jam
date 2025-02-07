@@ -321,7 +321,16 @@ startServer(world => {
 
     // Handle UI messages
     player.ui.onData = (ui: PlayerUI, message: any) => {
-      if (message.type === 'playerMovement') {
+      if (message.type === 'timeSync') {
+        // Respond immediately with server time
+        player.ui.sendData({
+          type: 'timeSyncResponse',
+          data: {
+            serverTime: Date.now(),
+            clientTime: message.data.clientTime
+          }
+        });
+      } else if (message.type === 'playerMovement') {
         const { input, timestamp, position } = message.data;
         const currentTime = Date.now();
         const timeDiff = currentTime - timestamp;

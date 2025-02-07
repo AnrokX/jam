@@ -1834,6 +1834,15 @@ hytopia.onData(data => {
     }
   } else if (data.type === 'gameEnd') {
     showGameEnd(data.data);
+  } else if (data.type === 'timeSyncResponse') {
+    // Forward time sync response to the controller
+    hytopia.sendData({
+      type: 'timeSyncUpdate',
+      data: {
+        serverTime: data.data.serverTime,
+        clientTime: data.data.clientTime
+      }
+    });
   }
 });
 

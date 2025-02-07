@@ -1,7 +1,13 @@
-import { Entity, Player, Vector3Like, World, PlayerEntity } from 'hytopia';
+import { Entity, Player, Vector3Like, World, PlayerEntity, PlayerInput } from 'hytopia';
+import { PlayerProjectileManager } from '../managers/player-projectile-manager';
+import { RaycastHandler } from '../raycast/raycast-handler';
+
+interface GameWorld extends World {
+    raycastHandler: RaycastHandler;
+}
 
 export class PredictiveCharacterController {
-  private static readonly MOVEMENT_SPEED = 8;
+  private static readonly MOVEMENT_SPEED = 5;
   private static readonly PREDICTION_THRESHOLD = 0.8;
   private static readonly PREDICTION_STEPS = 2;
   private static readonly LERP_FACTOR = 0.15;
@@ -14,24 +20,33 @@ export class PredictiveCharacterController {
     movement: Vector3Like
   }> = [];
   private readonly player: Player;
-  private readonly playerEntity: PlayerEntity;
+  private readonly entity: Entity;
+  private readonly projectileManager: PlayerProjectileManager;
+  private lastProcessedInput: { [key: string]: any } = {};
 
-  constructor(player: Player, playerEntity: PlayerEntity) {
+  constructor(player: Player, entity: Entity, raycastHandler: RaycastHandler) {
     this.player = player;
-    this.playerEntity = playerEntity;
+    this.entity = entity;
+    
+    if (!player.world) {
+      throw new Error('Player world is undefined');
+    }
+    
+    this.projectileManager = new PlayerProjectileManager(player.world, raycastHandler);
+    this.projectileManager.initializePlayer(player.id);
   }
 
-  tickWithPlayerInput(entity: Entity, input: any, deltaTimeMs: number): void {
+  tickWithPlayerInput(entity: Entity, input: PlayerInput, deltaTimeMs: number): void {
     const currentTime = Date.now();
     
-    // Apply movement immediately for responsiveness
+    // Process movement first
     const movement = this.calculateMovement(input, deltaTimeMs);
     if (movement) {
       // Apply movement immediately without waiting for prediction
       const immediatePosition = {
-        x: this.playerEntity.position.x + movement.x,
-        y: this.playerEntity.position.y + movement.y,
-        z: this.playerEntity.position.z + movement.z
+        x: this.entity.position.x + movement.x,
+        y: this.entity.position.y + movement.y,
+        z: this.entity.position.z + movement.z
       };
 
       // Store input for reconciliation
@@ -43,7 +58,7 @@ export class PredictiveCharacterController {
       });
 
       // Apply movement immediately
-      this.playerEntity.setPosition(immediatePosition);
+      this.entity.setPosition(immediatePosition);
       
       // Send movement to server
       this.player.ui.sendData({
@@ -57,10 +72,39 @@ export class PredictiveCharacterController {
       });
     }
 
+    // Handle mouse input for projectiles
+    const mouseLeftJustPressed = input.ml && !this.lastProcessedInput.ml;
+    if (mouseLeftJustPressed) {
+      console.log('Mouse left clicked:', input);
+      
+      // Create a clean copy of the input state for projectile handling
+      const projectileInput = {
+        ml: true,  // Changed from input.ml to explicitly set true
+        mr: false  // Ensure mr is false
+      };
+
+      // Handle projectile input through the manager
+      this.projectileManager.handleProjectileInput(
+        this.player.id,
+        entity.position,
+        this.player.camera.facingDirection,
+        projectileInput,
+        this.player
+      );
+
+      // Update UI with current projectile count after input handling
+      this.player.ui.sendData({
+        type: 'updateProjectileCount',
+        count: this.projectileManager.getProjectilesRemaining(this.player.id)
+      });
+    }
+
+    // Update last processed input state
+    this.lastProcessedInput = { ...input };
     this.lastInputTime = currentTime;
   }
 
-  private calculateMovement(input: any, deltaTimeMs: number): Vector3Like | null {
+  private calculateMovement(input: PlayerInput, deltaTimeMs: number): Vector3Like | null {
     const deltaSeconds = deltaTimeMs / 1000;
     const speed = PredictiveCharacterController.MOVEMENT_SPEED * deltaSeconds;
 
@@ -121,7 +165,7 @@ export class PredictiveCharacterController {
     const positionError = this.calculatePositionError(serverPosition);
     if (positionError > PredictiveCharacterController.PREDICTION_THRESHOLD) {
       // Smoothly interpolate to server position
-      const currentPos = this.playerEntity.position;
+      const currentPos = this.entity.position;
       const interpolatedPosition = {
         x: currentPos.x + (serverPosition.x - currentPos.x) * PredictiveCharacterController.LERP_FACTOR,
         y: currentPos.y + (serverPosition.y - currentPos.y) * PredictiveCharacterController.LERP_FACTOR,
@@ -129,7 +173,7 @@ export class PredictiveCharacterController {
       };
 
       // Apply interpolated position
-      this.playerEntity.setPosition(interpolatedPosition);
+      this.entity.setPosition(interpolatedPosition);
       this.lastServerPosition = serverPosition;
 
       // Reapply pending inputs from the interpolated position
@@ -148,18 +192,24 @@ export class PredictiveCharacterController {
             y: currentPosition.y + predictedMovement.y,
             z: currentPosition.z + predictedMovement.z
           };
-          this.playerEntity.setPosition(currentPosition);
+          this.entity.setPosition(currentPosition);
         }
       });
     }
   }
 
   private calculatePositionError(serverPosition: Vector3Like): number {
-    const clientPos = this.playerEntity.position;
+    const clientPos = this.entity.position;
     return Math.sqrt(
       Math.pow(clientPos.x - serverPosition.x, 2) +
       Math.pow(clientPos.y - serverPosition.y, 2) +
       Math.pow(clientPos.z - serverPosition.z, 2)
+    );
+  }
+
+  private hasMovementInputChanged(newInput: any): boolean {
+    return ['forward', 'backward', 'left', 'right', 'jump', 'sprint'].some(
+      key => newInput[key] !== this.lastProcessedInput[key]
     );
   }
 } 

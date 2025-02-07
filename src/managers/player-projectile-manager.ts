@@ -8,7 +8,7 @@ import { RoundManager } from './round-manager';
 
 export interface PlayerProjectileState {
   previewProjectile: ProjectileEntity | null;
-  lastInputState: { mr: boolean };
+  lastInputState: { ml: boolean };
   projectilesRemaining: number;
   lastShotTime: number;
   predictedProjectiles: Map<string, ProjectileEntity>;
@@ -41,7 +41,7 @@ export class PlayerProjectileManager {
   initializePlayer(playerId: string): void {
     this.playerStates.set(playerId, {
       previewProjectile: null,
-      lastInputState: { mr: false },
+      lastInputState: { ml: false },
       projectilesRemaining: PlayerProjectileManager.INITIAL_AMMO_COUNT,
       lastShotTime: 0,
       predictedProjectiles: new Map()
@@ -111,17 +111,25 @@ export class PlayerProjectileManager {
   }
 
   public handleProjectileInput(
-    playerId: string,
-    position: Vector3Like,
+    playerId: string, 
+    position: Vector3Like, 
     direction: Vector3Like,
     input: any,
     player: Player
   ): void {
+    console.log('[PlayerProjectileManager] handleProjectileInput called for player:', playerId, 'input:', input);
+
     const state = this.playerStates.get(playerId);
-    if (!state) return;
+    if (!state) {
+      console.log('[PlayerProjectileManager] No state found for player:', playerId);
+      player.ui.sendData({ type: 'debugLog', message: `[PlayerProjectileManager] No state found for player: ${playerId}` });
+      return;
+    }
 
     // Check if shooting is allowed based on round state
     if (this.roundManager && !this.roundManager.isShootingAllowed()) {
+      console.log('[PlayerProjectileManager] Shooting not allowed by roundManager for player:', playerId);
+      player.ui.sendData({ type: 'debugLog', message: `[PlayerProjectileManager] Shooting not allowed for player: ${playerId}` });
       if (state.previewProjectile) {
         state.previewProjectile.despawn();
         state.previewProjectile = null;
@@ -129,46 +137,62 @@ export class PlayerProjectileManager {
       return;
     }
 
-    const currentMrState = input.mr ?? false;
-    const mrJustPressed = currentMrState && !state.lastInputState.mr;
+    const currentMlState = input.ml ?? false;
+    console.log('[PlayerProjectileManager] Current ml state:', currentMlState);
+    player.ui.sendData({ type: 'debugLog', message: `[PlayerProjectileManager] Current ml state: ${currentMlState}` });
 
-    if (mrJustPressed) {
+    const mlJustPressed = currentMlState && !state.lastInputState.ml;
+    console.log('[PlayerProjectileManager] mlJustPressed flag:', mlJustPressed);
+    player.ui.sendData({ type: 'debugLog', message: `[PlayerProjectileManager] mlJustPressed: ${mlJustPressed}` });
+
+    if (mlJustPressed) {
       const currentTime = Date.now();
       const timeSinceLastShot = currentTime - state.lastShotTime;
+      console.log('[PlayerProjectileManager] Time since last shot (ms):', timeSinceLastShot);
+      player.ui.sendData({ type: 'debugLog', message: `[PlayerProjectileManager] Time since last shot (ms): ${timeSinceLastShot}` });
 
       if (timeSinceLastShot < PlayerProjectileManager.SHOT_COOLDOWN) {
         if (player) {
           const remainingCooldown = Math.ceil((PlayerProjectileManager.SHOT_COOLDOWN - timeSinceLastShot) / 100) / 10;
+          console.log('[PlayerProjectileManager] Shot is on cooldown. Remaining:', remainingCooldown, 's');
           player.ui.sendData({ 
             type: 'onCooldown',
-            remainingSeconds: remainingCooldown
+            remainingSeconds: remainingCooldown 
           });
         }
         return;
       }
 
       if (state.projectilesRemaining <= 0) {
-        if (player) {
-          player.ui.sendData({ type: 'attemptShootNoAmmo' });
-        }
+        console.log('[PlayerProjectileManager] No projectiles remaining for player:', playerId);
+        player.ui.sendData({ type: 'attemptShootNoAmmo' });
         return;
       }
+
+      console.log('[PlayerProjectileManager] Creating predicted projectile for player:', playerId);
+      player.ui.sendData({ type: 'debugLog', message: `[PlayerProjectileManager] Creating predicted projectile for player: ${playerId}` });
 
       // Create and spawn predicted projectile immediately
       const predictedProjectile = this.createProjectile(playerId, position, direction, true);
       const predictionId = predictedProjectile.getPredictionId();
-      
+
       if (predictionId) {
         // Store predicted projectile
         state.predictedProjectiles.set(predictionId, predictedProjectile);
-        
-        // Throw the projectile immediately
+        console.log('[PlayerProjectileManager] Predicted projectile created with predictionId:', predictionId);
+        player.ui.sendData({ type: 'debugLog', message: `[PlayerProjectileManager] Predicted projectile created with predictionId: ${predictionId}` });
+
+        // Throw the projectile immediately for responsiveness
         predictedProjectile.throw(direction);
-        
+        console.log('[PlayerProjectileManager] Projectile thrown immediately for prediction.');
+        player.ui.sendData({ type: 'debugLog', message: `[PlayerProjectileManager] Projectile thrown immediately for prediction.` });
+
         // Update state immediately for responsiveness
         state.lastShotTime = currentTime;
         state.projectilesRemaining--;
-        
+        console.log('[PlayerProjectileManager] Updated state: projectilesRemaining =', state.projectilesRemaining, ', lastShotTime =', state.lastShotTime);
+        player.ui.sendData({ type: 'debugLog', message: `[PlayerProjectileManager] Updated state: projectilesRemaining = ${state.projectilesRemaining}` });
+
         // Send shot data to server for validation
         player.ui.sendData({
           type: 'projectileShot',
@@ -179,22 +203,33 @@ export class PlayerProjectileManager {
             predictionId
           }
         });
+        console.log('[PlayerProjectileManager] Sent shot data to server:', { position, direction, timestamp: currentTime, predictionId });
+        player.ui.sendData({ type: 'debugLog', message: `[PlayerProjectileManager] Sent shot data to server with predictionId: ${predictionId}` });
 
         // Set timeout to clean up prediction if not confirmed
         setTimeout(() => {
           if (!predictedProjectile.isConfirmed()) {
+            console.log('[PlayerProjectileManager] Prediction not confirmed, despawning projectile with predictionId:', predictionId);
+            player.ui.sendData({ type: 'debugLog', message: `[PlayerProjectileManager] Prediction not confirmed, despawning projectile with predictionId: ${predictionId}` });
             predictedProjectile.despawn();
             state.predictedProjectiles.delete(predictionId);
+          } else {
+            console.log('[PlayerProjectileManager] Prediction confirmed for projectile with predictionId:', predictionId);
+            player.ui.sendData({ type: 'debugLog', message: `[PlayerProjectileManager] Prediction confirmed for projectile with predictionId: ${predictionId}` });
           }
         }, PlayerProjectileManager.PREDICTION_TIMEOUT);
 
-        // Play sound effect immediately for responsiveness
+        // Play sound effect
         this.audioManager.playRandomSoundEffect(PlayerProjectileManager.PROJECTILE_SOUNDS, 0.4);
+        console.log('[PlayerProjectileManager] Played projectile sound effect.');
+        player.ui.sendData({ type: 'debugLog', message: `[PlayerProjectileManager] Played projectile sound effect.` });
       }
     }
 
     // Update last input state
     state.lastInputState = { ...input };
+    console.log('[PlayerProjectileManager] Updated lastInputState for player:', playerId, state.lastInputState);
+    player.ui.sendData({ type: 'debugLog', message: `[PlayerProjectileManager] Updated lastInputState for player: ${playerId}` });
   }
 
   // Optional: Method to refill projectiles (could be used for pickups or respawn)

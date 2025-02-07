@@ -1802,7 +1802,9 @@ setInterval(createParticle, 200);
 
 // Listen for projectile count updates and shoot attempts from the game
 hytopia.onData(data => {
-  if (data.type === 'updateProjectileCount') {
+  if (data.type === 'debugLog') {
+    console.log('[DEBUG]', data.message);
+  } else if (data.type === 'updateProjectileCount') {
     updateProjectileCount(data.count);
   } else if (data.type === 'attemptShootNoAmmo') {
     triggerShakeAnimation();

@@ -108,74 +108,75 @@ export class PredictiveCharacterController {
   tickWithPlayerInput(entity: Entity, input: PlayerInput, deltaTimeMs: number): void {
     const currentTime = this.getEstimatedServerTime();
     
-    // Immediately calculate and apply movement based on input
     if (input.w || input.s || input.a || input.d) {
-      const immediateMovement = {
-        x: 0,
-        y: 0,
-        z: 0
-      };
-
-      // Get camera direction for movement
-      const cameraDirection = this.player.camera.facingDirection;
-      const cameraAngle = Math.atan2(cameraDirection.x, cameraDirection.z);
+      // Calculate the movement vector first
+      const moveVector = this.calculateMoveVector(input);
       
-      // Calculate forward and right vectors
-      const forward = {
-        x: Math.sin(cameraAngle),
-        z: Math.cos(cameraAngle)
-      };
-      // Right vector is perpendicular to forward (rotate 90 degrees clockwise)
-      const right = {
-        x: -forward.z, // Changed from cos to -forward.z
-        z: forward.x   // Changed from -sin to forward.x
-      };
-
-      // Apply immediate movement with raw speed (no delta time for instant response)
-      const speed = PredictiveCharacterController.MOVEMENT_SPEED * 0.016; // Assuming 60fps for instant movement
-      if (input.w) { immediateMovement.x += forward.x * speed; immediateMovement.z += forward.z * speed; }
-      if (input.s) { immediateMovement.x -= forward.x * speed; immediateMovement.z -= forward.z * speed; }
-      if (input.a) { immediateMovement.x -= right.x * speed; immediateMovement.z -= right.z * speed; }
-      if (input.d) { immediateMovement.x += right.x * speed; immediateMovement.z += right.z * speed; }
-
-      // Normalize diagonal movement
-      const magnitude = Math.sqrt(immediateMovement.x * immediateMovement.x + immediateMovement.z * immediateMovement.z);
-      if (magnitude > 0) {
-        immediateMovement.x = (immediateMovement.x / magnitude) * speed;
-        immediateMovement.z = (immediateMovement.z / magnitude) * speed;
-      }
-
-      // INSTANTLY apply the movement without any checks or delays
+      // Apply movement directly using entity position
       const newPosition = {
-        x: this.entity.position.x + immediateMovement.x,
+        x: this.entity.position.x + moveVector.x,
         y: this.entity.position.y,
-        z: this.entity.position.z + immediateMovement.z
+        z: this.entity.position.z + moveVector.z
       };
-      
-      // Set position IMMEDIATELY
+
+      // Force immediate position update
       this.entity.setPosition(newPosition);
 
-      // Store input for later reconciliation
+      // Store for reconciliation
       this.pendingInputs.push({
         input: { ...input },
         timestamp: currentTime,
         position: newPosition,
-        movement: immediateMovement
+        movement: moveVector
       });
 
-      // Send to server AFTER we've already moved
+      // Send to server but don't wait for response
       this.player.ui.sendData({
         type: 'playerMovement',
         data: {
           input: { ...input },
           timestamp: currentTime,
           position: newPosition,
-          movement: immediateMovement
+          movement: moveVector,
+          immediate: true // Flag to tell server this was already applied
         }
       });
     }
+  }
 
-    // Remove the handleNonMovementInputs call since it's undefined
+  private calculateMoveVector(input: PlayerInput): Vector3Like {
+    const cameraDirection = this.player.camera.facingDirection;
+    const cameraAngle = Math.atan2(cameraDirection.x, cameraDirection.z);
+    
+    const forward = {
+      x: Math.sin(cameraAngle),
+      z: Math.cos(cameraAngle)
+    };
+
+    // Right vector is perpendicular to forward
+    const right = {
+      x: forward.z,  // Changed sign
+      z: -forward.x  // Changed sign
+    };
+
+    const moveVector = { x: 0, y: 0, z: 0 };
+    // Use server timestep instead of hardcoded 60fps
+    const speed = PredictiveCharacterController.MOVEMENT_SPEED * (1/60); // Will match server tick rate
+
+    if (input.w) { moveVector.x += forward.x * speed; moveVector.z += forward.z * speed; }
+    if (input.s) { moveVector.x -= forward.x * speed; moveVector.z -= forward.z * speed; }
+    if (input.a) { moveVector.x -= right.x * speed; moveVector.z -= right.z * speed; }
+    if (input.d) { moveVector.x += right.x * speed; moveVector.z += right.z * speed; }
+
+    // Normalize before applying speed to ensure consistent movement in all directions
+    const magnitude = Math.sqrt(moveVector.x * moveVector.x + moveVector.z * moveVector.z);
+    if (magnitude > 0) {
+      const normalizedSpeed = speed * 1.5; // Increased speed multiplier
+      moveVector.x = (moveVector.x / magnitude) * normalizedSpeed;
+      moveVector.z = (moveVector.z / magnitude) * normalizedSpeed;
+    }
+
+    return moveVector;
   }
 
   private calculateMovement(input: PlayerInput, deltaTimeMs: number): Vector3Like | null {

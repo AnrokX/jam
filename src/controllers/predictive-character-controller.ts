@@ -45,6 +45,21 @@ export class PredictiveCharacterController {
   // Add entityVelocity to track the entity's velocity separately
   private entityVelocity: Vector3Like = { x: 0, y: 0, z: 0 };
 
+  // Base values for thresholds
+  private static readonly BASE_PREDICTION_THRESHOLD = 0.8;
+  private static readonly BASE_PREDICTION_STEPS = 2;
+  private static readonly BASE_LERP_FACTOR = 0.15;
+  
+  // Extended latency breakpoints (in ms)
+  private static readonly LATENCY_BREAKPOINTS = {
+    EXCELLENT: 50,   // < 50ms
+    GOOD: 100,       // 50-100ms
+    FAIR: 200,       // 100-200ms
+    POOR: 300,       // 200-300ms
+    BAD: 400,        // 300-400ms
+    TERRIBLE: 500    // > 400ms
+  };
+
   constructor(player: Player, entity: Entity, raycastHandler: RaycastHandler) {
     this.player = player;
     this.entity = entity;
@@ -320,5 +335,85 @@ export class PredictiveCharacterController {
   // Add method to get current velocity
   public getVelocity(): Vector3Like {
     return { ...this.entityVelocity };
+  }
+
+  private getDynamicThresholds(): {
+    predictionThreshold: number;
+    predictionSteps: number;
+    lerpFactor: number;
+  } {
+    const latency = this.averageRTT / 2; // One-way latency
+
+    // Log latency for debugging
+    this.player.ui.sendData({
+      type: 'debugLog',
+      message: `Current latency: ${latency}ms`
+    });
+
+    if (latency > PredictiveCharacterController.LATENCY_BREAKPOINTS.TERRIBLE) {
+      return {
+        predictionThreshold: PredictiveCharacterController.BASE_PREDICTION_THRESHOLD * 2.0,
+        predictionSteps: PredictiveCharacterController.BASE_PREDICTION_STEPS * 2.5,
+        lerpFactor: PredictiveCharacterController.BASE_LERP_FACTOR * 0.3
+      };
+    } else if (latency > PredictiveCharacterController.LATENCY_BREAKPOINTS.BAD) {
+      return {
+        predictionThreshold: PredictiveCharacterController.BASE_PREDICTION_THRESHOLD * 1.75,
+        predictionSteps: PredictiveCharacterController.BASE_PREDICTION_STEPS * 2.0,
+        lerpFactor: PredictiveCharacterController.BASE_LERP_FACTOR * 0.4
+      };
+    } else if (latency > PredictiveCharacterController.LATENCY_BREAKPOINTS.POOR) {
+      return {
+        predictionThreshold: PredictiveCharacterController.BASE_PREDICTION_THRESHOLD * 1.5,
+        predictionSteps: PredictiveCharacterController.BASE_PREDICTION_STEPS * 1.75,
+        lerpFactor: PredictiveCharacterController.BASE_LERP_FACTOR * 0.5
+      };
+    } else if (latency > PredictiveCharacterController.LATENCY_BREAKPOINTS.FAIR) {
+      return {
+        predictionThreshold: PredictiveCharacterController.BASE_PREDICTION_THRESHOLD * 1.25,
+        predictionSteps: PredictiveCharacterController.BASE_PREDICTION_STEPS * 1.5,
+        lerpFactor: PredictiveCharacterController.BASE_LERP_FACTOR * 0.6
+      };
+    } else if (latency > PredictiveCharacterController.LATENCY_BREAKPOINTS.GOOD) {
+      return {
+        predictionThreshold: PredictiveCharacterController.BASE_PREDICTION_THRESHOLD * 1.1,
+        predictionSteps: PredictiveCharacterController.BASE_PREDICTION_STEPS * 1.25,
+        lerpFactor: PredictiveCharacterController.BASE_LERP_FACTOR * 0.8
+      };
+    } else if (latency > PredictiveCharacterController.LATENCY_BREAKPOINTS.EXCELLENT) {
+      return {
+        predictionThreshold: PredictiveCharacterController.BASE_PREDICTION_THRESHOLD,
+        predictionSteps: PredictiveCharacterController.BASE_PREDICTION_STEPS,
+        lerpFactor: PredictiveCharacterController.BASE_LERP_FACTOR
+      };
+    }
+    
+    // Excellent connection (< 50ms)
+    return {
+      predictionThreshold: PredictiveCharacterController.BASE_PREDICTION_THRESHOLD * 0.9,
+      predictionSteps: PredictiveCharacterController.BASE_PREDICTION_STEPS * 0.9,
+      lerpFactor: PredictiveCharacterController.BASE_LERP_FACTOR * 1.2
+    };
+  }
+
+  // Add debug info method for monitoring
+  private logLatencyStats(): void {
+    const thresholds = this.getDynamicThresholds();
+    const latency = this.averageRTT / 2;
+    let connectionQuality = 'EXCELLENT';
+    
+    if (latency > PredictiveCharacterController.LATENCY_BREAKPOINTS.TERRIBLE) connectionQuality = 'TERRIBLE';
+    else if (latency > PredictiveCharacterController.LATENCY_BREAKPOINTS.BAD) connectionQuality = 'BAD';
+    else if (latency > PredictiveCharacterController.LATENCY_BREAKPOINTS.POOR) connectionQuality = 'POOR';
+    else if (latency > PredictiveCharacterController.LATENCY_BREAKPOINTS.FAIR) connectionQuality = 'FAIR';
+    else if (latency > PredictiveCharacterController.LATENCY_BREAKPOINTS.GOOD) connectionQuality = 'GOOD';
+    
+    this.player.ui.sendData({
+      type: 'debugLog',
+      message: `Connection: ${connectionQuality} (${latency.toFixed(0)}ms) | ` +
+               `Threshold: ${thresholds.predictionThreshold.toFixed(2)} | ` +
+               `Steps: ${thresholds.predictionSteps.toFixed(2)} | ` +
+               `Lerp: ${thresholds.lerpFactor.toFixed(2)}`
+    });
   }
 } 

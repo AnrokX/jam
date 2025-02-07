@@ -228,34 +228,105 @@ export class PredictiveCharacterController {
     return { x: dx, y: 0, z: dz };
   }
 
+  private calculatePositionError(serverPosition: Vector3Like): number {
+    const clientPos = this.entity.position;
+    
+    // Calculate component-wise errors
+    const errors = {
+      x: Math.abs(clientPos.x - serverPosition.x),
+      y: Math.abs(clientPos.y - serverPosition.y),
+      z: Math.abs(clientPos.z - serverPosition.z)
+    };
+
+    // Get dynamic thresholds
+    const thresholds = this.getDynamicThresholds();
+    
+    // Weight vertical errors differently (jumping/falling needs different handling)
+    const verticalWeight = 1.5;
+    
+    // Calculate weighted error
+    const weightedError = Math.sqrt(
+      errors.x * errors.x +
+      (errors.y * errors.y * verticalWeight) +
+      errors.z * errors.z
+    );
+
+    // Log significant errors for debugging
+    if (weightedError > thresholds.predictionThreshold) {
+      this.player.ui.sendData({
+        type: 'debugLog',
+        message: `Position error detected: ${weightedError.toFixed(2)} units ` +
+                `(x: ${errors.x.toFixed(2)}, y: ${errors.y.toFixed(2)}, z: ${errors.z.toFixed(2)})`
+      });
+    }
+
+    return weightedError;
+  }
+
   public handleServerUpdate(serverState: MovementState): void {
     // Remove processed inputs
     this.pendingInputs = this.pendingInputs.filter(input => input.timestamp > serverState.timestamp);
 
+    // Get current thresholds
+    const thresholds = this.getDynamicThresholds();
+
     // Check if we need to correct position
     const positionError = this.calculatePositionError(serverState.position);
-    if (positionError > PredictiveCharacterController.PREDICTION_THRESHOLD) {
-      // Smoothly interpolate to server position
+    if (positionError > thresholds.predictionThreshold) {
       const currentPos = this.entity.position;
+      
+      // Calculate error velocity (how fast we're diverging)
+      const errorVelocity = {
+        x: (serverState.position.x - currentPos.x) / (this.averageRTT / 1000),
+        y: (serverState.position.y - currentPos.y) / (this.averageRTT / 1000),
+        z: (serverState.position.z - currentPos.z) / (this.averageRTT / 1000)
+      };
+
+      // Adjust lerp factor based on error velocity
+      const errorSpeed = Math.sqrt(
+        errorVelocity.x * errorVelocity.x +
+        errorVelocity.y * errorVelocity.y +
+        errorVelocity.z * errorVelocity.z
+      );
+      
+      // Use more aggressive correction for fast-moving errors
+      const dynamicLerpFactor = Math.min(
+        thresholds.lerpFactor * (1 + (errorSpeed / 10)),
+        1.0 // Cap at 1.0 for stability
+      );
+
+      // Smoothly interpolate to server position with dynamic lerp
       const interpolatedPosition = {
-        x: currentPos.x + (serverState.position.x - currentPos.x) * PredictiveCharacterController.LERP_FACTOR,
-        y: currentPos.y + (serverState.position.y - currentPos.y) * PredictiveCharacterController.LERP_FACTOR,
-        z: currentPos.z + (serverState.position.z - currentPos.z) * PredictiveCharacterController.LERP_FACTOR
+        x: currentPos.x + (serverState.position.x - currentPos.x) * dynamicLerpFactor,
+        y: currentPos.y + (serverState.position.y - currentPos.y) * dynamicLerpFactor,
+        z: currentPos.z + (serverState.position.z - currentPos.z) * dynamicLerpFactor
       };
 
       // Apply interpolated position
       this.entity.setPosition(interpolatedPosition);
       this.lastServerPosition = serverState.position;
 
-      // Reapply pending inputs from the interpolated position
+      // Log correction details for debugging
+      this.player.ui.sendData({
+        type: 'debugLog',
+        message: `Correcting position with dynamic lerp: ${dynamicLerpFactor.toFixed(3)} ` +
+                `(error speed: ${errorSpeed.toFixed(2)} units/s)`
+      });
+
+      // Reapply pending inputs with dynamic prediction steps
       let currentPosition = { ...interpolatedPosition };
       this.pendingInputs.forEach(input => {
         if (input.movement) {
-          // Apply movement with prediction steps
+          // Adjust prediction steps based on error magnitude
+          const dynamicSteps = Math.max(
+            thresholds.predictionSteps * (1 - (positionError / 10)),
+            0.5 // Minimum prediction steps
+          );
+
           const predictedMovement = {
-            x: input.movement.x * PredictiveCharacterController.PREDICTION_STEPS,
-            y: input.movement.y * PredictiveCharacterController.PREDICTION_STEPS,
-            z: input.movement.z * PredictiveCharacterController.PREDICTION_STEPS
+            x: input.movement.x * dynamicSteps,
+            y: input.movement.y * dynamicSteps,
+            z: input.movement.z * dynamicSteps
           };
           
           currentPosition = {
@@ -279,15 +350,6 @@ export class PredictiveCharacterController {
     
     // Reapply pending movements with new velocity
     this.reapplyPendingMovements(serverState);
-  }
-
-  private calculatePositionError(serverPosition: Vector3Like): number {
-    const clientPos = this.entity.position;
-    return Math.sqrt(
-      Math.pow(clientPos.x - serverPosition.x, 2) +
-      Math.pow(clientPos.y - serverPosition.y, 2) +
-      Math.pow(clientPos.z - serverPosition.z, 2)
-    );
   }
 
   private calculateVelocityError(serverVelocity: Vector3Like): number {

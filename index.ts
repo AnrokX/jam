@@ -346,7 +346,12 @@ startServer(world => {
           type: 'movementConfirm',
           data: {
             timestamp,
-            position: playerEntity.position
+            position: playerEntity.position,
+            velocity: predictiveController.getVelocity(),
+            movementState: {
+              isJumping: input.jump,
+              isSprinting: input.sprint
+            }
           }
         });
       } else if (message.type === 'projectileShot') {

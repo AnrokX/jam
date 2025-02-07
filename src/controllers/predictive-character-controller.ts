@@ -6,12 +6,21 @@ interface GameWorld extends World {
     raycastHandler: RaycastHandler;
 }
 
+export interface MovementState {
+  position: Vector3Like;
+  velocity: Vector3Like;
+  isJumping?: boolean;
+  isSprinting?: boolean;
+  timestamp: number;
+}
+
 export class PredictiveCharacterController {
   private static readonly MOVEMENT_SPEED = 5;
   private static readonly PREDICTION_THRESHOLD = 0.8;
   private static readonly PREDICTION_STEPS = 2;
   private static readonly LERP_FACTOR = 0.15;
   private static readonly SYNC_INTERVAL = 5000; // Sync every 5 seconds
+  private static readonly VELOCITY_THRESHOLD = 0.5; // Add this constant
   private lastSyncTime: number = 0;
   private serverTimeOffset: number = 0;
   private rttHistory: number[] = [];
@@ -28,6 +37,13 @@ export class PredictiveCharacterController {
   private readonly entity: Entity;
   private readonly projectileManager: PlayerProjectileManager;
   private lastProcessedInput: { [key: string]: any } = {};
+  private currentVelocity: Vector3Like = { x: 0, y: 0, z: 0 };
+  private serverVelocity: Vector3Like = { x: 0, y: 0, z: 0 };
+  
+  private pendingMovements: MovementState[] = [];
+
+  // Add entityVelocity to track the entity's velocity separately
+  private entityVelocity: Vector3Like = { x: 0, y: 0, z: 0 };
 
   constructor(player: Player, entity: Entity, raycastHandler: RaycastHandler) {
     this.player = player;
@@ -117,6 +133,7 @@ export class PredictiveCharacterController {
       console.log('Mouse left clicked:', input);
       
       // Create a clean copy of the input state for projectile handling
+      const predictionId = `proj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const projectileInput = {
         ml: true,  // Changed from input.ml to explicitly set true
         mr: false  // Ensure mr is false
@@ -196,24 +213,24 @@ export class PredictiveCharacterController {
     return { x: dx, y: 0, z: dz };
   }
 
-  public handleServerUpdate(serverPosition: Vector3Like, serverTime: number): void {
+  public handleServerUpdate(serverState: MovementState): void {
     // Remove processed inputs
-    this.pendingInputs = this.pendingInputs.filter(input => input.timestamp > serverTime);
+    this.pendingInputs = this.pendingInputs.filter(input => input.timestamp > serverState.timestamp);
 
     // Check if we need to correct position
-    const positionError = this.calculatePositionError(serverPosition);
+    const positionError = this.calculatePositionError(serverState.position);
     if (positionError > PredictiveCharacterController.PREDICTION_THRESHOLD) {
       // Smoothly interpolate to server position
       const currentPos = this.entity.position;
       const interpolatedPosition = {
-        x: currentPos.x + (serverPosition.x - currentPos.x) * PredictiveCharacterController.LERP_FACTOR,
-        y: currentPos.y + (serverPosition.y - currentPos.y) * PredictiveCharacterController.LERP_FACTOR,
-        z: currentPos.z + (serverPosition.z - currentPos.z) * PredictiveCharacterController.LERP_FACTOR
+        x: currentPos.x + (serverState.position.x - currentPos.x) * PredictiveCharacterController.LERP_FACTOR,
+        y: currentPos.y + (serverState.position.y - currentPos.y) * PredictiveCharacterController.LERP_FACTOR,
+        z: currentPos.z + (serverState.position.z - currentPos.z) * PredictiveCharacterController.LERP_FACTOR
       };
 
       // Apply interpolated position
       this.entity.setPosition(interpolatedPosition);
-      this.lastServerPosition = serverPosition;
+      this.lastServerPosition = serverState.position;
 
       // Reapply pending inputs from the interpolated position
       let currentPosition = { ...interpolatedPosition };
@@ -235,6 +252,18 @@ export class PredictiveCharacterController {
         }
       });
     }
+
+    // Update our tracked velocity instead of accessing entity.velocity
+    if (this.calculateVelocityError(serverState.velocity) > PredictiveCharacterController.VELOCITY_THRESHOLD) {
+      this.entityVelocity = {
+        x: this.entityVelocity.x + (serverState.velocity.x - this.entityVelocity.x) * PredictiveCharacterController.LERP_FACTOR,
+        y: this.entityVelocity.y + (serverState.velocity.y - this.entityVelocity.y) * PredictiveCharacterController.LERP_FACTOR,
+        z: this.entityVelocity.z + (serverState.velocity.z - this.entityVelocity.z) * PredictiveCharacterController.LERP_FACTOR
+      };
+    }
+    
+    // Reapply pending movements with new velocity
+    this.reapplyPendingMovements(serverState);
   }
 
   private calculatePositionError(serverPosition: Vector3Like): number {
@@ -246,9 +275,50 @@ export class PredictiveCharacterController {
     );
   }
 
+  private calculateVelocityError(serverVelocity: Vector3Like): number {
+    return Math.sqrt(
+      Math.pow(this.entityVelocity.x - serverVelocity.x, 2) +
+      Math.pow(this.entityVelocity.y - serverVelocity.y, 2) +
+      Math.pow(this.entityVelocity.z - serverVelocity.z, 2)
+    );
+  }
+
+  private reapplyPendingMovements(serverState: MovementState): void {
+    let currentPosition = { ...serverState.position };
+    let currentVelocity = { ...this.entityVelocity };
+
+    this.pendingMovements.forEach(movement => {
+      // Apply movement with current velocity
+      currentPosition = {
+        x: currentPosition.x + currentVelocity.x,
+        y: currentPosition.y + currentVelocity.y,
+        z: currentPosition.z + currentVelocity.z
+      };
+
+      // Update velocity based on movement state
+      if (movement.isJumping) {
+        currentVelocity.y += PredictiveCharacterController.MOVEMENT_SPEED;
+      }
+      if (movement.isSprinting) {
+        const sprintMultiplier = 1.5;
+        currentVelocity.x *= sprintMultiplier;
+        currentVelocity.z *= sprintMultiplier;
+      }
+    });
+
+    // Apply final position
+    this.entity.setPosition(currentPosition);
+    this.entityVelocity = currentVelocity;
+  }
+
   private hasMovementInputChanged(newInput: any): boolean {
     return ['forward', 'backward', 'left', 'right', 'jump', 'sprint'].some(
       key => newInput[key] !== this.lastProcessedInput[key]
     );
+  }
+
+  // Add method to get current velocity
+  public getVelocity(): Vector3Like {
+    return { ...this.entityVelocity };
   }
 } 

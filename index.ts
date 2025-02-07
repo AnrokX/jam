@@ -53,6 +53,7 @@ const GAME_CONFIG = {
 // Configuration flags
 const IS_TEST_MODE = false;  // Set this to true to enable test mode, false for normal game
 const DEBUG_ENABLED = false;  // Development debug flag
+const TICK_RATE = 60;  // Server tick rate in Hz
 
 // Keep track of last used spawn points
 let lastLeftSpawnIndex = -1;
@@ -82,6 +83,7 @@ function getNextSpawnPosition(platform: 'LEFT' | 'RIGHT'): Vector3Like {
 startServer(world => {
   console.log('Starting server and initializing debug settings...');
   console.log(`Test mode: ${IS_TEST_MODE ? 'enabled' : 'disabled'}`);
+  console.log(`Server running at ${TICK_RATE}Hz tick rate`);
   
   // Initialize managers
   const sceneUIManager = SceneUIManager.getInstance(world);

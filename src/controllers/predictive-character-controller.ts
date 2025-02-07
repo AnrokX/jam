@@ -106,73 +106,76 @@ export class PredictiveCharacterController {
   }
 
   tickWithPlayerInput(entity: Entity, input: PlayerInput, deltaTimeMs: number): void {
-    // Use estimated server time instead of local time
     const currentTime = this.getEstimatedServerTime();
     
-    // Process movement first
-    const movement = this.calculateMovement(input, deltaTimeMs);
-    if (movement) {
-      // Apply movement immediately without waiting for prediction
-      const immediatePosition = {
-        x: this.entity.position.x + movement.x,
-        y: this.entity.position.y + movement.y,
-        z: this.entity.position.z + movement.z
+    // Immediately calculate and apply movement based on input
+    if (input.w || input.s || input.a || input.d) {
+      const immediateMovement = {
+        x: 0,
+        y: 0,
+        z: 0
       };
 
-      // Store input for reconciliation
+      // Get camera direction for movement
+      const cameraDirection = this.player.camera.facingDirection;
+      const cameraAngle = Math.atan2(cameraDirection.x, cameraDirection.z);
+      
+      // Calculate forward and right vectors
+      const forward = {
+        x: Math.sin(cameraAngle),
+        z: Math.cos(cameraAngle)
+      };
+      // Right vector is perpendicular to forward (rotate 90 degrees clockwise)
+      const right = {
+        x: -forward.z, // Changed from cos to -forward.z
+        z: forward.x   // Changed from -sin to forward.x
+      };
+
+      // Apply immediate movement with raw speed (no delta time for instant response)
+      const speed = PredictiveCharacterController.MOVEMENT_SPEED * 0.016; // Assuming 60fps for instant movement
+      if (input.w) { immediateMovement.x += forward.x * speed; immediateMovement.z += forward.z * speed; }
+      if (input.s) { immediateMovement.x -= forward.x * speed; immediateMovement.z -= forward.z * speed; }
+      if (input.a) { immediateMovement.x -= right.x * speed; immediateMovement.z -= right.z * speed; }
+      if (input.d) { immediateMovement.x += right.x * speed; immediateMovement.z += right.z * speed; }
+
+      // Normalize diagonal movement
+      const magnitude = Math.sqrt(immediateMovement.x * immediateMovement.x + immediateMovement.z * immediateMovement.z);
+      if (magnitude > 0) {
+        immediateMovement.x = (immediateMovement.x / magnitude) * speed;
+        immediateMovement.z = (immediateMovement.z / magnitude) * speed;
+      }
+
+      // INSTANTLY apply the movement without any checks or delays
+      const newPosition = {
+        x: this.entity.position.x + immediateMovement.x,
+        y: this.entity.position.y,
+        z: this.entity.position.z + immediateMovement.z
+      };
+      
+      // Set position IMMEDIATELY
+      this.entity.setPosition(newPosition);
+
+      // Store input for later reconciliation
       this.pendingInputs.push({
         input: { ...input },
         timestamp: currentTime,
-        position: immediatePosition,
-        movement
+        position: newPosition,
+        movement: immediateMovement
       });
 
-      // Apply movement immediately
-      this.entity.setPosition(immediatePosition);
-      
-      // Send movement to server
+      // Send to server AFTER we've already moved
       this.player.ui.sendData({
         type: 'playerMovement',
         data: {
           input: { ...input },
           timestamp: currentTime,
-          position: immediatePosition,
-          movement
+          position: newPosition,
+          movement: immediateMovement
         }
       });
     }
 
-    // Handle mouse input for projectiles
-    const mouseLeftJustPressed = input.ml && !this.lastProcessedInput.ml;
-    if (mouseLeftJustPressed) {
-      console.log('Mouse left clicked:', input);
-      
-      // Create a clean copy of the input state for projectile handling
-      const predictionId = `proj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      const projectileInput = {
-        ml: true,  // Changed from input.ml to explicitly set true
-        mr: false  // Ensure mr is false
-      };
-
-      // Handle projectile input through the manager
-      this.projectileManager.handleProjectileInput(
-        this.player.id,
-        entity.position,
-        this.player.camera.facingDirection,
-        projectileInput,
-        this.player
-      );
-
-      // Update UI with current projectile count after input handling
-      this.player.ui.sendData({
-        type: 'updateProjectileCount',
-        count: this.projectileManager.getProjectilesRemaining(this.player.id)
-      });
-    }
-
-    // Update last processed input state
-    this.lastProcessedInput = { ...input };
-    this.lastInputTime = currentTime;
+    // Remove the handleNonMovementInputs call since it's undefined
   }
 
   private calculateMovement(input: PlayerInput, deltaTimeMs: number): Vector3Like | null {

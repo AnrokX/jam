@@ -311,11 +311,16 @@ export class ScoreManager extends Entity {
     // Show combo notification for 3+ hits
     if (stats.consecutiveHits >= 3 && this.world) {
       const totalBonus = Math.round((comboBonus + multiHitBonus) * 100);
-      SceneUIManager.getInstance(this.world).showComboNotification(
-        stats.consecutiveHits,
-        totalBonus,
-        hitPosition
-      );
+      const player = this.world.entityManager.getAllPlayerEntities()
+        .find(entity => entity.player.id === playerId)?.player;
+      
+      if (player) {
+        SceneUIManager.getInstance(this.world).showComboNotification(
+          stats.consecutiveHits,
+          totalBonus,
+          player
+        );
+      }
     }
 
     console.log(`Player ${playerId} hit counters updated:`, {

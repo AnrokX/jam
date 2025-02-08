@@ -1832,6 +1832,10 @@ hytopia.onData(data => {
     }
   } else if (data.type === 'gameEnd') {
     showGameEnd(data.data);
+  } else if (data.type === 'showHitNotification') {
+    showLocalHitNotification(data.data);
+  } else if (data.type === 'showBlockDestroyedNotification') {
+    showLocalBlockDestroyedNotification(data.data);
   }
 });
 
@@ -2413,6 +2417,53 @@ function showGameEnd(data) {
     setTimeout(() => {
         overlay.classList.remove('visible');
     }, data.nextGameIn);
+}
+
+// Add these new functions to handle local notifications
+function showLocalHitNotification(data) {
+  const container = document.createElement('div');
+  container.className = 'hit-notification';
+  container.style.left = '50%';  // Center horizontally
+  container.style.top = '50%';   // Center vertically
+  
+  const scoreElement = document.createElement('span');
+  scoreElement.className = 'score';
+  scoreElement.textContent = `+${Math.round(data.score)}`;
+  
+  container.appendChild(scoreElement);
+  document.body.appendChild(container);
+  
+  // Remove after animation
+  setTimeout(() => {
+    container.remove();
+  }, 1000);
+}
+
+function showLocalBlockDestroyedNotification(data) {
+  const container = document.createElement('div');
+  container.className = 'block-destroyed-notification';
+  container.style.left = '50%';  // Center horizontally
+  container.style.top = '50%';   // Center vertically
+  
+  if (data.verticalOffset) {
+    container.style.transform = `translate(-50%, -50%) translateY(-${data.verticalOffset}px)`;
+  }
+  
+  const scoreElement = document.createElement('div');
+  scoreElement.className = 'score';
+  scoreElement.textContent = `+${data.score}`;
+  
+  if (data.style) {
+    scoreElement.style.cssText = data.style;
+  }
+  
+  container.appendChild(scoreElement);
+  document.body.appendChild(container);
+  
+  // Remove after animation
+  setTimeout(() => {
+    container.remove();
+  }, data.duration + 100);
 }
 </script>
 

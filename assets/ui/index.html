@@ -1631,13 +1631,6 @@
   <div class="settings-section">
     <div class="settings-section-title">Game Settings</div>
     <div class="settings-option">
-      <span class="settings-label">Mouse Sensitivity</span>
-      <div class="settings-value">
-        <input type="range" min="1" max="100" value="50" id="sensitivity-slider">
-        <span id="sensitivity-value">50</span>
-      </div>
-    </div>
-    <div class="settings-option">
       <span class="settings-label">Background Music Volume</span>
       <div class="settings-value">
         <input type="range" min="0" max="100" value="10" id="bgm-volume-slider">
@@ -2136,15 +2129,7 @@ document.getElementById('resume-button').addEventListener('click', () => {
 });
 
 // Handle settings changes
-document.getElementById('sensitivity-slider').addEventListener('input', (e) => {
-  const value = e.target.value;
-  document.getElementById('sensitivity-value').textContent = value;
-  hytopia.sendData({ 
-    type: 'updateSettings',
-    setting: 'sensitivity',
-    value: Number(value)
-  });
-});
+document.getElementById('sensitivity-slider')?.remove();
 
 // Background music volume handler with debounce
 let volumeTimeout;

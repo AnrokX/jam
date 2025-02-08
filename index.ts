@@ -310,9 +310,6 @@ startServer(world => {
   
     // Wire up raycast handler and projectile system to the SDK's input system
     playerEntity.controller!.onTickWithPlayerInput = (entity, input, cameraOrientation, deltaTimeMs) => {
-      // Apply sensitivity to camera orientation
-      const adjustedOrientation = settingsManager.applyCameraSensitivity(player.id, cameraOrientation);
-      
       // Create a clean copy of the input state to avoid recursive references
       const cleanInput = {
         ml: input.ml || false,
@@ -354,14 +351,8 @@ startServer(world => {
         player
       );
 
-      // Update UI with current projectile count after input handling
-      player.ui.sendData({
-        type: 'updateProjectileCount',
-        count: projectileManager.getProjectilesRemaining(player.id)
-      });
-
-      // Return the adjusted orientation to apply the sensitivity
-      return adjustedOrientation;
+      // Return the original orientation
+      return cameraOrientation;
     };
 
     // Handle settings updates from UI

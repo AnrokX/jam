@@ -11,22 +11,114 @@
   - Left/right click handling
   - Input flag management
   - Block breaking mechanics
+  - Block placement
+  - Sound effects on block destruction
 - **Player Management**
   - Join/leave handling
   - Entity spawning/despawning
-  - Basic movement instructions
-- **Debug Tools**
-  - Raycast visualization
-  - Development environment logging
-  - Error handling for visualization
+  - Basic movement and position tracking
+- **Sound System**
+  - Block breaking sound effects
+  - Background music with volume control
+  - Projectile launch sounds
+  - Sound effect attribution
+- **Moving Block System**
+  - Multiple block movement patterns:
+    - Static targets (tutorial blocks)
+    - Normal blocks (basic movement)
+    - Sine wave motion
+    - Vertical wave motion
+    - Pop-up targets
+    - Rising targets
+    - Parabolic motion
+    - Pendulum swinging
+  - Configurable movement behaviors:
+    - Customizable speeds
+    - Variable amplitudes
+    - Adjustable frequencies
+    - Configurable heights and distances
+  - Dynamic spawn system:
+    - Safe spawn positioning
+    - Platform collision avoidance
+    - Block spacing management
+  - Round-based progression:
+    - Tutorial round with static targets
+    - Progressive difficulty increase
+    - Mixed block types in later rounds
+  - Player count scaling:
+    - Increased block counts with more players
+    - Adjusted spawn rates
+    - Balanced difficulty scaling
+- **Scoring System**
+  - Dynamic score calculation based on:
+    - Shot distance
+    - Target size
+    - Movement patterns
+    - Time-based decay factor
+    - Z-axis movement multiplier
+  - Combo system:
+    - Consecutive hits tracking
+    - Multi-hit bonuses
+    - Combo timeout window (4000ms)
+    - Progressive combo multipliers
+    - Visual combo notifications
+  - Movement-based multipliers:
+    - Static targets: 1.0x
+    - Z-axis movement: 4.0x
+    - Sine wave: 3.0x
+    - Vertical wave: 3.0x
+    - Pop-up targets: 4.0x
+    - Rising targets: 5.5x
+    - Parabolic motion: 6.0x
+  - Real-time score tracking
+- **UI Features**
+  - Projectile counter with animations
+  - Score display
+    - Real-time score updates
+    - Round scores
+    - Total scores
+    - Placement points
+  - Dynamic leaderboard
+    - Player rankings
+    - Points tracking
+    - Winner highlighting
+  - Game status indicators
+    - Round number
+    - Round timer
+    - Countdown overlays
+  - Visual feedback
+    - Hit notifications
+    - Block destruction effects
+    - Combo counters with animations
+    - End-game overlays
+  - Settings menu
+    - Audio volume controls
+    - Crosshair settings
+      - Size
+      - Color
+      - Toggle component visibility
+  - Visual feedback for actions
+    - Block placement
+    - Block destruction
+    - Projectile launch
+    - Score change
+    - Combo counter
+    
+- **Projectile System**
+  - Physics-based projectile motion
+  - Trajectory preview
+  - Collision detection
+  - Bounce mechanics
+  - Limited ammo system
 
 ## Code Structure
 
 
-Run tests:
+Run Automated Tests:
 ```bash
 bun test
 ```
+
 
 Start development server:
 ```bash
@@ -65,3 +157,7 @@ bun install
 ```
 
 credits for blop1 sound effects: https://kronbits.itch.io/freesfx?download#google_vignette
+
+## Credits
+Sound Effects:
+- Block breaking sounds: [Kronbits Free SFX Pack](https://kronbits.itch.io/freesfx)

@@ -98,9 +98,9 @@ export class RoundManager {
         // Round 2 - 100% Normal Blocks
         if (round === 2) {
             return {
-                duration: 60000,
-                minBlockCount: 4,
-                maxBlockCount: 8,
+                duration: 30000,
+                minBlockCount: 2,
+                maxBlockCount: 4,
                 blockSpawnInterval: 1500,
                 speedMultiplier: 0.6,
                 blockTypes: {
@@ -119,9 +119,9 @@ export class RoundManager {
         // Round 3 - 100% Sine Wave
         if (round === 3) {
             return {
-                duration: 60000,
-                minBlockCount: 6,
-                maxBlockCount: 10,
+                duration: 30000,
+                minBlockCount: 3,
+                maxBlockCount: 6,
                 blockSpawnInterval: 1800,
                 speedMultiplier: 0.65,
                 blockTypes: {
@@ -140,9 +140,9 @@ export class RoundManager {
         // Round 4 - 100% Vertical Wave
         if (round === 4) {
             return {
-                duration: 60000,
-                minBlockCount: 6,
-                maxBlockCount: 10,
+                duration: 25000,
+                minBlockCount: 2,
+                maxBlockCount: 6,
                 blockSpawnInterval: 1800,
                 speedMultiplier: 0.7,
                 blockTypes: {
@@ -161,9 +161,9 @@ export class RoundManager {
         // Round 5 - 100% Pop-up
         if (round === 5) {
             return {
-                duration: 60000,
-                minBlockCount: 4,
-                maxBlockCount: 6,
+                duration: 25000,
+                minBlockCount: 2,
+                maxBlockCount: 4,
                 blockSpawnInterval: 1500,
                 speedMultiplier: 0.75,
                 blockTypes: {
@@ -182,9 +182,9 @@ export class RoundManager {
         // Round 6 - 100% Rising
         if (round === 6) {
             return {
-                duration: 60000,
-                minBlockCount: 4,
-                maxBlockCount: 6,
+                duration: 25000,
+                minBlockCount: 2,
+                maxBlockCount: 4,
                 blockSpawnInterval: 1800,
                 speedMultiplier: 0.8,
                 blockTypes: {
@@ -203,9 +203,9 @@ export class RoundManager {
         // Round 7 - 100% Parabolic
         if (round === 7) {
             return {
-                duration: 60000,
-                minBlockCount: 4,
-                maxBlockCount: 6,
+                duration: 30000,
+                minBlockCount: 2,
+                maxBlockCount: 4,
                 blockSpawnInterval: 1800,
                 speedMultiplier: 0.85,
                 blockTypes: {
@@ -224,9 +224,9 @@ export class RoundManager {
         // Round 8 - 100% Pendulum
         if (round === 8) {
             return {
-                duration: 60000,
-                minBlockCount: 3,
-                maxBlockCount: 6,
+                duration: 30000,
+                minBlockCount: 2,
+                maxBlockCount: 4,
                 blockSpawnInterval: 2000,
                 speedMultiplier: 0.9,
                 blockTypes: {
@@ -245,9 +245,9 @@ export class RoundManager {
         // Round 9 - "Up and Down" Mix (Vertical Wave, Rising, and Popup)
         if (round === 9) {
             return {
-                duration: 60000,
-                minBlockCount: 5,
-                maxBlockCount: 8,
+                duration: 30000,
+                minBlockCount: 2,
+                maxBlockCount: 6,
                 blockSpawnInterval: 1800,
                 speedMultiplier: 0.95,
                 blockTypes: {
@@ -265,9 +265,9 @@ export class RoundManager {
 
         // Round 10 - "Chaos" Mix (Pendulum, Parabolic, and Sine Wave)
         return {
-            duration: 60000,
+            duration: 30000,
             minBlockCount: 4,
-            maxBlockCount: 7,
+            maxBlockCount: 6,
             blockSpawnInterval: 2000,
             speedMultiplier: 1.0,
             blockTypes: {
@@ -397,7 +397,7 @@ export class RoundManager {
         // Calculate player scaling factor
         const playerCount = this.world.entityManager.getAllPlayerEntities().length;
         const additionalPlayers = Math.max(0, playerCount - 2); // Count players above 2
-        const playerScaling = Math.min(1.0, additionalPlayers * 0.2); // 20% per player, max 100%
+        const playerScaling = Math.min(0.3, additionalPlayers * 0.1); // 10% per player, max 30%
         
         // Scale block counts
         const scaledMaxBlocks = Math.floor(config.maxBlockCount * (1 + playerScaling));

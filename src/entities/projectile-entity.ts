@@ -1,4 +1,5 @@
 import { Entity, EntityOptions, Vector3Like, ColliderShape, CollisionGroup, BlockType, World, PlayerEntity } from 'hytopia';
+import { MovingBlockEntity } from '../moving_blocks/moving-block-entity';
 import { RaycastHandler } from '../raycast/raycast-handler';
 import { BlockParticleEffects } from '../effects/block-particle-effects';
 import { ScoreManager } from '../managers/score-manager';
@@ -167,7 +168,10 @@ export class ProjectileEntity extends Entity {
                 // Prevent multiple collision handling for the same projectile
                 if (!this.isSpawned) return;
                 
-                if (typeof other === 'number') {
+                if (other instanceof MovingBlockEntity) {
+                    // Moving block collision - despawn immediately
+                    this.despawn();
+                } else if (typeof other === 'number') {
                     // Block collision
                     const hitPosition = this.position;
                     this.despawn();

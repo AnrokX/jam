@@ -23,10 +23,11 @@
 ## Code Structure
 
 
-Run tests:
+Run Automated Tests:
 ```bash
 bun test
 ```
+
 
 Start development server:
 ```bash

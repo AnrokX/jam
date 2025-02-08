@@ -287,7 +287,7 @@ export class RoundManager {
         // Don't start countdown if in transition
         if (this.roundTransitionPending) return;
 
-        let count = 5;
+        let count = 3;
         
         const sendCount = () => {
             this.world.entityManager.getAllPlayerEntities().forEach(playerEntity => {

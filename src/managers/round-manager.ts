@@ -80,7 +80,7 @@ export class RoundManager {
                 duration: 60000,  // 60 seconds
                 minBlockCount: 8,
                 maxBlockCount: 12,
-                blockSpawnInterval: 1800,
+                blockSpawnInterval: 500,
                 speedMultiplier: 0.5,
                 blockTypes: {
                     normal: 0,
@@ -101,7 +101,7 @@ export class RoundManager {
                 duration: 30000,
                 minBlockCount: 2,
                 maxBlockCount: 4,
-                blockSpawnInterval: 1500,
+                blockSpawnInterval: 500,
                 speedMultiplier: 0.6,
                 blockTypes: {
                     normal: 1.0,    // 100% normal blocks
@@ -122,7 +122,7 @@ export class RoundManager {
                 duration: 30000,
                 minBlockCount: 3,
                 maxBlockCount: 6,
-                blockSpawnInterval: 1800,
+                blockSpawnInterval: 500,
                 speedMultiplier: 0.65,
                 blockTypes: {
                     normal: 0,
@@ -143,7 +143,7 @@ export class RoundManager {
                 duration: 25000,
                 minBlockCount: 2,
                 maxBlockCount: 6,
-                blockSpawnInterval: 1800,
+                blockSpawnInterval: 500,
                 speedMultiplier: 0.7,
                 blockTypes: {
                     normal: 0,
@@ -164,7 +164,7 @@ export class RoundManager {
                 duration: 25000,
                 minBlockCount: 2,
                 maxBlockCount: 4,
-                blockSpawnInterval: 1500,
+                blockSpawnInterval: 500,
                 speedMultiplier: 0.75,
                 blockTypes: {
                     normal: 0,
@@ -185,7 +185,7 @@ export class RoundManager {
                 duration: 25000,
                 minBlockCount: 2,
                 maxBlockCount: 4,
-                blockSpawnInterval: 1800,
+                blockSpawnInterval: 500,
                 speedMultiplier: 0.8,
                 blockTypes: {
                     normal: 0,
@@ -206,7 +206,7 @@ export class RoundManager {
                 duration: 30000,
                 minBlockCount: 2,
                 maxBlockCount: 4,
-                blockSpawnInterval: 1800,
+                blockSpawnInterval: 500,
                 speedMultiplier: 0.85,
                 blockTypes: {
                     normal: 0,
@@ -227,7 +227,7 @@ export class RoundManager {
                 duration: 30000,
                 minBlockCount: 2,
                 maxBlockCount: 4,
-                blockSpawnInterval: 2000,
+                blockSpawnInterval: 500,
                 speedMultiplier: 0.9,
                 blockTypes: {
                     normal: 0,
@@ -248,7 +248,7 @@ export class RoundManager {
                 duration: 30000,
                 minBlockCount: 2,
                 maxBlockCount: 6,
-                blockSpawnInterval: 1800,
+                blockSpawnInterval: 500,
                 speedMultiplier: 0.95,
                 blockTypes: {
                     normal: 0,
@@ -268,7 +268,7 @@ export class RoundManager {
             duration: 30000,
             minBlockCount: 4,
             maxBlockCount: 6,
-            blockSpawnInterval: 2000,
+            blockSpawnInterval: 500,
             speedMultiplier: 1.0,
             blockTypes: {
                 normal: 0,

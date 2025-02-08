@@ -1309,7 +1309,8 @@ export class MovingBlockManager {
       onBlockBroken: () => {
         if (this.scoreManager && (block as any).playerId) {
           const playerId = (block as any).playerId;
-          const score = MOVING_BLOCK_CONFIG.BREAK_SCORE * MovingBlockEntity.DefaultPendulumScoreMultiplier;
+          // Let ScoreManager handle the scoring calculation
+          const score = MOVING_BLOCK_CONFIG.BREAK_SCORE;
           
           this.scoreManager.addScore(playerId, score);
           this.scoreManager.broadcastScores(this.world);

@@ -1,7 +1,7 @@
 // The ScoreManager handles player scoring for block breaks and other game events
 
 import { World, Vector3Like, Entity } from 'hytopia';
-import { MovingBlockEntity } from '../moving_blocks/moving-block-entity';
+import { MovingBlockEntity, MOVING_BLOCK_CONFIG } from '../moving_blocks/moving-block-entity';
 import { ProjectileEntity } from '../entities/projectile-entity';
 import { SceneUIManager } from '../scene-ui/scene-ui-manager';
 import { AudioManager } from './audio-manager';
@@ -36,6 +36,7 @@ export class ScoreManager extends Entity {
     POPUP_MULTIPLIER: 4.0,          // Reduced from 3.5
     RISING_MULTIPLIER: 5.5,         // Reduced from 4.0
     PARABOLIC_MULTIPLIER: 6.0,      // Reduced from 4.5
+    PENDULUM_MULTIPLIER: 5.0,       // Added for pendulum targets
     
     // Combo system adjusted for early game
     MAX_COMBO_BONUS: 0.5,           // Slightly reduced max combo
@@ -274,6 +275,8 @@ export class ScoreManager extends Entity {
         return ScoreManager.SCORING_CONFIG.RISING_MULTIPLIER;
       case 'ParabolicMovement':
         return ScoreManager.SCORING_CONFIG.PARABOLIC_MULTIPLIER;
+      case 'PendulumMovement':
+        return ScoreManager.SCORING_CONFIG.PENDULUM_MULTIPLIER;
       default:
         return ScoreManager.SCORING_CONFIG.BASE_MOVEMENT_MULTIPLIER;
     }

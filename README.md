@@ -54,12 +54,43 @@
     - Shot distance
     - Target size
     - Movement patterns
-    - Combo system
+    - Time-based decay factor
+    - Z-axis movement multiplier
+  - Combo system:
+    - Consecutive hits tracking
+    - Multi-hit bonuses
+    - Combo timeout window (4000ms)
+    - Progressive combo multipliers
+    - Visual combo notifications
+  - Movement-based multipliers:
+    - Static targets: 1.0x
+    - Z-axis movement: 4.0x
+    - Sine wave: 3.0x
+    - Vertical wave: 3.0x
+    - Pop-up targets: 4.0x
+    - Rising targets: 5.5x
+    - Parabolic motion: 6.0x
   - Real-time score tracking
-  - Multi-hit bonuses
 - **UI Features**
   - Projectile counter with animations
   - Score display
+    - Real-time score updates
+    - Round scores
+    - Total scores
+    - Placement points
+  - Dynamic leaderboard
+    - Player rankings
+    - Points tracking
+    - Winner highlighting
+  - Game status indicators
+    - Round number
+    - Round timer
+    - Countdown overlays
+  - Visual feedback
+    - Hit notifications
+    - Block destruction effects
+    - Combo counters with animations
+    - End-game overlays
   - Settings menu
     - Audio volume controls
     - Crosshair settings

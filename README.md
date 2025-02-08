@@ -11,14 +11,55 @@
   - Left/right click handling
   - Input flag management
   - Block breaking mechanics
+  - Block placement
+  - Sound effects on block destruction
 - **Player Management**
   - Join/leave handling
   - Entity spawning/despawning
-  - Basic movement instructions
-- **Debug Tools**
-  - Raycast visualization
-  - Development environment logging
-  - Error handling for visualization
+  - Basic movement and position tracking
+- **Sound System**
+  - Block breaking sound effects
+  - Background music with volume control
+  - Projectile launch sounds
+  - Sound effect attribution
+- **Moving Block System**
+  - Multiple block movement patterns:
+    - Pop-up targets
+    - Rising targets
+    - Parabolic motion
+    - Pendulum swinging
+  - Configurable movement behaviors
+  - Physics-based collisions
+- **Scoring System**
+  - Dynamic score calculation based on:
+    - Shot distance
+    - Target size
+    - Movement patterns
+    - Combo system
+  - Real-time score tracking
+  - Multi-hit bonuses
+- **UI Features**
+  - Projectile counter with animations
+  - Score display
+  - Settings menu
+    - Audio volume controls
+    - Crosshair settings
+      - Size
+      - Color
+      - Toggle component visibility
+  - Visual feedback for actions
+    - Block placement
+    - Block destruction
+    - Projectile launch
+    - Score change
+    - Combo counter
+    
+- **Projectile System**
+  - Physics-based projectile motion
+  - Trajectory preview
+  - Collision detection
+  - Bounce mechanics
+  - Limited ammo system
 
 ## Code Structure
 
@@ -66,3 +107,7 @@ bun install
 ```
 
 credits for blop1 sound effects: https://kronbits.itch.io/freesfx?download#google_vignette
+
+## Credits
+Sound Effects:
+- Block breaking sounds: [Kronbits Free SFX Pack](https://kronbits.itch.io/freesfx)

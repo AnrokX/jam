@@ -51,7 +51,7 @@ export class RoundManager {
     };
     private gameInProgress: boolean = false;
     private roundTransitionPending: boolean = false;
-    private readonly TRANSITION_DURATION: number = 5000; // Default 5 seconds
+    private readonly TRANSITION_DURATION: number = 2000; // Default 5 seconds
 
     // Helper function to get a random Y position within a range
     private getRandomY(min: number, max: number): number {
@@ -287,7 +287,7 @@ export class RoundManager {
         // Don't start countdown if in transition
         if (this.roundTransitionPending) return;
 
-        let count = 5;
+        let count = 3;
         
         const sendCount = () => {
             this.world.entityManager.getAllPlayerEntities().forEach(playerEntity => {

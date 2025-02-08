@@ -43,7 +43,7 @@ export interface ParticleConfig {
 }
 
 export const DESTRUCTION_PARTICLE_CONFIG: ParticleConfig = {
-  COUNT: 20,
+  COUNT: 16,
   SCALE: 0.1,             // Size of each particle
   LIFETIME: 750,           // How long particles exist (ms) - increased and rounded for consistency
   SPREAD_RADIUS: 0.3,      // Initial spread distance

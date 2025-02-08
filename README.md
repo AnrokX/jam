@@ -24,12 +24,31 @@
   - Sound effect attribution
 - **Moving Block System**
   - Multiple block movement patterns:
+    - Static targets (tutorial blocks)
+    - Normal blocks (basic movement)
+    - Sine wave motion
+    - Vertical wave motion
     - Pop-up targets
     - Rising targets
     - Parabolic motion
     - Pendulum swinging
-  - Configurable movement behaviors
-  - Physics-based collisions
+  - Configurable movement behaviors:
+    - Customizable speeds
+    - Variable amplitudes
+    - Adjustable frequencies
+    - Configurable heights and distances
+  - Dynamic spawn system:
+    - Safe spawn positioning
+    - Platform collision avoidance
+    - Block spacing management
+  - Round-based progression:
+    - Tutorial round with static targets
+    - Progressive difficulty increase
+    - Mixed block types in later rounds
+  - Player count scaling:
+    - Increased block counts with more players
+    - Adjusted spawn rates
+    - Balanced difficulty scaling
 - **Scoring System**
   - Dynamic score calculation based on:
     - Shot distance

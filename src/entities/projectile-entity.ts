@@ -41,14 +41,15 @@ export class ProjectileEntity extends Entity {
         SPAWN_HEIGHT_OFFSET: -1.0,  // Meters below eye level (adjust as needed)
         SPAWN_FORWARD_OFFSET: -0.5,  // Meters forward from player (adjust as needed)
         
-        // TF2-style explosion physics (adjusted to be more accurate)
-        BLAST_RADIUS: 3.0,           // Back to original 3.0m radius
-        BLAST_FORCE_MULTIPLIER: 15,  // Reduced from 20 but still strong
+        // TF2-style explosion physics (adjusted for better juggling)
+        BLAST_RADIUS: 3.0,           // Keep original radius
+        BLAST_FORCE_MULTIPLIER: 15,  // Keep strong base force
         SELF_DAMAGE_SCALE: 0.6,      // TF2 Soldier takes 60% self-damage
-        SELF_FORCE_SCALE: 12,        // Increased for better rocket jumps
-        KNOCKBACK_UPWARD_BIAS: 0.6,  // Moderate upward bias for juggling
-        MIN_KNOCKBACK_SPEED: 4,      // Moderate minimum knockback
-        MAX_KNOCKBACK_SPEED: 25,     // Strong but not excessive max knockback
+        SELF_FORCE_SCALE: 12,        // Keep good rocket jumps
+        KNOCKBACK_UPWARD_BIAS: 1.2,  // Much stronger upward bias for better juggling
+        MIN_KNOCKBACK_SPEED: 4,      // Keep moderate minimum
+        MAX_KNOCKBACK_SPEED: 25,     // Keep strong max
+        HORIZONTAL_KNOCKBACK_SCALE: 0.4, // New: Reduce horizontal force for better juggling
     } as const;
 
     // Trajectory preview constants
@@ -481,15 +482,26 @@ export class ProjectileEntity extends Entity {
 
         // Normalize direction
         const normalizedDir = {
-            x: direction.x / distance,
+            x: direction.x / distance * ProjectileEntity.PHYSICS.HORIZONTAL_KNOCKBACK_SCALE, // Reduce horizontal force
             y: direction.y / distance,
-            z: direction.z / distance
+            z: direction.z / distance * ProjectileEntity.PHYSICS.HORIZONTAL_KNOCKBACK_SCALE  // Reduce horizontal force
         };
 
-        // Add upward bias for juggling (reduced bias)
+        // Add stronger upward bias for juggling
         normalizedDir.y += ProjectileEntity.PHYSICS.KNOCKBACK_UPWARD_BIAS;
 
-        // Calculate force based on distance with quadratic falloff (more TF2-like)
+        // Re-normalize after adding upward bias
+        const newMagnitude = Math.sqrt(
+            normalizedDir.x * normalizedDir.x +
+            normalizedDir.y * normalizedDir.y +
+            normalizedDir.z * normalizedDir.z
+        );
+        
+        normalizedDir.x /= newMagnitude;
+        normalizedDir.y /= newMagnitude;
+        normalizedDir.z /= newMagnitude;
+
+        // Calculate force with quadratic falloff
         const forceFalloff = Math.max(0, 1 - Math.pow(distance / ProjectileEntity.PHYSICS.BLAST_RADIUS, 2));
         let forceMultiplier = ProjectileEntity.PHYSICS.BLAST_FORCE_MULTIPLIER * forceFalloff;
 

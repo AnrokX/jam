@@ -4,7 +4,7 @@ import { RaycastHandler } from '../raycast/raycast-handler';
 import { BlockParticleEffects } from '../effects/block-particle-effects';
 import { ScoreManager } from '../managers/score-manager';
 import { AudioManager } from '../managers/audio-manager';
-import { SceneUIManager } from '../managers/scene-ui-manager';
+import { SceneUIManager } from '../scene-ui/scene-ui-manager';
 
 export interface ProjectileOptions extends EntityOptions {
     speed?: number;
@@ -210,6 +210,24 @@ export class ProjectileEntity extends Entity {
                                 const audioManager = AudioManager.getInstance(this.world);
                                 audioManager.playSoundEffect('audio/sfx/damage/hit.mp3', 0.5);
                                 console.log(`[AUDIO] Playing hit sound effect`);
+
+                                // Show damage number at hit position
+                                const sceneUI = SceneUIManager.getInstance(this.world);
+                                // Calculate if it's a critical hit (example: high speed = critical)
+                                const isCritical = this.speed > ProjectileEntity.PHYSICS.DEFAULT_SPEED * 1.5;
+                                
+                                // Show damage number using block notification system
+                                const hitPlayer = this.world.entityManager.getAllPlayerEntities()
+                                    .find(p => p.player.id === this.playerId)?.player;
+                                    
+                                if (hitPlayer) {
+                                    sceneUI.showBlockDestroyedNotification(
+                                        other.position,
+                                        this.damage,
+                                        hitPlayer,
+                                        this.spawnOrigin
+                                    );
+                                }
                             }
 
                             // Show hit notification
@@ -247,7 +265,8 @@ export class ProjectileEntity extends Entity {
                                 damageDealt: this.damage,
                                 comboPoints,
                                 totalScoreGained: this.damage + comboPoints,
-                                hitLocation: this.position
+                                hitLocation: this.position,
+                                isCritical: this.speed > ProjectileEntity.PHYSICS.DEFAULT_SPEED * 1.5
                             });
                         }
                     } else {

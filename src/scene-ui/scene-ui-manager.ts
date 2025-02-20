@@ -185,6 +185,61 @@ export class SceneUIManager {
     `;
   }
 
+  public showDamageNumber(worldPosition: Vector3Like, damage: number, isCritical: boolean = false): void {
+    console.log('Showing damage number:', { damage, position: worldPosition, isCritical });
+    
+    // Create notification data
+    const notification = {
+      type: 'showDamageNumber',
+      data: {
+        damage: Math.round(damage),
+        position: worldPosition,
+        isCritical,
+        style: this.createDamageNumberStyle(damage, isCritical)
+      }
+    };
+
+    // Broadcast to all players
+    this.world.entityManager.getAllPlayerEntities().forEach(entity => {
+      entity.player.ui.sendData(notification);
+    });
+  }
+
+  private createDamageNumberStyle(damage: number, isCritical: boolean): string {
+    const scale = isCritical ? 1.5 : 1 + Math.min(damage / 50, 0.5);
+    const color = isCritical ? '#ff0000' : '#ff6b6b';
+    const glow = isCritical ? '#ff0000' : '#ff4d4d';
+    const duration = 800 + Math.min(damage * 10, 400);
+    
+    return `
+      @keyframes damageNumber {
+        0% {
+          opacity: 0;
+          transform: translate(-50%, -50%) scale(0.5) translateY(0);
+        }
+        20% {
+          opacity: 1;
+          transform: translate(-50%, -50%) scale(${scale}) translateY(-20px);
+        }
+        80% {
+          opacity: 1;
+          transform: translate(-50%, -50%) scale(${scale}) translateY(-40px);
+        }
+        100% {
+          opacity: 0;
+          transform: translate(-50%, -50%) scale(${scale * 0.8}) translateY(-60px);
+        }
+      }
+      animation: damageNumber ${duration}ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      color: ${color};
+      text-shadow: 0 0 10px ${glow};
+      font-family: var(--display-font);
+      font-size: ${24 * scale}px;
+      font-weight: bold;
+      ${isCritical ? 'filter: drop-shadow(0 0 5px #ff0000);' : ''}
+    `;
+  }
+
   public cleanup(): void {
     // No cleanup needed anymore as we're not storing any SceneUI instances
   }

@@ -1438,6 +1438,40 @@
         50% { text-shadow: 0 0 40px var(--glow-red); }
         100% { text-shadow: 0 0 20px var(--glow-red); }
     }
+
+    /* Add this to your existing styles */
+    .damage-number {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 1001;
+      font-family: var(--display-font);
+      font-size: 32px;
+      font-weight: bold;
+      text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+      white-space: nowrap;
+      will-change: transform, opacity;
+      animation: damageNumber 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    @keyframes damageNumber {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.5) translateY(0);
+      }
+      20% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.2) translateY(-20px);
+      }
+      80% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1) translateY(-40px);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.8) translateY(-60px);
+      }
+    }
   </style>
 </head>
 <body>
@@ -1462,6 +1496,11 @@
       <div class="combo-bonus"></div>
     </div>
   </div>
+</template>
+
+<!-- Add this template after the other templates -->
+<template id="damage-number-template">
+  <div class="damage-number">0</div>
 </template>
 
 <script>
@@ -1552,6 +1591,28 @@
     
     return clone;
   });
+
+  // Add this after the other template registrations
+  hytopia.registerSceneUITemplate('showDamageNumber', (id, onState) => {
+    const template = document.getElementById('damage-number-template');
+    const clone = template.content.cloneNode(true);
+    const damageElement = clone.querySelector('.damage-number');
+    
+    onState(state => {
+      if (damageElement && state) {
+        damageElement.textContent = state.damage;
+        damageElement.style.cssText = state.style;
+        
+        // Remove after animation completes
+        setTimeout(() => {
+          damageElement.remove();
+        }, 1000); // Match this with your animation duration
+      }
+    });
+    
+    return clone;
+  });
+
 </script>
 
 <div class="countdown-overlay">

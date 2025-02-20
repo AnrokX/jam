@@ -27,7 +27,7 @@ export class ProjectileEntity extends Entity {
         GRAVITY: 15.24,           // TF2's 800 HU/s² converted to m/s²
         DEFAULT_SPEED: 20.00,     // TF2's 1216 HU/s converted to m/s
         DEFAULT_LIFETIME: 2300,    // 2.3 seconds fuse timer
-        DEFAULT_DAMAGE: 10,       // Typical TF2 grenade damage
+        DEFAULT_DAMAGE: 10,       // Base damage
         UPWARD_ARC: 1.0,          // Reduced to match TF2's arc
         COLLIDER_RADIUS: 0.2,     // Smaller radius for grenades
         MASS: 0.5,                // Increased mass for better physics
@@ -40,6 +40,16 @@ export class ProjectileEntity extends Entity {
         SPEED_LOSS_PER_BOUNCE: 0.35,  // 35% speed loss per bounce
         SPAWN_HEIGHT_OFFSET: -1.0,  // Meters below eye level (adjust as needed)
         SPAWN_FORWARD_OFFSET: -0.5,  // Meters forward from player (adjust as needed)
+        
+        // TF2-style explosion physics
+        BLAST_RADIUS: 3.0,           // Explosion radius in meters
+        BLAST_FORCE_MULTIPLIER: 20,  // Base force multiplier
+        SELF_DAMAGE_SCALE: 0.6,      // TF2 Soldier takes 60% self-damage
+        SELF_FORCE_SCALE: 10,        // Higher force for self-damage (rocket jumps)
+        KNOCKBACK_UPWARD_BIAS: 0.8,  // Upward bias for knockback (juggling)
+        MIN_KNOCKBACK_SPEED: 5,      // Minimum knockback velocity
+        MAX_KNOCKBACK_SPEED: 30,     // Maximum knockback velocity
+        AIR_KNOCKBACK_MULTIPLIER: 1.2 // Extra force when target is airborne
     } as const;
 
     // Trajectory preview constants
@@ -186,97 +196,7 @@ export class ProjectileEntity extends Entity {
                         other.rawRigidBody.setLinearDamping(0.3);
                     }
                 } else if (other instanceof PlayerEntity) {
-                    // Player collision - apply damage and show effects
-                    if (this.playerId && this.playerId !== other.player.id) {  // Only damage if hit by another player
-                        console.log(`[HIT] Player ${this.playerId} hit player ${other.player.id}`, {
-                            damage: this.damage,
-                            projectilePosition: this.position,
-                            hitPlayerPosition: other.position,
-                            projectileSpeed: this.speed,
-                            projectileLifetime: Date.now() - this.spawnTime
-                        });
-
-                        // Get the ScoreManager to track hits
-                        const scoreManager = this.world?.entityManager.getAllEntities()
-                            .find(entity => entity instanceof ScoreManager) as ScoreManager;
-                            
-                        if (scoreManager) {
-                            // Add score to the player who hit
-                            scoreManager.addScore(this.playerId, this.damage);
-                            console.log(`[SCORE] Player ${this.playerId} scored ${this.damage} points for hit`);
-                            
-                            // Play hit sound
-                            if (this.world) {
-                                const audioManager = AudioManager.getInstance(this.world);
-                                audioManager.playSoundEffect('audio/sfx/damage/hit.mp3', 0.5);
-                                console.log(`[AUDIO] Playing hit sound effect`);
-
-                                // Show damage number at hit position
-                                const sceneUI = SceneUIManager.getInstance(this.world);
-                                // Calculate if it's a critical hit (example: high speed = critical)
-                                const isCritical = this.speed > ProjectileEntity.PHYSICS.DEFAULT_SPEED * 1.5;
-                                
-                                // Show damage number using block notification system
-                                const hitPlayer = this.world.entityManager.getAllPlayerEntities()
-                                    .find(p => p.player.id === this.playerId)?.player;
-                                    
-                                if (hitPlayer) {
-                                    sceneUI.showBlockDestroyedNotification(
-                                        other.position,
-                                        this.damage,
-                                        hitPlayer,
-                                        this.spawnOrigin
-                                    );
-                                }
-                            }
-
-                            // Show hit notification
-                            if (this.world) {
-                                const hitPlayer = this.world.entityManager.getAllPlayerEntities()
-                                    .find(p => p.player.id === this.playerId)?.player;
-                                    
-                                if (hitPlayer) {
-                                    hitPlayer.ui.sendData({
-                                        type: 'hitMarker',
-                                        damage: this.damage,
-                                        position: this.position
-                                    });
-                                    console.log(`[UI] Sent hitMarker to player ${this.playerId}`);
-                                }
-
-                                // Notify the hit player
-                                other.player.ui.sendData({
-                                    type: 'damageTaken',
-                                    damage: this.damage,
-                                    fromPlayer: this.playerId
-                                });
-                                console.log(`[UI] Sent damageTaken to player ${other.player.id}`);
-                            }
-
-                            // Add combo points
-                            const comboPoints = Math.min(Math.floor(this.damage), 5);
-                            scoreManager.addScore(this.playerId, comboPoints);
-                            console.log(`[COMBO] Player ${this.playerId} got ${comboPoints} combo points`);
-
-                            // Log final hit summary
-                            console.log(`[HIT SUMMARY] Hit completed:`, {
-                                attackerId: this.playerId,
-                                victimId: other.player.id,
-                                damageDealt: this.damage,
-                                comboPoints,
-                                totalScoreGained: this.damage + comboPoints,
-                                hitLocation: this.position,
-                                isCritical: this.speed > ProjectileEntity.PHYSICS.DEFAULT_SPEED * 1.5
-                            });
-                        }
-                    } else {
-                        console.log(`[HIT IGNORED] Invalid hit:`, {
-                            projectilePlayerId: this.playerId,
-                            hitPlayerId: other.player.id,
-                            reason: this.playerId === other.player.id ? 'Self hit' : 'No player ID'
-                        });
-                    }
-                    this.despawn();
+                    this.handlePlayerCollision(other);
                 }
             }
         });
@@ -541,5 +461,187 @@ export class ProjectileEntity extends Entity {
     // Add getter for spawn origin
     public getSpawnOrigin(): Vector3Like | undefined {
         return this.spawnOrigin ? { ...this.spawnOrigin } : undefined;
+    }
+
+    private applyExplosionForce(hitEntity: PlayerEntity, hitPosition: Vector3Like): void {
+        if (!hitEntity.rawRigidBody) return;
+
+        // Calculate direction from explosion to target
+        const direction = {
+            x: hitEntity.position.x - hitPosition.x,
+            y: hitEntity.position.y - hitPosition.y,
+            z: hitEntity.position.z - hitPosition.z
+        };
+
+        // Calculate distance
+        const distance = Math.sqrt(
+            direction.x * direction.x +
+            direction.y * direction.y +
+            direction.z * direction.z
+        );
+
+        // Normalize direction
+        const normalizedDir = {
+            x: direction.x / distance,
+            y: direction.y / distance,
+            z: direction.z / distance
+        };
+
+        // Add upward bias for juggling
+        normalizedDir.y += ProjectileEntity.PHYSICS.KNOCKBACK_UPWARD_BIAS;
+
+        // Calculate force based on distance
+        const forceFalloff = Math.max(0, 1 - (distance / ProjectileEntity.PHYSICS.BLAST_RADIUS));
+        let forceMultiplier = ProjectileEntity.PHYSICS.BLAST_FORCE_MULTIPLIER * forceFalloff;
+
+        // Check if it's self-damage (for rocket jumps)
+        const isSelfDamage = this.playerId === hitEntity.player.id;
+        if (isSelfDamage) {
+            forceMultiplier *= ProjectileEntity.PHYSICS.SELF_FORCE_SCALE;
+        }
+
+        // Check if target is airborne
+        const isAirborne = !hitEntity.isGrounded;
+        if (isAirborne) {
+            forceMultiplier *= ProjectileEntity.PHYSICS.AIR_KNOCKBACK_MULTIPLIER;
+        }
+
+        // Calculate final impulse
+        const impulse = {
+            x: normalizedDir.x * forceMultiplier,
+            y: normalizedDir.y * forceMultiplier,
+            z: normalizedDir.z * forceMultiplier
+        };
+
+        // Clamp velocity to min/max
+        const velocity = Math.sqrt(
+            impulse.x * impulse.x +
+            impulse.y * impulse.y +
+            impulse.z * impulse.z
+        );
+
+        const clampedVelocity = Math.min(
+            Math.max(velocity, ProjectileEntity.PHYSICS.MIN_KNOCKBACK_SPEED),
+            ProjectileEntity.PHYSICS.MAX_KNOCKBACK_SPEED
+        );
+
+        const velocityScale = clampedVelocity / velocity;
+        impulse.x *= velocityScale;
+        impulse.y *= velocityScale;
+        impulse.z *= velocityScale;
+
+        // Apply impulse to player
+        hitEntity.rawRigidBody.applyImpulse(impulse);
+
+        console.log(`[PHYSICS] Applied explosion force:`, {
+            targetId: hitEntity.player.id,
+            isSelfDamage,
+            isAirborne,
+            distance,
+            forceFalloff,
+            forceMultiplier,
+            impulse,
+            finalVelocity: clampedVelocity
+        });
+    }
+
+    // Modify the collision handler to use the new physics
+    private handlePlayerCollision(other: PlayerEntity): void {
+        if (!this.playerId || !this.isSpawned) return;
+        
+        // Only damage if hit by another player
+        if (this.playerId !== other.player.id) {
+            console.log(`[HIT] Player ${this.playerId} hit player ${other.player.id}`, {
+                damage: this.damage,
+                projectilePosition: this.position,
+                hitPlayerPosition: other.position,
+                projectileSpeed: this.speed,
+                projectileLifetime: Date.now() - this.spawnTime
+            });
+
+            // Apply explosion force and knockback
+            this.applyExplosionForce(other, this.position);
+
+            // Get the ScoreManager to track hits
+            const scoreManager = this.world?.entityManager.getAllEntities()
+                .find(entity => entity instanceof ScoreManager) as ScoreManager;
+            
+            if (scoreManager) {
+                // Add score to the player who hit
+                scoreManager.addScore(this.playerId, this.damage);
+                console.log(`[SCORE] Player ${this.playerId} scored ${this.damage} points for hit`);
+                
+                // Play hit sound
+                if (this.world) {
+                    const audioManager = AudioManager.getInstance(this.world);
+                    audioManager.playSoundEffect('audio/sfx/damage/hit.mp3', 0.5);
+                    console.log(`[AUDIO] Playing hit sound effect`);
+
+                    // Show damage number at hit position
+                    const sceneUI = SceneUIManager.getInstance(this.world);
+                    // Calculate if it's a critical hit (example: high speed = critical)
+                    const isCritical = this.speed > ProjectileEntity.PHYSICS.DEFAULT_SPEED * 1.5;
+                    
+                    // Show damage number using block notification system
+                    const hitPlayer = this.world.entityManager.getAllPlayerEntities()
+                        .find(p => p.player.id === this.playerId)?.player;
+                        
+                    if (hitPlayer) {
+                        sceneUI.showBlockDestroyedNotification(
+                            other.position,
+                            this.damage,
+                            hitPlayer,
+                            this.spawnOrigin
+                        );
+                    }
+                }
+
+                // Show hit notification
+                if (this.world) {
+                    const hitPlayer = this.world.entityManager.getAllPlayerEntities()
+                        .find(p => p.player.id === this.playerId)?.player;
+                        
+                    if (hitPlayer) {
+                        hitPlayer.ui.sendData({
+                            type: 'hitMarker',
+                            damage: this.damage,
+                            position: this.position
+                        });
+                        console.log(`[UI] Sent hitMarker to player ${this.playerId}`);
+                    }
+
+                    // Notify the hit player
+                    other.player.ui.sendData({
+                        type: 'damageTaken',
+                        damage: this.damage,
+                        fromPlayer: this.playerId
+                    });
+                    console.log(`[UI] Sent damageTaken to player ${other.player.id}`);
+                }
+
+                // Add combo points
+                const comboPoints = Math.min(Math.floor(this.damage), 5);
+                scoreManager.addScore(this.playerId, comboPoints);
+                console.log(`[COMBO] Player ${this.playerId} got ${comboPoints} combo points`);
+
+                // Log final hit summary
+                console.log(`[HIT SUMMARY] Hit completed:`, {
+                    attackerId: this.playerId,
+                    victimId: other.player.id,
+                    damageDealt: this.damage,
+                    comboPoints,
+                    totalScoreGained: this.damage + comboPoints,
+                    hitLocation: this.position,
+                    isCritical: this.speed > ProjectileEntity.PHYSICS.DEFAULT_SPEED * 1.5
+                });
+            }
+        } else {
+            console.log(`[HIT IGNORED] Invalid hit:`, {
+                projectilePlayerId: this.playerId,
+                hitPlayerId: other.player.id,
+                reason: this.playerId === other.player.id ? 'Self hit' : 'No player ID'
+            });
+        }
+        this.despawn();
     }
 } 

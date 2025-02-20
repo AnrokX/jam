@@ -3,6 +3,8 @@ import { MovingBlockEntity } from '../moving_blocks/moving-block-entity';
 import { RaycastHandler } from '../raycast/raycast-handler';
 import { BlockParticleEffects } from '../effects/block-particle-effects';
 import { ScoreManager } from '../managers/score-manager';
+import { AudioManager } from '../managers/audio-manager';
+import { SceneUIManager } from '../managers/scene-ui-manager';
 
 export interface ProjectileOptions extends EntityOptions {
     speed?: number;
@@ -184,7 +186,77 @@ export class ProjectileEntity extends Entity {
                         other.rawRigidBody.setLinearDamping(0.3);
                     }
                 } else if (other instanceof PlayerEntity) {
-                    // Player collision - just despawn without applying physics
+                    // Player collision - apply damage and show effects
+                    if (this.playerId && this.playerId !== other.player.id) {  // Only damage if hit by another player
+                        console.log(`[HIT] Player ${this.playerId} hit player ${other.player.id}`, {
+                            damage: this.damage,
+                            projectilePosition: this.position,
+                            hitPlayerPosition: other.position,
+                            projectileSpeed: this.speed,
+                            projectileLifetime: Date.now() - this.spawnTime
+                        });
+
+                        // Get the ScoreManager to track hits
+                        const scoreManager = this.world?.entityManager.getAllEntities()
+                            .find(entity => entity instanceof ScoreManager) as ScoreManager;
+                            
+                        if (scoreManager) {
+                            // Add score to the player who hit
+                            scoreManager.addScore(this.playerId, this.damage);
+                            console.log(`[SCORE] Player ${this.playerId} scored ${this.damage} points for hit`);
+                            
+                            // Play hit sound
+                            if (this.world) {
+                                const audioManager = AudioManager.getInstance(this.world);
+                                audioManager.playSoundEffect('audio/sfx/damage/hit.mp3', 0.5);
+                                console.log(`[AUDIO] Playing hit sound effect`);
+                            }
+
+                            // Show hit notification
+                            if (this.world) {
+                                const hitPlayer = this.world.entityManager.getAllPlayerEntities()
+                                    .find(p => p.player.id === this.playerId)?.player;
+                                    
+                                if (hitPlayer) {
+                                    hitPlayer.ui.sendData({
+                                        type: 'hitMarker',
+                                        damage: this.damage,
+                                        position: this.position
+                                    });
+                                    console.log(`[UI] Sent hitMarker to player ${this.playerId}`);
+                                }
+
+                                // Notify the hit player
+                                other.player.ui.sendData({
+                                    type: 'damageTaken',
+                                    damage: this.damage,
+                                    fromPlayer: this.playerId
+                                });
+                                console.log(`[UI] Sent damageTaken to player ${other.player.id}`);
+                            }
+
+                            // Add combo points
+                            const comboPoints = Math.min(Math.floor(this.damage), 5);
+                            scoreManager.addScore(this.playerId, comboPoints);
+                            console.log(`[COMBO] Player ${this.playerId} got ${comboPoints} combo points`);
+
+                            // Log final hit summary
+                            console.log(`[HIT SUMMARY] Hit completed:`, {
+                                attackerId: this.playerId,
+                                victimId: other.player.id,
+                                damageDealt: this.damage,
+                                comboPoints,
+                                totalScoreGained: this.damage + comboPoints,
+                                hitLocation: this.position
+                            });
+                        }
+                    } else {
+                        console.log(`[HIT IGNORED] Invalid hit:`, {
+                            projectilePlayerId: this.playerId,
+                            hitPlayerId: other.player.id,
+                            reason: this.playerId === other.player.id ? 'Self hit' : 'No player ID'
+                        });
+                    }
                     this.despawn();
                 }
             }

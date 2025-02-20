@@ -46,10 +46,13 @@ export class ProjectileEntity extends Entity {
         BLAST_FORCE_MULTIPLIER: 15,  // Keep strong base force
         SELF_DAMAGE_SCALE: 0.6,      // TF2 Soldier takes 60% self-damage
         SELF_FORCE_SCALE: 12,        // Keep good rocket jumps
-        KNOCKBACK_UPWARD_BIAS: 1.2,  // Much stronger upward bias for better juggling
+        KNOCKBACK_UPWARD_BIAS: 1.2,  // Reduced from 1.2 for more natural juggling
         MIN_KNOCKBACK_SPEED: 4,      // Keep moderate minimum
         MAX_KNOCKBACK_SPEED: 25,     // Keep strong max
-        HORIZONTAL_KNOCKBACK_SCALE: 0.4, // New: Reduce horizontal force for better juggling
+        HORIZONTAL_KNOCKBACK_SCALE: 0.7, // Increased from 0.4 for better pushback
+        FOOT_SHOT_HEIGHT_THRESHOLD: 0.5, // Height difference threshold for foot shots
+        FOOT_SHOT_UPWARD_BONUS: 0.6,    // Extra upward force when hitting feet
+        BODY_SHOT_HORIZONTAL_BONUS: 0.4, // Extra horizontal force when hitting body
     } as const;
 
     // Trajectory preview constants
@@ -480,17 +483,34 @@ export class ProjectileEntity extends Entity {
             direction.z * direction.z
         );
 
-        // Normalize direction
+        // Determine if this is a foot shot based on height difference
+        const heightDiff = hitEntity.position.y - hitPosition.y;
+        const isFootShot = heightDiff > ProjectileEntity.PHYSICS.FOOT_SHOT_HEIGHT_THRESHOLD;
+
+        // Calculate horizontal and vertical components separately
+        const horizontalDist = Math.sqrt(direction.x * direction.x + direction.z * direction.z);
+        
+        // Normalize direction with different scaling for horizontal and vertical
         const normalizedDir = {
-            x: direction.x / distance * ProjectileEntity.PHYSICS.HORIZONTAL_KNOCKBACK_SCALE, // Reduce horizontal force
+            x: direction.x / distance * ProjectileEntity.PHYSICS.HORIZONTAL_KNOCKBACK_SCALE,
             y: direction.y / distance,
-            z: direction.z / distance * ProjectileEntity.PHYSICS.HORIZONTAL_KNOCKBACK_SCALE  // Reduce horizontal force
+            z: direction.z / distance * ProjectileEntity.PHYSICS.HORIZONTAL_KNOCKBACK_SCALE
         };
 
-        // Add stronger upward bias for juggling
-        normalizedDir.y += ProjectileEntity.PHYSICS.KNOCKBACK_UPWARD_BIAS;
+        // Add position-based bias
+        if (isFootShot) {
+            // Foot shots: boost upward force
+            normalizedDir.y += ProjectileEntity.PHYSICS.KNOCKBACK_UPWARD_BIAS + 
+                             ProjectileEntity.PHYSICS.FOOT_SHOT_UPWARD_BONUS;
+        } else {
+            // Body shots: boost horizontal force and add smaller upward bias
+            const horizontalBonus = ProjectileEntity.PHYSICS.BODY_SHOT_HORIZONTAL_BONUS;
+            normalizedDir.x *= (1 + horizontalBonus);
+            normalizedDir.z *= (1 + horizontalBonus);
+            normalizedDir.y += ProjectileEntity.PHYSICS.KNOCKBACK_UPWARD_BIAS * 0.5;
+        }
 
-        // Re-normalize after adding upward bias
+        // Re-normalize after adding bias
         const newMagnitude = Math.sqrt(
             normalizedDir.x * normalizedDir.x +
             normalizedDir.y * normalizedDir.y +
@@ -541,6 +561,8 @@ export class ProjectileEntity extends Entity {
         console.log(`[PHYSICS] Applied explosion force:`, {
             targetId: hitEntity.player.id,
             isSelfDamage,
+            isFootShot,
+            heightDiff,
             distance,
             forceFalloff,
             forceMultiplier,

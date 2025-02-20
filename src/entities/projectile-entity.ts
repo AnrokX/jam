@@ -41,15 +41,14 @@ export class ProjectileEntity extends Entity {
         SPAWN_HEIGHT_OFFSET: -1.0,  // Meters below eye level (adjust as needed)
         SPAWN_FORWARD_OFFSET: -0.5,  // Meters forward from player (adjust as needed)
         
-        // TF2-style explosion physics
-        BLAST_RADIUS: 3.0,           // Explosion radius in meters
-        BLAST_FORCE_MULTIPLIER: 20,  // Base force multiplier
+        // TF2-style explosion physics (adjusted to be more accurate)
+        BLAST_RADIUS: 3.0,           // Back to original 3.0m radius
+        BLAST_FORCE_MULTIPLIER: 15,  // Reduced from 20 but still strong
         SELF_DAMAGE_SCALE: 0.6,      // TF2 Soldier takes 60% self-damage
-        SELF_FORCE_SCALE: 10,        // Higher force for self-damage (rocket jumps)
-        KNOCKBACK_UPWARD_BIAS: 0.8,  // Upward bias for knockback (juggling)
-        MIN_KNOCKBACK_SPEED: 5,      // Minimum knockback velocity
-        MAX_KNOCKBACK_SPEED: 30,     // Maximum knockback velocity
-        AIR_KNOCKBACK_MULTIPLIER: 1.2 // Extra force when target is airborne
+        SELF_FORCE_SCALE: 12,        // Increased for better rocket jumps
+        KNOCKBACK_UPWARD_BIAS: 0.6,  // Moderate upward bias for juggling
+        MIN_KNOCKBACK_SPEED: 4,      // Moderate minimum knockback
+        MAX_KNOCKBACK_SPEED: 25,     // Strong but not excessive max knockback
     } as const;
 
     // Trajectory preview constants
@@ -487,23 +486,17 @@ export class ProjectileEntity extends Entity {
             z: direction.z / distance
         };
 
-        // Add upward bias for juggling
+        // Add upward bias for juggling (reduced bias)
         normalizedDir.y += ProjectileEntity.PHYSICS.KNOCKBACK_UPWARD_BIAS;
 
-        // Calculate force based on distance
-        const forceFalloff = Math.max(0, 1 - (distance / ProjectileEntity.PHYSICS.BLAST_RADIUS));
+        // Calculate force based on distance with quadratic falloff (more TF2-like)
+        const forceFalloff = Math.max(0, 1 - Math.pow(distance / ProjectileEntity.PHYSICS.BLAST_RADIUS, 2));
         let forceMultiplier = ProjectileEntity.PHYSICS.BLAST_FORCE_MULTIPLIER * forceFalloff;
 
         // Check if it's self-damage (for rocket jumps)
         const isSelfDamage = this.playerId === hitEntity.player.id;
         if (isSelfDamage) {
             forceMultiplier *= ProjectileEntity.PHYSICS.SELF_FORCE_SCALE;
-        }
-
-        // Check if target is airborne
-        const isAirborne = !hitEntity.isGrounded;
-        if (isAirborne) {
-            forceMultiplier *= ProjectileEntity.PHYSICS.AIR_KNOCKBACK_MULTIPLIER;
         }
 
         // Calculate final impulse
@@ -536,7 +529,6 @@ export class ProjectileEntity extends Entity {
         console.log(`[PHYSICS] Applied explosion force:`, {
             targetId: hitEntity.player.id,
             isSelfDamage,
-            isAirborne,
             distance,
             forceFalloff,
             forceMultiplier,

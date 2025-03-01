@@ -171,4 +171,8 @@ This project uses a dual licensing approach:
 
 The MIT License allows you to freely use, modify, and distribute the original code, while the HYTOPIA assets have more restricted usage terms.
 
+### Third-Party Assets
+
+- **Bomb Model**: The projectile bomb model (`assets/models/projectiles/bomb.gltf`) is licensed under the **Fab End User License Agreement**. This is a separate license from Epic Games Marketplace and has its own terms of use. This model may not be redistributed separately from this project.
+
 Astro Breaker © 2025

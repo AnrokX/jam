@@ -2,6 +2,7 @@
   "name": "block-breaking-game",
   "version": "1.0.0",
   "description": "A game where you throw things at blocks to break them",
+  "license": "MIT",
   "scripts": {
     "test": "jest"
   },

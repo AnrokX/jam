@@ -161,3 +161,14 @@ credits for blop1 sound effects: https://kronbits.itch.io/freesfx?download#googl
 ## Credits
 Sound Effects:
 - Block breaking sounds: [Kronbits Free SFX Pack](https://kronbits.itch.io/freesfx)
+
+## Licensing
+
+This project uses a dual licensing approach:
+
+- **Main Code**: Licensed under the MIT License - see the [LICENSE](./LICENSE) file
+- **Assets Directory**: Assets in the `/assets` directory are licensed under the HYTOPIA LIMITED USE LICENSE - see [assets/LICENSE.md](./assets/LICENSE.md)
+
+The MIT License allows you to freely use, modify, and distribute the original code, while the HYTOPIA assets have more restricted usage terms.
+
+Astro Breaker © 2025

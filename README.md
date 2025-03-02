@@ -161,3 +161,18 @@ credits for blop1 sound effects: https://kronbits.itch.io/freesfx?download#googl
 ## Credits
 Sound Effects:
 - Block breaking sounds: [Kronbits Free SFX Pack](https://kronbits.itch.io/freesfx)
+
+## Licensing
+
+This project uses a dual licensing approach:
+
+- **Main Code**: Licensed under the MIT License - see the [LICENSE](./LICENSE) file
+- **Assets Directory**: Assets in the `/assets` directory are licensed under the HYTOPIA LIMITED USE LICENSE - see [assets/LICENSE.md](./assets/LICENSE.md)
+
+The MIT License allows you to freely use, modify, and distribute the original code, while the HYTOPIA assets have more restricted usage terms.
+
+### Third-Party Assets
+
+- **Bomb Model**: The projectile bomb model (`assets/models/projectiles/bomb.gltf`) is licensed under the **Fab End User License Agreement**. This is a separate license from Epic Games Marketplace and has its own terms of use. This model may not be redistributed separately from this project. **Important:** If you fork this project, you will need to purchase your own license for this asset or replace it with your own model.
+
+Astro Breaker © 2025
